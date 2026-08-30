@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rift-CMP SDK Demo</title>
+  </head>
+  <body>
+    <h1>Rift-CMP Demo</h1>
+    <button id="track-button">Send test_click</button>
+
+    <script src="../dist/index.global.js"></script>
+    <script>
+      const analyticsClient = window.analytics?.analytics ?? window.analytics;
+
+      console.log("init demo: creating SDK client");
+      analyticsClient.init("site_demo", "pk_demo_12345", { apiUrl: "http://127.0.0.1:3000" });
+      console.log("session after init", analyticsClient.getSessionId ? analyticsClient.getSessionId() : "n/a");
+
+      document.getElementById("track-button").addEventListener("click", () => {
+        analyticsClient.track("test_click", { source: "demo_button" });
+        console.log("manual track sent");
+      });
+    </script>
+  </body>
+</html>

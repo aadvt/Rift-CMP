@@ -1,0 +1,16 @@
+{
+  "name": "rift-cmp",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "sdk",
+    "api",
+    "shared",
+    "database"
+  ],
+  "scripts": {
+    "dev": "npm -w api run dev",
+    "build": "npm -w api run build",
+    "lint": "npm -w api run lint"
+  }
+}

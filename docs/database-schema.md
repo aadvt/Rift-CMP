@@ -1,56 +1,89 @@
 # Database Schema
 
-Storage model backing `api/`. Keep this in sync with the migrations in
-`database/`.
+This is the actual database model used by the MVP. It supports website registration, browser sessions, and the raw event stream emitted by the SDK. Prisma is the schema authoring tool, and it maps camelCase model names onto the underlying PostgreSQL table/column names with `@map` and `@map("...")` attributes.
 
 ## Engine
 
-- Engine: TBD (e.g. PostgreSQL 16)
-- Naming: `snake_case` tables and columns, plural table names
-- Every table has `created_at` / `updated_at` (`timestamptz`, default `now()`)
+- PostgreSQL is the target engine for the MVP.
+- Prisma model names use `PascalCase`, but the database names are mapped to `snake_case` columns such as `site_id`, `public_key`, and `created_at`.
+- The app uses string IDs generated as UUIDs by Prisma (`@default(uuid())`) rather than a separate numeric ID strategy.
+- The MVP does not include an `api_keys` table; `public_key` is stored directly on `websites`.
 
-## Tables
+## Prisma models
 
-### `events`
+### `Website`
 
-Raw ingested events.
+Customer websites that install the SDK.
 
-| Column           | Type          | Constraints                     |
-|------------------|---------------|---------------------------------|
-| `id`             | `uuid`        | PK                              |
-| `event_id`       | `uuid`        | not null, unique                |
-| `event_type`     | `text`        | not null                        |
-| `event_time`     | `timestamptz` | not null                        |
-| `schema_version` | `integer`     | not null                        |
-| `source`         | `text`        | not null                        |
-| `payload`        | `jsonb`       | not null                        |
-| `received_at`    | `timestamptz` | not null, default `now()`       |
+| Prisma field | DB column | Type | Constraints |
+| --- | --- | --- | --- |
+| `id` | `id` | `String` | PK, generated UUID |
+| `name` | `name` | `String` | not null |
+| `domain` | `domain` | `String` | not null |
+| `publicKey` | `public_key` | `String` | not null |
+| `isActive` | `is_active` | `Boolean` | not null, default `true` |
+| `createdAt` | `created_at` | `DateTime` | not null, default `now()` |
 
-Indexes:
-- `idx_events_event_time` on (`event_time`)
-- `idx_events_event_type_time` on (`event_type`, `event_time`)
-- `uq_events_event_id` unique on (`event_id`) — idempotent ingestion
+Notes:
+- A website is uniquely associated with a public key used to validate inbound events.
+- The API validates both `site_id` and `public_key` before accepting events.
 
-### `api_keys`
+### `Session`
 
-Credentials for SDK/service clients.
+Browser sessions for a site.
 
-| Column        | Type          | Constraints               |
-|---------------|---------------|---------------------------|
-| `id`          | `uuid`        | PK                        |
-| `hashed_key`  | `text`        | not null, unique          |
-| `name`        | `text`        | not null                  |
-| `scopes`      | `text[]`      | not null, default `'{}'`  |
-| `revoked_at`  | `timestamptz` | nullable                  |
+| Prisma field | DB column | Type | Constraints |
+| --- | --- | --- | --- |
+| `id` | `id` | `String` | PK, generated UUID |
+| `siteId` | `site_id` | `String` | not null, FK to `websites.id` |
+| `startedAt` | `started_at` | `DateTime` | not null |
+| `lastActivity` | `last_activity` | `DateTime` | not null |
 
-_Add further tables as the model grows._
+Notes:
+- Each session belongs to exactly one website.
+- `last_activity` is refreshed as events continue arriving for that session.
+
+### `Event`
+
+Normalized raw ingestion table for SDK events.
+
+| Prisma field | DB column | Type | Constraints |
+| --- | --- | --- | --- |
+| `id` | `id` | `String` | PK, generated UUID |
+| `eventId` | `event_id` | `String` | not null, unique |
+| `siteId` | `site_id` | `String` | not null, FK to `websites.id` |
+| `sessionId` | `session_id` | `String` | not null, FK to `sessions.id` |
+| `eventType` | `event_type` | `String` | not null |
+| `name` | `name` | `String?` | nullable |
+| `eventTime` | `event_time` | `DateTime` | not null |
+| `pageUrl` | `page_url` | `String` | not null |
+| `pageTitle` | `page_title` | `String` | not null |
+| `referrer` | `referrer` | `String?` | nullable |
+| `deviceType` | `device_type` | `String` | not null |
+| `browser` | `browser` | `String` | not null |
+| `os` | `os` | `String` | not null |
+| `properties` | `properties` | `Json?` | nullable |
+| `receivedAt` | `received_at` | `DateTime` | not null, default `now()` |
+
+Notes:
+- `event_type` is one of `page_view`, `session_start`, or `custom`.
+- `name` is populated for custom events and left null for automatic events.
+- `properties` stores arbitrary JSON for custom events and may be `null` for automatic events.
+
+## Indexing expectations
+
+At minimum, the event table should support:
+- filtering by `site_id`
+- filtering by `event_time`
+- filtering by `event_type`
+- joins on `session_id`
 
 ## Retention
 
-- `events` retained for TBD days, then archived/deleted by a scheduled job.
+The MVP does not yet specify a retention policy. This will be added when the first production storage strategy is defined.
 
 ## Migrations
 
-- Tool: TBD (e.g. `sqlx`, `flyway`, `alembic`, `golang-migrate`)
-- Location: [`../database/`](../database)
-- Forward-only; every migration has an `up` and, where feasible, a `down`.
+- Prisma schema lives in `database/prisma/schema.prisma`.
+- Migrations are created with Prisma from `database/`.
+- The repo includes the `database` package + seed script used for local development and test data setup.

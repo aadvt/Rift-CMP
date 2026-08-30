@@ -1,0 +1,21 @@
+{
+  "name": "@rift-cmp/sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format iife --global-name analytics --target es2022 --out-dir dist --minify"
+  },
+  "dependencies": {
+    "@rift-cmp/shared": "*"
+  },
+  "devDependencies": {
+    "tsup": "^8.1.10",
+    "typescript": "^5.6.2"
+  }
+}

@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Website {
+  id         String   @id @default(uuid())
+  name       String
+  domain     String
+  publicKey  String   @map("public_key")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  sessions   Session[]
+  events     Event[]
+
+  @@map("websites")
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  siteId       String   @map("site_id")
+  startedAt    DateTime @default(now()) @map("started_at")
+  lastActivity DateTime @updatedAt @map("last_activity")
+  website      Website  @relation(fields: [siteId], references: [id])
+  events       Event[]
+
+  @@map("sessions")
+}
+
+model Event {
+  id         String   @id @default(uuid())
+  eventId    String   @unique @map("event_id")
+  siteId     String   @map("site_id")
+  sessionId  String   @map("session_id")
+  eventType  String   @map("event_type")
+  name       String?
+  eventTime  DateTime @map("event_time")
+  pageUrl    String   @map("page_url")
+  pageTitle  String   @map("page_title")
+  referrer   String?
+  deviceType String   @map("device_type")
+  browser    String
+  os         String
+  properties Json?
+  receivedAt DateTime @default(now()) @map("received_at")
+
+  website    Website  @relation(fields: [siteId], references: [id])
+  session    Session  @relation(fields: [sessionId], references: [id])
+
+  @@map("events")
+}
