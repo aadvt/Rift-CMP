@@ -29,6 +29,7 @@ model Session {
   website      Website  @relation(fields: [siteId], references: [id])
   events       Event[]
 
+  @@index([siteId])
   @@map("sessions")
 }
 
@@ -52,5 +53,11 @@ model Event {
   website    Website  @relation(fields: [siteId], references: [id])
   session    Session  @relation(fields: [sessionId], references: [id])
 
+  // Access patterns required by docs/database-schema.md: filtering by site_id,
+  // event_time and event_type, and joins on session_id. Postgres does not
+  // index foreign keys automatically, so these are declared explicitly.
+  @@index([siteId, eventTime])
+  @@index([siteId, eventType, eventTime])
+  @@index([sessionId])
   @@map("events")
 }

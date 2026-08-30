@@ -27,6 +27,9 @@ function getClient(siteId?: string, publicKey?: string, options?: SDKOptions) {
     state.client = new AnalyticsClient(siteId, publicKey, options);
     state.siteId = siteId;
     state.publicKey = publicKey;
+    // A consent check registered before init() must also gate the automatic
+    // session_start / page_view events that init() emits, not just track().
+    state.client.setConsentCheck(state.consentCheck);
   }
   return state.client;
 }

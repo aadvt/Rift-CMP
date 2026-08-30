@@ -87,14 +87,29 @@ export async function POST(request: NextRequest) {
     return jsonError("invalid_request", "One or more events are invalid.", rejectedEvents);
   }
 
-  const siteIds = new Set(validatedEvents.map((event) => event.site_id));
+  const siteIds = [...new Set(validatedEvents.map((event) => event.site_id))];
 
-  for (const siteId of siteIds) {
-    const website = await prisma.website.findFirst({
-      where: { id: siteId, publicKey },
+  let websites: Array<{ id: string; isActive: boolean }>;
+  try {
+    websites = await prisma.website.findMany({
+      where: { id: { in: siteIds }, publicKey },
       select: { id: true, isActive: true },
     });
+  } catch (error) {
+    console.error("[rift-cmp] failed to look up websites", error);
+    return jsonError("ingest_failed", "Failed to verify site credentials.", [], 500);
+  }
 
+  const websiteById = new Map(websites.map((website) => [website.id, website]));
+
+  for (const siteId of siteIds) {
+    const website = websiteById.get(siteId);
+
+    // A site_id that does not exist and a site_id whose public_key does not
+    // match are deliberately indistinguishable: both return 401. Reporting 404
+    // for the former would let a caller enumerate valid site IDs. See
+    // docs/architecture.md and docs/integration-contract.md, which define 401
+    // for bad keys and 403 for inactive sites, and no 404.
     if (!website) {
       return jsonError("unauthorized", `Website not authorized for site_id: ${siteId}.`, [], 401);
     }
@@ -106,55 +121,57 @@ export async function POST(request: NextRequest) {
 
   const accepted = validatedEvents.length;
 
-  for (const event of validatedEvents) {
-    const session = await prisma.session.upsert({
-      where: { id: event.session_id },
-      update: { lastActivity: new Date(event.event_time) },
-      create: {
-        id: event.session_id,
-        siteId: event.site_id,
-        startedAt: new Date(event.event_time),
-        lastActivity: new Date(event.event_time),
-      },
-    });
+  try {
+    // One transaction for the whole batch: a mid-batch failure must not leave
+    // some events persisted and others dropped.
+    await prisma.$transaction(
+      validatedEvents.flatMap((event) => {
+        const eventTime = new Date(event.event_time);
+        const properties = event.payload.properties
+          ? (event.payload.properties as Prisma.InputJsonValue)
+          : Prisma.JsonNull;
 
-    const properties = event.payload.properties
-      ? (event.payload.properties as Prisma.InputJsonValue)
-      : Prisma.JsonNull;
-
-    await prisma.event.upsert({
-      where: { eventId: event.event_id },
-      update: {
-        siteId: event.site_id,
-        sessionId: session.id,
-        eventType: event.event_type,
-        name: event.name ?? null,
-        eventTime: new Date(event.event_time),
-        pageUrl: event.payload.page.url,
-        pageTitle: event.payload.page.title,
-        referrer: event.payload.referrer ?? null,
-        deviceType: event.payload.device.type,
-        browser: event.payload.device.browser,
-        os: event.payload.device.os,
-        properties,
-      },
-      create: {
-        id: event.event_id,
-        eventId: event.event_id,
-        siteId: event.site_id,
-        sessionId: session.id,
-        eventType: event.event_type,
-        name: event.name ?? null,
-        eventTime: new Date(event.event_time),
-        pageUrl: event.payload.page.url,
-        pageTitle: event.payload.page.title,
-        referrer: event.payload.referrer ?? null,
-        deviceType: event.payload.device.type,
-        browser: event.payload.device.browser,
-        os: event.payload.device.os,
-        properties,
-      },
-    });
+        return [
+          prisma.session.upsert({
+            where: { id: event.session_id },
+            update: { lastActivity: eventTime },
+            create: {
+              id: event.session_id,
+              siteId: event.site_id,
+              startedAt: eventTime,
+              lastActivity: eventTime,
+            },
+          }),
+          // Idempotent by event_id: a replayed event is a no-op update rather
+          // than a second row, per docs/api-spec.md.
+          prisma.event.upsert({
+            where: { eventId: event.event_id },
+            update: {},
+            create: {
+              eventId: event.event_id,
+              siteId: event.site_id,
+              sessionId: event.session_id,
+              eventType: event.event_type,
+              name: event.name ?? null,
+              eventTime,
+              pageUrl: event.payload.page.url,
+              pageTitle: event.payload.page.title,
+              referrer: event.payload.referrer ?? null,
+              deviceType: event.payload.device.type,
+              browser: event.payload.device.browser,
+              os: event.payload.device.os,
+              properties,
+            },
+          }),
+        ];
+      }),
+    );
+  } catch (error) {
+    // Without this the handler would throw, and Next's default 500 carries no
+    // CORS headers — a browser would see an opaque CORS failure instead of a
+    // server error, and the SDK could not read the status to decide on retry.
+    console.error("[rift-cmp] failed to persist events", error);
+    return jsonError("ingest_failed", "Failed to persist events.", [], 500);
   }
 
   return setCorsHeaders(

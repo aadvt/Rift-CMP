@@ -4,6 +4,8 @@ import { getPageContext } from "./page";
 import type { ConsentCheck, SDKOptions, SessionState } from "./types";
 
 const DEFAULT_API_URL = "http://127.0.0.1:3000";
+// Envelope `source` per docs/event-schema.md: SDK identifier and version.
+const SDK_SOURCE = "rift-cmp-sdk/0.1.0";
 const SESSION_TTL_MS = 30 * 60 * 1000;
 const FLUSH_INTERVAL_MS = 2000;
 const MAX_BATCH_SIZE = 10;
@@ -50,10 +52,10 @@ export class AnalyticsClient {
       const sessionStarted = currentSession.isNewSession;
 
       if (sessionStarted) {
-        void this.trackInternal("session_start", undefined, { source: "sdk_session" });
+        void this.trackInternal("session_start");
       }
 
-      void this.trackInternal("page_view", undefined, { source: "sdk_page" });
+      void this.trackInternal("page_view");
 
       if (this.eventQueue.length > 0) {
         void this.flushQueue();
@@ -129,7 +131,7 @@ export class AnalyticsClient {
   private async trackInternal(
     eventType: "page_view" | "session_start" | "custom",
     name?: string,
-    options: { properties?: Record<string, unknown>; source?: string } = {},
+    options: { properties?: Record<string, unknown> } = {},
   ) {
     try {
       if (!this.siteId) {
@@ -150,7 +152,7 @@ export class AnalyticsClient {
   private buildEvent(
     eventType: "page_view" | "session_start" | "custom",
     name?: string,
-    options: { properties?: Record<string, unknown>; source?: string } = {},
+    options: { properties?: Record<string, unknown> } = {},
   ): AnalyticsEvent {
     if (!this.siteId) {
       throw new Error("analytics.init(siteId) must be called before analytics.track().");
@@ -172,7 +174,7 @@ export class AnalyticsClient {
       name: eventType === "custom" ? name : eventType,
       event_time: new Date().toISOString(),
       schema_version: 1,
-      source: options.source ?? "rift-cmp-sdk/0.1.0",
+      source: SDK_SOURCE,
       payload: {
         page: {
           url: typeof window !== "undefined" ? window.location.href : "unknown",
@@ -183,7 +185,7 @@ export class AnalyticsClient {
           browser: device.browser,
           os: device.os,
         },
-        referrer: page.initialReferrer ?? page.referrer ?? null,
+        referrer: page.initialReferrer,
         properties: options.properties ?? {},
       },
     };
@@ -290,8 +292,18 @@ export class AnalyticsClient {
     window.addEventListener("beforeunload", () => this.flushBeacon());
   }
 
+  // Flush on tab close / hidden. `navigator.sendBeacon` cannot set request
+  // headers, so it can never send `Authorization: Bearer <public_key>` and the
+  // API rejects every beacon with 401. `fetch(..., { keepalive: true })` also
+  // survives page unload but does support headers, so it is used instead.
+  //
+  // The queue is deliberately NOT cleared here: this request cannot be awaited
+  // during unload, so delivery is unknowable. Events stay in localStorage and
+  // are re-sent on the next page load, where the API deduplicates them by
+  // event_id. Losing the queue on an assumed success is worse than sending a
+  // duplicate the API already ignores.
   private flushBeacon() {
-    if (typeof navigator === "undefined" || !("sendBeacon" in navigator)) {
+    if (typeof fetch === "undefined") {
       return;
     }
 
@@ -300,15 +312,26 @@ export class AnalyticsClient {
       return;
     }
 
-    const body = JSON.stringify({ events: payload });
-    const successful = navigator.sendBeacon(`${this.apiUrl}/api/v1/events`, body);
+    this.persistQueue(payload);
 
-    if (successful) {
-      this.eventQueue = [];
-      this.clearPersistedQueue();
-      this.retryCounts.clear();
-    } else {
-      this.persistQueue(payload);
+    try {
+      void fetch(`${this.apiUrl}/api/v1/events`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.publicKey}`,
+        },
+        body: JSON.stringify({ events: payload }),
+        mode: "cors",
+        // The fetch spec caps keepalive request bodies at 64 KB. The queue is
+        // capped at MAX_PERSISTED_EVENTS, which keeps it well under that.
+        keepalive: true,
+      }).catch(() => {
+        // Unload is in progress; nothing can be reported. The persisted queue
+        // above is the recovery path.
+      });
+    } catch {
+      // Ignore: events remain persisted for the next page load.
     }
   }
 
