@@ -30,10 +30,6 @@ const eventSchema = z.object({
   }),
 });
 
-const batchSchema = z.object({
-  events: z.array(eventSchema),
-});
-
 export async function OPTIONS() {
   return setCorsHeaders(new Response(null, { status: 204 }));
 }

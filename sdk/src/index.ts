@@ -3,15 +3,15 @@ import type { ConsentCheck, SDKOptions } from "./types";
 
 const state = {
   client: null as AnalyticsClient | null,
+  siteId: null as string | null,
+  publicKey: null as string | null,
   consentCheck: (() => true) as (purpose: string) => boolean,
 };
 
 function getClient(siteId?: string, publicKey?: string, options?: SDKOptions) {
-  const current = state.client as (AnalyticsClient & { siteId?: string | null; publicKey?: string | null }) | null;
-
-  if (current && siteId && publicKey) {
-    const siteChanged = current.siteId !== siteId;
-    const keyChanged = current.publicKey !== publicKey;
+  if (state.client && siteId && publicKey) {
+    const siteChanged = state.siteId !== siteId;
+    const keyChanged = state.publicKey !== publicKey;
     if (siteChanged || keyChanged) {
       state.client = null;
     }
@@ -25,6 +25,8 @@ function getClient(siteId?: string, publicKey?: string, options?: SDKOptions) {
       throw new Error("analytics.init(siteId, publicKey, options) requires a publicKey.");
     }
     state.client = new AnalyticsClient(siteId, publicKey, options);
+    state.siteId = siteId;
+    state.publicKey = publicKey;
   }
   return state.client;
 }

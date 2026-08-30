@@ -17,7 +17,6 @@ export class AnalyticsClient {
   private apiUrl: string;
   private sessionState: SessionState | null = null;
   private consentCheck: ConsentCheck = () => true;
-  private pageContext = getPageContext();
   private eventQueue: AnalyticsEvent[] = [];
   private flushTimer: number | null = null;
   private retryCounts = new Map<string, number>();
