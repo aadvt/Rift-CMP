@@ -1,8 +1,7 @@
-# Your Side
+# Rift-CMP
 
-This directory contains our side of the Rift-CMP integration: the SDK, API, and
-database components, along with the shared contracts that define how the two
-sides communicate.
+Our side of the Rift-CMP integration: the SDK, API, and database components,
+along with the shared contracts that define how the two sides communicate.
 
 ## Layout
 
