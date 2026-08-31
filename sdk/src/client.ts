@@ -202,15 +202,24 @@ export class AnalyticsClient {
     if (this.eventQueue.length >= this.maxBatchSize) {
       this.cancelScheduledFlush();
       void this.flushQueue();
+    }
+
+    // Always leave a scheduled drain behind. flushQueue() is a no-op while
+    // another flush is already in flight, so without this the size-triggered
+    // path above could cancel the pending timer, do nothing, and strand the
+    // queue until some later event happened to schedule a new one.
+    this.scheduleFlush();
+  }
+
+  private scheduleFlush(delayMs: number = this.flushIntervalMs) {
+    if (this.flushTimer !== null || this.eventQueue.length === 0) {
       return;
     }
 
-    if (this.flushTimer === null) {
-      this.flushTimer = window.setTimeout(() => {
-        this.flushTimer = null;
-        void this.flushQueue();
-      }, this.flushIntervalMs);
-    }
+    this.flushTimer = window.setTimeout(() => {
+      this.flushTimer = null;
+      void this.flushQueue();
+    }, delayMs);
   }
 
   private cancelScheduledFlush() {
@@ -260,10 +269,8 @@ export class AnalyticsClient {
         const highestAttempts = Math.max(...retryable.map((event) => this.retryCounts.get(event.event_id) ?? 0), 1);
         const nextDelay = 250 * 2 ** Math.max(0, highestAttempts - 1);
         this.persistQueue(this.eventQueue);
-        this.flushTimer = window.setTimeout(() => {
-          this.flushTimer = null;
-          void this.flushQueue();
-        }, nextDelay);
+        this.cancelScheduledFlush();
+        this.scheduleFlush(nextDelay);
       }
 
       if (exhausted.length > 0) {
@@ -274,6 +281,8 @@ export class AnalyticsClient {
       console.warn("[rift-cmp] queue flush failed; events kept for retry", error);
     } finally {
       this.isFlushing = false;
+      // Anything queued while this flush was in flight still needs a drain.
+      this.scheduleFlush();
     }
   }
 
