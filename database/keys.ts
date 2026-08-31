@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { PUBLIC_KEY_PREFIX, SECRET_KEY_PREFIX } from "@rift-cmp/shared";
+import { DELIVERY_KEY_PREFIX, PUBLIC_KEY_PREFIX, SECRET_KEY_PREFIX } from "@rift-cmp/shared";
 
 /**
  * Credential material for the two authentication planes.
@@ -17,7 +17,7 @@ import { PUBLIC_KEY_PREFIX, SECRET_KEY_PREFIX } from "@rift-cmp/shared";
  * no dictionary to attack, so a slow KDF would only add latency.
  */
 
-export { PUBLIC_KEY_PREFIX, SECRET_KEY_PREFIX };
+export { PUBLIC_KEY_PREFIX, SECRET_KEY_PREFIX, DELIVERY_KEY_PREFIX };
 
 export function generatePublicKey(): string {
   return `${PUBLIC_KEY_PREFIX}${randomBytes(16).toString("hex")}`;
@@ -30,6 +30,21 @@ export function generateSecretKey(): string {
 /** Digest used as the stored, indexed lookup value for a secret key. */
 export function hashSecretKey(secretKey: string): string {
   return createHash("sha256").update(secretKey, "utf8").digest("hex");
+}
+
+/**
+ * Mints a recipient delivery credential.
+ *
+ * Hashed with the same SHA-256 as organisation secrets: these are high-entropy
+ * random tokens, not passwords, so there is no dictionary for a slow KDF to
+ * defend against.
+ */
+export function generateDeliveryKey(): string {
+  return `${DELIVERY_KEY_PREFIX}${randomBytes(32).toString("hex")}`;
+}
+
+export function isDeliveryKeyFormat(value: string): boolean {
+  return value.startsWith(DELIVERY_KEY_PREFIX) && value.length > DELIVERY_KEY_PREFIX.length;
 }
 
 export function isPublicKeyFormat(value: string): boolean {

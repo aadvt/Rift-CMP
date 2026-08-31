@@ -18,6 +18,16 @@ export const PUBLIC_KEY_PREFIX = "pk_";
 /** Server-side organisation secret. Never leaves a trusted environment. */
 export const SECRET_KEY_PREFIX = "sk_";
 
+/**
+ * Delivery credential for a target fiduciary collecting sealed envelopes.
+ *
+ * A third plane, separate from both of the above: it authorises collecting
+ * ciphertext addressed to one recipient and nothing else. It confers no ability
+ * to decrypt - that requires the recipient's X25519 private key, which Rift
+ * never sees.
+ */
+export const DELIVERY_KEY_PREFIX = "rk_";
+
 /** An organisation as exposed over the API. Never includes key material. */
 export interface OrganisationSummary {
   organisation_id: string;

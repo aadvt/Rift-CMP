@@ -83,6 +83,25 @@ export type NoticePurpose = $Result.DefaultSelection<Prisma.$NoticePurposePayloa
  * (principal, purpose) - it is never stored as a mutable flag.
  */
 export type ConsentRecord = $Result.DefaultSelection<Prisma.$ConsentRecordPayload>
+/**
+ * Model DataRecipient
+ * A target fiduciary a source organisation is permitted to send data to.
+ */
+export type DataRecipient = $Result.DefaultSelection<Prisma.$DataRecipientPayload>
+/**
+ * Model TransferAuthorisation
+ * Permission to make one specific transfer. Single use, time bounded, and tied
+ * to the exact consent decision it relied on.
+ */
+export type TransferAuthorisation = $Result.DefaultSelection<Prisma.$TransferAuthorisationPayload>
+/**
+ * Model TransferRecord
+ * What actually happened, plus the sealed payload while it is in transit.
+ * 
+ * Every payload column here is opaque to Rift. There is deliberately no column
+ * for plaintext and none for a decryption key.
+ */
+export type TransferRecord = $Result.DefaultSelection<Prisma.$TransferRecordPayload>
 
 /**
  * ##  Prisma Client ʲˢ
@@ -311,6 +330,36 @@ export class PrismaClient<
     * ```
     */
   get consentRecord(): Prisma.ConsentRecordDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.dataRecipient`: Exposes CRUD operations for the **DataRecipient** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more DataRecipients
+    * const dataRecipients = await prisma.dataRecipient.findMany()
+    * ```
+    */
+  get dataRecipient(): Prisma.DataRecipientDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.transferAuthorisation`: Exposes CRUD operations for the **TransferAuthorisation** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more TransferAuthorisations
+    * const transferAuthorisations = await prisma.transferAuthorisation.findMany()
+    * ```
+    */
+  get transferAuthorisation(): Prisma.TransferAuthorisationDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.transferRecord`: Exposes CRUD operations for the **TransferRecord** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more TransferRecords
+    * const transferRecords = await prisma.transferRecord.findMany()
+    * ```
+    */
+  get transferRecord(): Prisma.TransferRecordDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -762,7 +811,10 @@ export namespace Prisma {
     PolicyVersion: 'PolicyVersion',
     Notice: 'Notice',
     NoticePurpose: 'NoticePurpose',
-    ConsentRecord: 'ConsentRecord'
+    ConsentRecord: 'ConsentRecord',
+    DataRecipient: 'DataRecipient',
+    TransferAuthorisation: 'TransferAuthorisation',
+    TransferRecord: 'TransferRecord'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -781,7 +833,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "organisation" | "website" | "session" | "event" | "principal" | "purpose" | "policy" | "policyVersion" | "notice" | "noticePurpose" | "consentRecord"
+      modelProps: "organisation" | "website" | "session" | "event" | "principal" | "purpose" | "policy" | "policyVersion" | "notice" | "noticePurpose" | "consentRecord" | "dataRecipient" | "transferAuthorisation" | "transferRecord"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1599,6 +1651,228 @@ export namespace Prisma {
           }
         }
       }
+      DataRecipient: {
+        payload: Prisma.$DataRecipientPayload<ExtArgs>
+        fields: Prisma.DataRecipientFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.DataRecipientFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DataRecipientPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.DataRecipientFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DataRecipientPayload>
+          }
+          findFirst: {
+            args: Prisma.DataRecipientFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DataRecipientPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.DataRecipientFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DataRecipientPayload>
+          }
+          findMany: {
+            args: Prisma.DataRecipientFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DataRecipientPayload>[]
+          }
+          create: {
+            args: Prisma.DataRecipientCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DataRecipientPayload>
+          }
+          createMany: {
+            args: Prisma.DataRecipientCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.DataRecipientCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DataRecipientPayload>[]
+          }
+          delete: {
+            args: Prisma.DataRecipientDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DataRecipientPayload>
+          }
+          update: {
+            args: Prisma.DataRecipientUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DataRecipientPayload>
+          }
+          deleteMany: {
+            args: Prisma.DataRecipientDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.DataRecipientUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.DataRecipientUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DataRecipientPayload>[]
+          }
+          upsert: {
+            args: Prisma.DataRecipientUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DataRecipientPayload>
+          }
+          aggregate: {
+            args: Prisma.DataRecipientAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDataRecipient>
+          }
+          groupBy: {
+            args: Prisma.DataRecipientGroupByArgs<ExtArgs>
+            result: $Utils.Optional<DataRecipientGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.DataRecipientCountArgs<ExtArgs>
+            result: $Utils.Optional<DataRecipientCountAggregateOutputType> | number
+          }
+        }
+      }
+      TransferAuthorisation: {
+        payload: Prisma.$TransferAuthorisationPayload<ExtArgs>
+        fields: Prisma.TransferAuthorisationFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.TransferAuthorisationFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TransferAuthorisationPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.TransferAuthorisationFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TransferAuthorisationPayload>
+          }
+          findFirst: {
+            args: Prisma.TransferAuthorisationFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TransferAuthorisationPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.TransferAuthorisationFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TransferAuthorisationPayload>
+          }
+          findMany: {
+            args: Prisma.TransferAuthorisationFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TransferAuthorisationPayload>[]
+          }
+          create: {
+            args: Prisma.TransferAuthorisationCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TransferAuthorisationPayload>
+          }
+          createMany: {
+            args: Prisma.TransferAuthorisationCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.TransferAuthorisationCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TransferAuthorisationPayload>[]
+          }
+          delete: {
+            args: Prisma.TransferAuthorisationDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TransferAuthorisationPayload>
+          }
+          update: {
+            args: Prisma.TransferAuthorisationUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TransferAuthorisationPayload>
+          }
+          deleteMany: {
+            args: Prisma.TransferAuthorisationDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.TransferAuthorisationUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.TransferAuthorisationUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TransferAuthorisationPayload>[]
+          }
+          upsert: {
+            args: Prisma.TransferAuthorisationUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TransferAuthorisationPayload>
+          }
+          aggregate: {
+            args: Prisma.TransferAuthorisationAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateTransferAuthorisation>
+          }
+          groupBy: {
+            args: Prisma.TransferAuthorisationGroupByArgs<ExtArgs>
+            result: $Utils.Optional<TransferAuthorisationGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.TransferAuthorisationCountArgs<ExtArgs>
+            result: $Utils.Optional<TransferAuthorisationCountAggregateOutputType> | number
+          }
+        }
+      }
+      TransferRecord: {
+        payload: Prisma.$TransferRecordPayload<ExtArgs>
+        fields: Prisma.TransferRecordFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.TransferRecordFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TransferRecordPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.TransferRecordFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TransferRecordPayload>
+          }
+          findFirst: {
+            args: Prisma.TransferRecordFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TransferRecordPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.TransferRecordFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TransferRecordPayload>
+          }
+          findMany: {
+            args: Prisma.TransferRecordFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TransferRecordPayload>[]
+          }
+          create: {
+            args: Prisma.TransferRecordCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TransferRecordPayload>
+          }
+          createMany: {
+            args: Prisma.TransferRecordCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.TransferRecordCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TransferRecordPayload>[]
+          }
+          delete: {
+            args: Prisma.TransferRecordDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TransferRecordPayload>
+          }
+          update: {
+            args: Prisma.TransferRecordUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TransferRecordPayload>
+          }
+          deleteMany: {
+            args: Prisma.TransferRecordDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.TransferRecordUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.TransferRecordUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TransferRecordPayload>[]
+          }
+          upsert: {
+            args: Prisma.TransferRecordUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TransferRecordPayload>
+          }
+          aggregate: {
+            args: Prisma.TransferRecordAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateTransferRecord>
+          }
+          groupBy: {
+            args: Prisma.TransferRecordGroupByArgs<ExtArgs>
+            result: $Utils.Optional<TransferRecordGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.TransferRecordCountArgs<ExtArgs>
+            result: $Utils.Optional<TransferRecordCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -1706,6 +1980,9 @@ export namespace Prisma {
     notice?: NoticeOmit
     noticePurpose?: NoticePurposeOmit
     consentRecord?: ConsentRecordOmit
+    dataRecipient?: DataRecipientOmit
+    transferAuthorisation?: TransferAuthorisationOmit
+    transferRecord?: TransferRecordOmit
   }
 
   /* Types for Logging */
@@ -1790,6 +2067,7 @@ export namespace Prisma {
     purposes: number
     policies: number
     notices: number
+    recipients: number
   }
 
   export type OrganisationCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -1797,6 +2075,7 @@ export namespace Prisma {
     purposes?: boolean | OrganisationCountOutputTypeCountPurposesArgs
     policies?: boolean | OrganisationCountOutputTypeCountPoliciesArgs
     notices?: boolean | OrganisationCountOutputTypeCountNoticesArgs
+    recipients?: boolean | OrganisationCountOutputTypeCountRecipientsArgs
   }
 
   // Custom InputTypes
@@ -1838,6 +2117,13 @@ export namespace Prisma {
     where?: NoticeWhereInput
   }
 
+  /**
+   * OrganisationCountOutputType without action
+   */
+  export type OrganisationCountOutputTypeCountRecipientsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DataRecipientWhereInput
+  }
+
 
   /**
    * Count Type WebsiteCountOutputType
@@ -1848,6 +2134,7 @@ export namespace Prisma {
     events: number
     principals: number
     consentRecords: number
+    transferAuthorisations: number
   }
 
   export type WebsiteCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -1855,6 +2142,7 @@ export namespace Prisma {
     events?: boolean | WebsiteCountOutputTypeCountEventsArgs
     principals?: boolean | WebsiteCountOutputTypeCountPrincipalsArgs
     consentRecords?: boolean | WebsiteCountOutputTypeCountConsentRecordsArgs
+    transferAuthorisations?: boolean | WebsiteCountOutputTypeCountTransferAuthorisationsArgs
   }
 
   // Custom InputTypes
@@ -1896,6 +2184,13 @@ export namespace Prisma {
     where?: ConsentRecordWhereInput
   }
 
+  /**
+   * WebsiteCountOutputType without action
+   */
+  export type WebsiteCountOutputTypeCountTransferAuthorisationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TransferAuthorisationWhereInput
+  }
+
 
   /**
    * Count Type SessionCountOutputType
@@ -1934,10 +2229,12 @@ export namespace Prisma {
 
   export type PrincipalCountOutputType = {
     consentRecords: number
+    transferAuthorisations: number
   }
 
   export type PrincipalCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     consentRecords?: boolean | PrincipalCountOutputTypeCountConsentRecordsArgs
+    transferAuthorisations?: boolean | PrincipalCountOutputTypeCountTransferAuthorisationsArgs
   }
 
   // Custom InputTypes
@@ -1958,6 +2255,13 @@ export namespace Prisma {
     where?: ConsentRecordWhereInput
   }
 
+  /**
+   * PrincipalCountOutputType without action
+   */
+  export type PrincipalCountOutputTypeCountTransferAuthorisationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TransferAuthorisationWhereInput
+  }
+
 
   /**
    * Count Type PurposeCountOutputType
@@ -1966,11 +2270,13 @@ export namespace Prisma {
   export type PurposeCountOutputType = {
     noticePurposes: number
     consentRecords: number
+    transferAuthorisations: number
   }
 
   export type PurposeCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     noticePurposes?: boolean | PurposeCountOutputTypeCountNoticePurposesArgs
     consentRecords?: boolean | PurposeCountOutputTypeCountConsentRecordsArgs
+    transferAuthorisations?: boolean | PurposeCountOutputTypeCountTransferAuthorisationsArgs
   }
 
   // Custom InputTypes
@@ -1996,6 +2302,13 @@ export namespace Prisma {
    */
   export type PurposeCountOutputTypeCountConsentRecordsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ConsentRecordWhereInput
+  }
+
+  /**
+   * PurposeCountOutputType without action
+   */
+  export type PurposeCountOutputTypeCountTransferAuthorisationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TransferAuthorisationWhereInput
   }
 
 
@@ -2107,6 +2420,68 @@ export namespace Prisma {
    */
   export type NoticeCountOutputTypeCountConsentRecordsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ConsentRecordWhereInput
+  }
+
+
+  /**
+   * Count Type ConsentRecordCountOutputType
+   */
+
+  export type ConsentRecordCountOutputType = {
+    transferAuthorisations: number
+  }
+
+  export type ConsentRecordCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    transferAuthorisations?: boolean | ConsentRecordCountOutputTypeCountTransferAuthorisationsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * ConsentRecordCountOutputType without action
+   */
+  export type ConsentRecordCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConsentRecordCountOutputType
+     */
+    select?: ConsentRecordCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * ConsentRecordCountOutputType without action
+   */
+  export type ConsentRecordCountOutputTypeCountTransferAuthorisationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TransferAuthorisationWhereInput
+  }
+
+
+  /**
+   * Count Type DataRecipientCountOutputType
+   */
+
+  export type DataRecipientCountOutputType = {
+    authorisations: number
+  }
+
+  export type DataRecipientCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    authorisations?: boolean | DataRecipientCountOutputTypeCountAuthorisationsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * DataRecipientCountOutputType without action
+   */
+  export type DataRecipientCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DataRecipientCountOutputType
+     */
+    select?: DataRecipientCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * DataRecipientCountOutputType without action
+   */
+  export type DataRecipientCountOutputTypeCountAuthorisationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TransferAuthorisationWhereInput
   }
 
 
@@ -2282,6 +2657,7 @@ export namespace Prisma {
     purposes?: boolean | Organisation$purposesArgs<ExtArgs>
     policies?: boolean | Organisation$policiesArgs<ExtArgs>
     notices?: boolean | Organisation$noticesArgs<ExtArgs>
+    recipients?: boolean | Organisation$recipientsArgs<ExtArgs>
     _count?: boolean | OrganisationCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["organisation"]>
 
@@ -2315,6 +2691,7 @@ export namespace Prisma {
     purposes?: boolean | Organisation$purposesArgs<ExtArgs>
     policies?: boolean | Organisation$policiesArgs<ExtArgs>
     notices?: boolean | Organisation$noticesArgs<ExtArgs>
+    recipients?: boolean | Organisation$recipientsArgs<ExtArgs>
     _count?: boolean | OrganisationCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type OrganisationIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -2327,6 +2704,7 @@ export namespace Prisma {
       purposes: Prisma.$PurposePayload<ExtArgs>[]
       policies: Prisma.$PolicyPayload<ExtArgs>[]
       notices: Prisma.$NoticePayload<ExtArgs>[]
+      recipients: Prisma.$DataRecipientPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -2736,6 +3114,7 @@ export namespace Prisma {
     purposes<T extends Organisation$purposesArgs<ExtArgs> = {}>(args?: Subset<T, Organisation$purposesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PurposePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     policies<T extends Organisation$policiesArgs<ExtArgs> = {}>(args?: Subset<T, Organisation$policiesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PolicyPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     notices<T extends Organisation$noticesArgs<ExtArgs> = {}>(args?: Subset<T, Organisation$noticesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NoticePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    recipients<T extends Organisation$recipientsArgs<ExtArgs> = {}>(args?: Subset<T, Organisation$recipientsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DataRecipientPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3254,6 +3633,30 @@ export namespace Prisma {
   }
 
   /**
+   * Organisation.recipients
+   */
+  export type Organisation$recipientsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DataRecipient
+     */
+    select?: DataRecipientSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DataRecipient
+     */
+    omit?: DataRecipientOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DataRecipientInclude<ExtArgs> | null
+    where?: DataRecipientWhereInput
+    orderBy?: DataRecipientOrderByWithRelationInput | DataRecipientOrderByWithRelationInput[]
+    cursor?: DataRecipientWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: DataRecipientScalarFieldEnum | DataRecipientScalarFieldEnum[]
+  }
+
+  /**
    * Organisation without action
    */
   export type OrganisationDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -3457,6 +3860,7 @@ export namespace Prisma {
     events?: boolean | Website$eventsArgs<ExtArgs>
     principals?: boolean | Website$principalsArgs<ExtArgs>
     consentRecords?: boolean | Website$consentRecordsArgs<ExtArgs>
+    transferAuthorisations?: boolean | Website$transferAuthorisationsArgs<ExtArgs>
     _count?: boolean | WebsiteCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["website"]>
 
@@ -3499,6 +3903,7 @@ export namespace Prisma {
     events?: boolean | Website$eventsArgs<ExtArgs>
     principals?: boolean | Website$principalsArgs<ExtArgs>
     consentRecords?: boolean | Website$consentRecordsArgs<ExtArgs>
+    transferAuthorisations?: boolean | Website$transferAuthorisationsArgs<ExtArgs>
     _count?: boolean | WebsiteCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type WebsiteIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -3516,6 +3921,7 @@ export namespace Prisma {
       events: Prisma.$EventPayload<ExtArgs>[]
       principals: Prisma.$PrincipalPayload<ExtArgs>[]
       consentRecords: Prisma.$ConsentRecordPayload<ExtArgs>[]
+      transferAuthorisations: Prisma.$TransferAuthorisationPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -3928,6 +4334,7 @@ export namespace Prisma {
     events<T extends Website$eventsArgs<ExtArgs> = {}>(args?: Subset<T, Website$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$EventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     principals<T extends Website$principalsArgs<ExtArgs> = {}>(args?: Subset<T, Website$principalsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PrincipalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     consentRecords<T extends Website$consentRecordsArgs<ExtArgs> = {}>(args?: Subset<T, Website$consentRecordsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConsentRecordPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    transferAuthorisations<T extends Website$transferAuthorisationsArgs<ExtArgs> = {}>(args?: Subset<T, Website$transferAuthorisationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TransferAuthorisationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -4453,6 +4860,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ConsentRecordScalarFieldEnum | ConsentRecordScalarFieldEnum[]
+  }
+
+  /**
+   * Website.transferAuthorisations
+   */
+  export type Website$transferAuthorisationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferAuthorisation
+     */
+    select?: TransferAuthorisationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferAuthorisation
+     */
+    omit?: TransferAuthorisationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferAuthorisationInclude<ExtArgs> | null
+    where?: TransferAuthorisationWhereInput
+    orderBy?: TransferAuthorisationOrderByWithRelationInput | TransferAuthorisationOrderByWithRelationInput[]
+    cursor?: TransferAuthorisationWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: TransferAuthorisationScalarFieldEnum | TransferAuthorisationScalarFieldEnum[]
   }
 
   /**
@@ -6911,6 +7342,7 @@ export namespace Prisma {
     createdAt?: boolean
     website?: boolean | WebsiteDefaultArgs<ExtArgs>
     consentRecords?: boolean | Principal$consentRecordsArgs<ExtArgs>
+    transferAuthorisations?: boolean | Principal$transferAuthorisationsArgs<ExtArgs>
     _count?: boolean | PrincipalCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["principal"]>
 
@@ -6944,6 +7376,7 @@ export namespace Prisma {
   export type PrincipalInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     website?: boolean | WebsiteDefaultArgs<ExtArgs>
     consentRecords?: boolean | Principal$consentRecordsArgs<ExtArgs>
+    transferAuthorisations?: boolean | Principal$transferAuthorisationsArgs<ExtArgs>
     _count?: boolean | PrincipalCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type PrincipalIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -6958,6 +7391,7 @@ export namespace Prisma {
     objects: {
       website: Prisma.$WebsitePayload<ExtArgs>
       consentRecords: Prisma.$ConsentRecordPayload<ExtArgs>[]
+      transferAuthorisations: Prisma.$TransferAuthorisationPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -7367,6 +7801,7 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     website<T extends WebsiteDefaultArgs<ExtArgs> = {}>(args?: Subset<T, WebsiteDefaultArgs<ExtArgs>>): Prisma__WebsiteClient<$Result.GetResult<Prisma.$WebsitePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     consentRecords<T extends Principal$consentRecordsArgs<ExtArgs> = {}>(args?: Subset<T, Principal$consentRecordsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConsentRecordPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    transferAuthorisations<T extends Principal$transferAuthorisationsArgs<ExtArgs> = {}>(args?: Subset<T, Principal$transferAuthorisationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TransferAuthorisationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -7821,6 +8256,30 @@ export namespace Prisma {
   }
 
   /**
+   * Principal.transferAuthorisations
+   */
+  export type Principal$transferAuthorisationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferAuthorisation
+     */
+    select?: TransferAuthorisationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferAuthorisation
+     */
+    omit?: TransferAuthorisationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferAuthorisationInclude<ExtArgs> | null
+    where?: TransferAuthorisationWhereInput
+    orderBy?: TransferAuthorisationOrderByWithRelationInput | TransferAuthorisationOrderByWithRelationInput[]
+    cursor?: TransferAuthorisationWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: TransferAuthorisationScalarFieldEnum | TransferAuthorisationScalarFieldEnum[]
+  }
+
+  /**
    * Principal without action
    */
   export type PrincipalDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -8022,6 +8481,7 @@ export namespace Prisma {
     organisation?: boolean | OrganisationDefaultArgs<ExtArgs>
     noticePurposes?: boolean | Purpose$noticePurposesArgs<ExtArgs>
     consentRecords?: boolean | Purpose$consentRecordsArgs<ExtArgs>
+    transferAuthorisations?: boolean | Purpose$transferAuthorisationsArgs<ExtArgs>
     _count?: boolean | PurposeCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["purpose"]>
 
@@ -8062,6 +8522,7 @@ export namespace Prisma {
     organisation?: boolean | OrganisationDefaultArgs<ExtArgs>
     noticePurposes?: boolean | Purpose$noticePurposesArgs<ExtArgs>
     consentRecords?: boolean | Purpose$consentRecordsArgs<ExtArgs>
+    transferAuthorisations?: boolean | Purpose$transferAuthorisationsArgs<ExtArgs>
     _count?: boolean | PurposeCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type PurposeIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -8077,6 +8538,7 @@ export namespace Prisma {
       organisation: Prisma.$OrganisationPayload<ExtArgs>
       noticePurposes: Prisma.$NoticePurposePayload<ExtArgs>[]
       consentRecords: Prisma.$ConsentRecordPayload<ExtArgs>[]
+      transferAuthorisations: Prisma.$TransferAuthorisationPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -8483,6 +8945,7 @@ export namespace Prisma {
     organisation<T extends OrganisationDefaultArgs<ExtArgs> = {}>(args?: Subset<T, OrganisationDefaultArgs<ExtArgs>>): Prisma__OrganisationClient<$Result.GetResult<Prisma.$OrganisationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     noticePurposes<T extends Purpose$noticePurposesArgs<ExtArgs> = {}>(args?: Subset<T, Purpose$noticePurposesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NoticePurposePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     consentRecords<T extends Purpose$consentRecordsArgs<ExtArgs> = {}>(args?: Subset<T, Purpose$consentRecordsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConsentRecordPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    transferAuthorisations<T extends Purpose$transferAuthorisationsArgs<ExtArgs> = {}>(args?: Subset<T, Purpose$transferAuthorisationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TransferAuthorisationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -8960,6 +9423,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ConsentRecordScalarFieldEnum | ConsentRecordScalarFieldEnum[]
+  }
+
+  /**
+   * Purpose.transferAuthorisations
+   */
+  export type Purpose$transferAuthorisationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferAuthorisation
+     */
+    select?: TransferAuthorisationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferAuthorisation
+     */
+    omit?: TransferAuthorisationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferAuthorisationInclude<ExtArgs> | null
+    where?: TransferAuthorisationWhereInput
+    orderBy?: TransferAuthorisationOrderByWithRelationInput | TransferAuthorisationOrderByWithRelationInput[]
+    cursor?: TransferAuthorisationWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: TransferAuthorisationScalarFieldEnum | TransferAuthorisationScalarFieldEnum[]
   }
 
   /**
@@ -13599,6 +14086,8 @@ export namespace Prisma {
     purpose?: boolean | PurposeDefaultArgs<ExtArgs>
     notice?: boolean | ConsentRecord$noticeArgs<ExtArgs>
     policyVersion?: boolean | ConsentRecord$policyVersionArgs<ExtArgs>
+    transferAuthorisations?: boolean | ConsentRecord$transferAuthorisationsArgs<ExtArgs>
+    _count?: boolean | ConsentRecordCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["consentRecord"]>
 
   export type ConsentRecordSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -13663,6 +14152,8 @@ export namespace Prisma {
     purpose?: boolean | PurposeDefaultArgs<ExtArgs>
     notice?: boolean | ConsentRecord$noticeArgs<ExtArgs>
     policyVersion?: boolean | ConsentRecord$policyVersionArgs<ExtArgs>
+    transferAuthorisations?: boolean | ConsentRecord$transferAuthorisationsArgs<ExtArgs>
+    _count?: boolean | ConsentRecordCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ConsentRecordIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     website?: boolean | WebsiteDefaultArgs<ExtArgs>
@@ -13687,6 +14178,7 @@ export namespace Prisma {
       purpose: Prisma.$PurposePayload<ExtArgs>
       notice: Prisma.$NoticePayload<ExtArgs> | null
       policyVersion: Prisma.$PolicyVersionPayload<ExtArgs> | null
+      transferAuthorisations: Prisma.$TransferAuthorisationPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -14120,6 +14612,7 @@ export namespace Prisma {
     purpose<T extends PurposeDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PurposeDefaultArgs<ExtArgs>>): Prisma__PurposeClient<$Result.GetResult<Prisma.$PurposePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     notice<T extends ConsentRecord$noticeArgs<ExtArgs> = {}>(args?: Subset<T, ConsentRecord$noticeArgs<ExtArgs>>): Prisma__NoticeClient<$Result.GetResult<Prisma.$NoticePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     policyVersion<T extends ConsentRecord$policyVersionArgs<ExtArgs> = {}>(args?: Subset<T, ConsentRecord$policyVersionArgs<ExtArgs>>): Prisma__PolicyVersionClient<$Result.GetResult<Prisma.$PolicyVersionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    transferAuthorisations<T extends ConsentRecord$transferAuthorisationsArgs<ExtArgs> = {}>(args?: Subset<T, ConsentRecord$transferAuthorisationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TransferAuthorisationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -14595,6 +15088,30 @@ export namespace Prisma {
   }
 
   /**
+   * ConsentRecord.transferAuthorisations
+   */
+  export type ConsentRecord$transferAuthorisationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferAuthorisation
+     */
+    select?: TransferAuthorisationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferAuthorisation
+     */
+    omit?: TransferAuthorisationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferAuthorisationInclude<ExtArgs> | null
+    where?: TransferAuthorisationWhereInput
+    orderBy?: TransferAuthorisationOrderByWithRelationInput | TransferAuthorisationOrderByWithRelationInput[]
+    cursor?: TransferAuthorisationWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: TransferAuthorisationScalarFieldEnum | TransferAuthorisationScalarFieldEnum[]
+  }
+
+  /**
    * ConsentRecord without action
    */
   export type ConsentRecordDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -14610,6 +15127,3568 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: ConsentRecordInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model DataRecipient
+   */
+
+  export type AggregateDataRecipient = {
+    _count: DataRecipientCountAggregateOutputType | null
+    _min: DataRecipientMinAggregateOutputType | null
+    _max: DataRecipientMaxAggregateOutputType | null
+  }
+
+  export type DataRecipientMinAggregateOutputType = {
+    id: string | null
+    organisationId: string | null
+    code: string | null
+    name: string | null
+    publicKey: string | null
+    algorithm: string | null
+    deliveryKeyHash: string | null
+    isActive: boolean | null
+    createdAt: Date | null
+  }
+
+  export type DataRecipientMaxAggregateOutputType = {
+    id: string | null
+    organisationId: string | null
+    code: string | null
+    name: string | null
+    publicKey: string | null
+    algorithm: string | null
+    deliveryKeyHash: string | null
+    isActive: boolean | null
+    createdAt: Date | null
+  }
+
+  export type DataRecipientCountAggregateOutputType = {
+    id: number
+    organisationId: number
+    code: number
+    name: number
+    publicKey: number
+    algorithm: number
+    deliveryKeyHash: number
+    isActive: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type DataRecipientMinAggregateInputType = {
+    id?: true
+    organisationId?: true
+    code?: true
+    name?: true
+    publicKey?: true
+    algorithm?: true
+    deliveryKeyHash?: true
+    isActive?: true
+    createdAt?: true
+  }
+
+  export type DataRecipientMaxAggregateInputType = {
+    id?: true
+    organisationId?: true
+    code?: true
+    name?: true
+    publicKey?: true
+    algorithm?: true
+    deliveryKeyHash?: true
+    isActive?: true
+    createdAt?: true
+  }
+
+  export type DataRecipientCountAggregateInputType = {
+    id?: true
+    organisationId?: true
+    code?: true
+    name?: true
+    publicKey?: true
+    algorithm?: true
+    deliveryKeyHash?: true
+    isActive?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type DataRecipientAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DataRecipient to aggregate.
+     */
+    where?: DataRecipientWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DataRecipients to fetch.
+     */
+    orderBy?: DataRecipientOrderByWithRelationInput | DataRecipientOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: DataRecipientWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DataRecipients from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DataRecipients.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned DataRecipients
+    **/
+    _count?: true | DataRecipientCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: DataRecipientMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: DataRecipientMaxAggregateInputType
+  }
+
+  export type GetDataRecipientAggregateType<T extends DataRecipientAggregateArgs> = {
+        [P in keyof T & keyof AggregateDataRecipient]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDataRecipient[P]>
+      : GetScalarType<T[P], AggregateDataRecipient[P]>
+  }
+
+
+
+
+  export type DataRecipientGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DataRecipientWhereInput
+    orderBy?: DataRecipientOrderByWithAggregationInput | DataRecipientOrderByWithAggregationInput[]
+    by: DataRecipientScalarFieldEnum[] | DataRecipientScalarFieldEnum
+    having?: DataRecipientScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: DataRecipientCountAggregateInputType | true
+    _min?: DataRecipientMinAggregateInputType
+    _max?: DataRecipientMaxAggregateInputType
+  }
+
+  export type DataRecipientGroupByOutputType = {
+    id: string
+    organisationId: string
+    code: string
+    name: string
+    publicKey: string
+    algorithm: string
+    deliveryKeyHash: string
+    isActive: boolean
+    createdAt: Date
+    _count: DataRecipientCountAggregateOutputType | null
+    _min: DataRecipientMinAggregateOutputType | null
+    _max: DataRecipientMaxAggregateOutputType | null
+  }
+
+  type GetDataRecipientGroupByPayload<T extends DataRecipientGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<DataRecipientGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof DataRecipientGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DataRecipientGroupByOutputType[P]>
+            : GetScalarType<T[P], DataRecipientGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type DataRecipientSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organisationId?: boolean
+    code?: boolean
+    name?: boolean
+    publicKey?: boolean
+    algorithm?: boolean
+    deliveryKeyHash?: boolean
+    isActive?: boolean
+    createdAt?: boolean
+    organisation?: boolean | OrganisationDefaultArgs<ExtArgs>
+    authorisations?: boolean | DataRecipient$authorisationsArgs<ExtArgs>
+    _count?: boolean | DataRecipientCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["dataRecipient"]>
+
+  export type DataRecipientSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organisationId?: boolean
+    code?: boolean
+    name?: boolean
+    publicKey?: boolean
+    algorithm?: boolean
+    deliveryKeyHash?: boolean
+    isActive?: boolean
+    createdAt?: boolean
+    organisation?: boolean | OrganisationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["dataRecipient"]>
+
+  export type DataRecipientSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organisationId?: boolean
+    code?: boolean
+    name?: boolean
+    publicKey?: boolean
+    algorithm?: boolean
+    deliveryKeyHash?: boolean
+    isActive?: boolean
+    createdAt?: boolean
+    organisation?: boolean | OrganisationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["dataRecipient"]>
+
+  export type DataRecipientSelectScalar = {
+    id?: boolean
+    organisationId?: boolean
+    code?: boolean
+    name?: boolean
+    publicKey?: boolean
+    algorithm?: boolean
+    deliveryKeyHash?: boolean
+    isActive?: boolean
+    createdAt?: boolean
+  }
+
+  export type DataRecipientOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organisationId" | "code" | "name" | "publicKey" | "algorithm" | "deliveryKeyHash" | "isActive" | "createdAt", ExtArgs["result"]["dataRecipient"]>
+  export type DataRecipientInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organisation?: boolean | OrganisationDefaultArgs<ExtArgs>
+    authorisations?: boolean | DataRecipient$authorisationsArgs<ExtArgs>
+    _count?: boolean | DataRecipientCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type DataRecipientIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organisation?: boolean | OrganisationDefaultArgs<ExtArgs>
+  }
+  export type DataRecipientIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organisation?: boolean | OrganisationDefaultArgs<ExtArgs>
+  }
+
+  export type $DataRecipientPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "DataRecipient"
+    objects: {
+      organisation: Prisma.$OrganisationPayload<ExtArgs>
+      authorisations: Prisma.$TransferAuthorisationPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      organisationId: string
+      code: string
+      name: string
+      /**
+       * The target's X25519 public key, base64 SPKI. Public by definition - the
+       * matching private key exists only inside the target fiduciary.
+       */
+      publicKey: string
+      /**
+       * Recorded per recipient so the construction can change without guessing how
+       * existing envelopes were sealed.
+       */
+      algorithm: string
+      /**
+       * SHA-256 of the `rk_...` delivery credential the target presents to collect
+       * envelopes. The plaintext credential is shown once and never stored.
+       */
+      deliveryKeyHash: string
+      isActive: boolean
+      createdAt: Date
+    }, ExtArgs["result"]["dataRecipient"]>
+    composites: {}
+  }
+
+  type DataRecipientGetPayload<S extends boolean | null | undefined | DataRecipientDefaultArgs> = $Result.GetResult<Prisma.$DataRecipientPayload, S>
+
+  type DataRecipientCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<DataRecipientFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: DataRecipientCountAggregateInputType | true
+    }
+
+  export interface DataRecipientDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['DataRecipient'], meta: { name: 'DataRecipient' } }
+    /**
+     * Find zero or one DataRecipient that matches the filter.
+     * @param {DataRecipientFindUniqueArgs} args - Arguments to find a DataRecipient
+     * @example
+     * // Get one DataRecipient
+     * const dataRecipient = await prisma.dataRecipient.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends DataRecipientFindUniqueArgs>(args: SelectSubset<T, DataRecipientFindUniqueArgs<ExtArgs>>): Prisma__DataRecipientClient<$Result.GetResult<Prisma.$DataRecipientPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one DataRecipient that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {DataRecipientFindUniqueOrThrowArgs} args - Arguments to find a DataRecipient
+     * @example
+     * // Get one DataRecipient
+     * const dataRecipient = await prisma.dataRecipient.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends DataRecipientFindUniqueOrThrowArgs>(args: SelectSubset<T, DataRecipientFindUniqueOrThrowArgs<ExtArgs>>): Prisma__DataRecipientClient<$Result.GetResult<Prisma.$DataRecipientPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first DataRecipient that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DataRecipientFindFirstArgs} args - Arguments to find a DataRecipient
+     * @example
+     * // Get one DataRecipient
+     * const dataRecipient = await prisma.dataRecipient.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends DataRecipientFindFirstArgs>(args?: SelectSubset<T, DataRecipientFindFirstArgs<ExtArgs>>): Prisma__DataRecipientClient<$Result.GetResult<Prisma.$DataRecipientPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first DataRecipient that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DataRecipientFindFirstOrThrowArgs} args - Arguments to find a DataRecipient
+     * @example
+     * // Get one DataRecipient
+     * const dataRecipient = await prisma.dataRecipient.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends DataRecipientFindFirstOrThrowArgs>(args?: SelectSubset<T, DataRecipientFindFirstOrThrowArgs<ExtArgs>>): Prisma__DataRecipientClient<$Result.GetResult<Prisma.$DataRecipientPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more DataRecipients that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DataRecipientFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all DataRecipients
+     * const dataRecipients = await prisma.dataRecipient.findMany()
+     * 
+     * // Get first 10 DataRecipients
+     * const dataRecipients = await prisma.dataRecipient.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const dataRecipientWithIdOnly = await prisma.dataRecipient.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends DataRecipientFindManyArgs>(args?: SelectSubset<T, DataRecipientFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DataRecipientPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a DataRecipient.
+     * @param {DataRecipientCreateArgs} args - Arguments to create a DataRecipient.
+     * @example
+     * // Create one DataRecipient
+     * const DataRecipient = await prisma.dataRecipient.create({
+     *   data: {
+     *     // ... data to create a DataRecipient
+     *   }
+     * })
+     * 
+     */
+    create<T extends DataRecipientCreateArgs>(args: SelectSubset<T, DataRecipientCreateArgs<ExtArgs>>): Prisma__DataRecipientClient<$Result.GetResult<Prisma.$DataRecipientPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many DataRecipients.
+     * @param {DataRecipientCreateManyArgs} args - Arguments to create many DataRecipients.
+     * @example
+     * // Create many DataRecipients
+     * const dataRecipient = await prisma.dataRecipient.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends DataRecipientCreateManyArgs>(args?: SelectSubset<T, DataRecipientCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many DataRecipients and returns the data saved in the database.
+     * @param {DataRecipientCreateManyAndReturnArgs} args - Arguments to create many DataRecipients.
+     * @example
+     * // Create many DataRecipients
+     * const dataRecipient = await prisma.dataRecipient.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many DataRecipients and only return the `id`
+     * const dataRecipientWithIdOnly = await prisma.dataRecipient.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends DataRecipientCreateManyAndReturnArgs>(args?: SelectSubset<T, DataRecipientCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DataRecipientPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a DataRecipient.
+     * @param {DataRecipientDeleteArgs} args - Arguments to delete one DataRecipient.
+     * @example
+     * // Delete one DataRecipient
+     * const DataRecipient = await prisma.dataRecipient.delete({
+     *   where: {
+     *     // ... filter to delete one DataRecipient
+     *   }
+     * })
+     * 
+     */
+    delete<T extends DataRecipientDeleteArgs>(args: SelectSubset<T, DataRecipientDeleteArgs<ExtArgs>>): Prisma__DataRecipientClient<$Result.GetResult<Prisma.$DataRecipientPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one DataRecipient.
+     * @param {DataRecipientUpdateArgs} args - Arguments to update one DataRecipient.
+     * @example
+     * // Update one DataRecipient
+     * const dataRecipient = await prisma.dataRecipient.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends DataRecipientUpdateArgs>(args: SelectSubset<T, DataRecipientUpdateArgs<ExtArgs>>): Prisma__DataRecipientClient<$Result.GetResult<Prisma.$DataRecipientPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more DataRecipients.
+     * @param {DataRecipientDeleteManyArgs} args - Arguments to filter DataRecipients to delete.
+     * @example
+     * // Delete a few DataRecipients
+     * const { count } = await prisma.dataRecipient.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends DataRecipientDeleteManyArgs>(args?: SelectSubset<T, DataRecipientDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DataRecipients.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DataRecipientUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many DataRecipients
+     * const dataRecipient = await prisma.dataRecipient.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends DataRecipientUpdateManyArgs>(args: SelectSubset<T, DataRecipientUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DataRecipients and returns the data updated in the database.
+     * @param {DataRecipientUpdateManyAndReturnArgs} args - Arguments to update many DataRecipients.
+     * @example
+     * // Update many DataRecipients
+     * const dataRecipient = await prisma.dataRecipient.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more DataRecipients and only return the `id`
+     * const dataRecipientWithIdOnly = await prisma.dataRecipient.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends DataRecipientUpdateManyAndReturnArgs>(args: SelectSubset<T, DataRecipientUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DataRecipientPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one DataRecipient.
+     * @param {DataRecipientUpsertArgs} args - Arguments to update or create a DataRecipient.
+     * @example
+     * // Update or create a DataRecipient
+     * const dataRecipient = await prisma.dataRecipient.upsert({
+     *   create: {
+     *     // ... data to create a DataRecipient
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the DataRecipient we want to update
+     *   }
+     * })
+     */
+    upsert<T extends DataRecipientUpsertArgs>(args: SelectSubset<T, DataRecipientUpsertArgs<ExtArgs>>): Prisma__DataRecipientClient<$Result.GetResult<Prisma.$DataRecipientPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of DataRecipients.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DataRecipientCountArgs} args - Arguments to filter DataRecipients to count.
+     * @example
+     * // Count the number of DataRecipients
+     * const count = await prisma.dataRecipient.count({
+     *   where: {
+     *     // ... the filter for the DataRecipients we want to count
+     *   }
+     * })
+    **/
+    count<T extends DataRecipientCountArgs>(
+      args?: Subset<T, DataRecipientCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DataRecipientCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a DataRecipient.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DataRecipientAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends DataRecipientAggregateArgs>(args: Subset<T, DataRecipientAggregateArgs>): Prisma.PrismaPromise<GetDataRecipientAggregateType<T>>
+
+    /**
+     * Group by DataRecipient.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DataRecipientGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends DataRecipientGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: DataRecipientGroupByArgs['orderBy'] }
+        : { orderBy?: DataRecipientGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, DataRecipientGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDataRecipientGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the DataRecipient model
+   */
+  readonly fields: DataRecipientFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for DataRecipient.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__DataRecipientClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    organisation<T extends OrganisationDefaultArgs<ExtArgs> = {}>(args?: Subset<T, OrganisationDefaultArgs<ExtArgs>>): Prisma__OrganisationClient<$Result.GetResult<Prisma.$OrganisationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    authorisations<T extends DataRecipient$authorisationsArgs<ExtArgs> = {}>(args?: Subset<T, DataRecipient$authorisationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TransferAuthorisationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the DataRecipient model
+   */
+  interface DataRecipientFieldRefs {
+    readonly id: FieldRef<"DataRecipient", 'String'>
+    readonly organisationId: FieldRef<"DataRecipient", 'String'>
+    readonly code: FieldRef<"DataRecipient", 'String'>
+    readonly name: FieldRef<"DataRecipient", 'String'>
+    readonly publicKey: FieldRef<"DataRecipient", 'String'>
+    readonly algorithm: FieldRef<"DataRecipient", 'String'>
+    readonly deliveryKeyHash: FieldRef<"DataRecipient", 'String'>
+    readonly isActive: FieldRef<"DataRecipient", 'Boolean'>
+    readonly createdAt: FieldRef<"DataRecipient", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * DataRecipient findUnique
+   */
+  export type DataRecipientFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DataRecipient
+     */
+    select?: DataRecipientSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DataRecipient
+     */
+    omit?: DataRecipientOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DataRecipientInclude<ExtArgs> | null
+    /**
+     * Filter, which DataRecipient to fetch.
+     */
+    where: DataRecipientWhereUniqueInput
+  }
+
+  /**
+   * DataRecipient findUniqueOrThrow
+   */
+  export type DataRecipientFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DataRecipient
+     */
+    select?: DataRecipientSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DataRecipient
+     */
+    omit?: DataRecipientOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DataRecipientInclude<ExtArgs> | null
+    /**
+     * Filter, which DataRecipient to fetch.
+     */
+    where: DataRecipientWhereUniqueInput
+  }
+
+  /**
+   * DataRecipient findFirst
+   */
+  export type DataRecipientFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DataRecipient
+     */
+    select?: DataRecipientSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DataRecipient
+     */
+    omit?: DataRecipientOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DataRecipientInclude<ExtArgs> | null
+    /**
+     * Filter, which DataRecipient to fetch.
+     */
+    where?: DataRecipientWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DataRecipients to fetch.
+     */
+    orderBy?: DataRecipientOrderByWithRelationInput | DataRecipientOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DataRecipients.
+     */
+    cursor?: DataRecipientWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DataRecipients from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DataRecipients.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DataRecipients.
+     */
+    distinct?: DataRecipientScalarFieldEnum | DataRecipientScalarFieldEnum[]
+  }
+
+  /**
+   * DataRecipient findFirstOrThrow
+   */
+  export type DataRecipientFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DataRecipient
+     */
+    select?: DataRecipientSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DataRecipient
+     */
+    omit?: DataRecipientOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DataRecipientInclude<ExtArgs> | null
+    /**
+     * Filter, which DataRecipient to fetch.
+     */
+    where?: DataRecipientWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DataRecipients to fetch.
+     */
+    orderBy?: DataRecipientOrderByWithRelationInput | DataRecipientOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DataRecipients.
+     */
+    cursor?: DataRecipientWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DataRecipients from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DataRecipients.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DataRecipients.
+     */
+    distinct?: DataRecipientScalarFieldEnum | DataRecipientScalarFieldEnum[]
+  }
+
+  /**
+   * DataRecipient findMany
+   */
+  export type DataRecipientFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DataRecipient
+     */
+    select?: DataRecipientSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DataRecipient
+     */
+    omit?: DataRecipientOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DataRecipientInclude<ExtArgs> | null
+    /**
+     * Filter, which DataRecipients to fetch.
+     */
+    where?: DataRecipientWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DataRecipients to fetch.
+     */
+    orderBy?: DataRecipientOrderByWithRelationInput | DataRecipientOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing DataRecipients.
+     */
+    cursor?: DataRecipientWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DataRecipients from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DataRecipients.
+     */
+    skip?: number
+    distinct?: DataRecipientScalarFieldEnum | DataRecipientScalarFieldEnum[]
+  }
+
+  /**
+   * DataRecipient create
+   */
+  export type DataRecipientCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DataRecipient
+     */
+    select?: DataRecipientSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DataRecipient
+     */
+    omit?: DataRecipientOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DataRecipientInclude<ExtArgs> | null
+    /**
+     * The data needed to create a DataRecipient.
+     */
+    data: XOR<DataRecipientCreateInput, DataRecipientUncheckedCreateInput>
+  }
+
+  /**
+   * DataRecipient createMany
+   */
+  export type DataRecipientCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many DataRecipients.
+     */
+    data: DataRecipientCreateManyInput | DataRecipientCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DataRecipient createManyAndReturn
+   */
+  export type DataRecipientCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DataRecipient
+     */
+    select?: DataRecipientSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the DataRecipient
+     */
+    omit?: DataRecipientOmit<ExtArgs> | null
+    /**
+     * The data used to create many DataRecipients.
+     */
+    data: DataRecipientCreateManyInput | DataRecipientCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DataRecipientIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DataRecipient update
+   */
+  export type DataRecipientUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DataRecipient
+     */
+    select?: DataRecipientSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DataRecipient
+     */
+    omit?: DataRecipientOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DataRecipientInclude<ExtArgs> | null
+    /**
+     * The data needed to update a DataRecipient.
+     */
+    data: XOR<DataRecipientUpdateInput, DataRecipientUncheckedUpdateInput>
+    /**
+     * Choose, which DataRecipient to update.
+     */
+    where: DataRecipientWhereUniqueInput
+  }
+
+  /**
+   * DataRecipient updateMany
+   */
+  export type DataRecipientUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update DataRecipients.
+     */
+    data: XOR<DataRecipientUpdateManyMutationInput, DataRecipientUncheckedUpdateManyInput>
+    /**
+     * Filter which DataRecipients to update
+     */
+    where?: DataRecipientWhereInput
+    /**
+     * Limit how many DataRecipients to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * DataRecipient updateManyAndReturn
+   */
+  export type DataRecipientUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DataRecipient
+     */
+    select?: DataRecipientSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the DataRecipient
+     */
+    omit?: DataRecipientOmit<ExtArgs> | null
+    /**
+     * The data used to update DataRecipients.
+     */
+    data: XOR<DataRecipientUpdateManyMutationInput, DataRecipientUncheckedUpdateManyInput>
+    /**
+     * Filter which DataRecipients to update
+     */
+    where?: DataRecipientWhereInput
+    /**
+     * Limit how many DataRecipients to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DataRecipientIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DataRecipient upsert
+   */
+  export type DataRecipientUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DataRecipient
+     */
+    select?: DataRecipientSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DataRecipient
+     */
+    omit?: DataRecipientOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DataRecipientInclude<ExtArgs> | null
+    /**
+     * The filter to search for the DataRecipient to update in case it exists.
+     */
+    where: DataRecipientWhereUniqueInput
+    /**
+     * In case the DataRecipient found by the `where` argument doesn't exist, create a new DataRecipient with this data.
+     */
+    create: XOR<DataRecipientCreateInput, DataRecipientUncheckedCreateInput>
+    /**
+     * In case the DataRecipient was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<DataRecipientUpdateInput, DataRecipientUncheckedUpdateInput>
+  }
+
+  /**
+   * DataRecipient delete
+   */
+  export type DataRecipientDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DataRecipient
+     */
+    select?: DataRecipientSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DataRecipient
+     */
+    omit?: DataRecipientOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DataRecipientInclude<ExtArgs> | null
+    /**
+     * Filter which DataRecipient to delete.
+     */
+    where: DataRecipientWhereUniqueInput
+  }
+
+  /**
+   * DataRecipient deleteMany
+   */
+  export type DataRecipientDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DataRecipients to delete
+     */
+    where?: DataRecipientWhereInput
+    /**
+     * Limit how many DataRecipients to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * DataRecipient.authorisations
+   */
+  export type DataRecipient$authorisationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferAuthorisation
+     */
+    select?: TransferAuthorisationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferAuthorisation
+     */
+    omit?: TransferAuthorisationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferAuthorisationInclude<ExtArgs> | null
+    where?: TransferAuthorisationWhereInput
+    orderBy?: TransferAuthorisationOrderByWithRelationInput | TransferAuthorisationOrderByWithRelationInput[]
+    cursor?: TransferAuthorisationWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: TransferAuthorisationScalarFieldEnum | TransferAuthorisationScalarFieldEnum[]
+  }
+
+  /**
+   * DataRecipient without action
+   */
+  export type DataRecipientDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DataRecipient
+     */
+    select?: DataRecipientSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DataRecipient
+     */
+    omit?: DataRecipientOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DataRecipientInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model TransferAuthorisation
+   */
+
+  export type AggregateTransferAuthorisation = {
+    _count: TransferAuthorisationCountAggregateOutputType | null
+    _min: TransferAuthorisationMinAggregateOutputType | null
+    _max: TransferAuthorisationMaxAggregateOutputType | null
+  }
+
+  export type TransferAuthorisationMinAggregateOutputType = {
+    id: string | null
+    organisationId: string | null
+    siteId: string | null
+    principalId: string | null
+    purposeId: string | null
+    recipientId: string | null
+    consentRecordId: string | null
+    nonce: string | null
+    status: string | null
+    expiresAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type TransferAuthorisationMaxAggregateOutputType = {
+    id: string | null
+    organisationId: string | null
+    siteId: string | null
+    principalId: string | null
+    purposeId: string | null
+    recipientId: string | null
+    consentRecordId: string | null
+    nonce: string | null
+    status: string | null
+    expiresAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type TransferAuthorisationCountAggregateOutputType = {
+    id: number
+    organisationId: number
+    siteId: number
+    principalId: number
+    purposeId: number
+    recipientId: number
+    consentRecordId: number
+    nonce: number
+    status: number
+    expiresAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type TransferAuthorisationMinAggregateInputType = {
+    id?: true
+    organisationId?: true
+    siteId?: true
+    principalId?: true
+    purposeId?: true
+    recipientId?: true
+    consentRecordId?: true
+    nonce?: true
+    status?: true
+    expiresAt?: true
+    createdAt?: true
+  }
+
+  export type TransferAuthorisationMaxAggregateInputType = {
+    id?: true
+    organisationId?: true
+    siteId?: true
+    principalId?: true
+    purposeId?: true
+    recipientId?: true
+    consentRecordId?: true
+    nonce?: true
+    status?: true
+    expiresAt?: true
+    createdAt?: true
+  }
+
+  export type TransferAuthorisationCountAggregateInputType = {
+    id?: true
+    organisationId?: true
+    siteId?: true
+    principalId?: true
+    purposeId?: true
+    recipientId?: true
+    consentRecordId?: true
+    nonce?: true
+    status?: true
+    expiresAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type TransferAuthorisationAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which TransferAuthorisation to aggregate.
+     */
+    where?: TransferAuthorisationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TransferAuthorisations to fetch.
+     */
+    orderBy?: TransferAuthorisationOrderByWithRelationInput | TransferAuthorisationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: TransferAuthorisationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TransferAuthorisations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TransferAuthorisations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned TransferAuthorisations
+    **/
+    _count?: true | TransferAuthorisationCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: TransferAuthorisationMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: TransferAuthorisationMaxAggregateInputType
+  }
+
+  export type GetTransferAuthorisationAggregateType<T extends TransferAuthorisationAggregateArgs> = {
+        [P in keyof T & keyof AggregateTransferAuthorisation]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateTransferAuthorisation[P]>
+      : GetScalarType<T[P], AggregateTransferAuthorisation[P]>
+  }
+
+
+
+
+  export type TransferAuthorisationGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TransferAuthorisationWhereInput
+    orderBy?: TransferAuthorisationOrderByWithAggregationInput | TransferAuthorisationOrderByWithAggregationInput[]
+    by: TransferAuthorisationScalarFieldEnum[] | TransferAuthorisationScalarFieldEnum
+    having?: TransferAuthorisationScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: TransferAuthorisationCountAggregateInputType | true
+    _min?: TransferAuthorisationMinAggregateInputType
+    _max?: TransferAuthorisationMaxAggregateInputType
+  }
+
+  export type TransferAuthorisationGroupByOutputType = {
+    id: string
+    organisationId: string
+    siteId: string
+    principalId: string
+    purposeId: string
+    recipientId: string
+    consentRecordId: string
+    nonce: string
+    status: string
+    expiresAt: Date
+    createdAt: Date
+    _count: TransferAuthorisationCountAggregateOutputType | null
+    _min: TransferAuthorisationMinAggregateOutputType | null
+    _max: TransferAuthorisationMaxAggregateOutputType | null
+  }
+
+  type GetTransferAuthorisationGroupByPayload<T extends TransferAuthorisationGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<TransferAuthorisationGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof TransferAuthorisationGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], TransferAuthorisationGroupByOutputType[P]>
+            : GetScalarType<T[P], TransferAuthorisationGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type TransferAuthorisationSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organisationId?: boolean
+    siteId?: boolean
+    principalId?: boolean
+    purposeId?: boolean
+    recipientId?: boolean
+    consentRecordId?: boolean
+    nonce?: boolean
+    status?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+    website?: boolean | WebsiteDefaultArgs<ExtArgs>
+    principal?: boolean | PrincipalDefaultArgs<ExtArgs>
+    purpose?: boolean | PurposeDefaultArgs<ExtArgs>
+    recipient?: boolean | DataRecipientDefaultArgs<ExtArgs>
+    consentRecord?: boolean | ConsentRecordDefaultArgs<ExtArgs>
+    transfer?: boolean | TransferAuthorisation$transferArgs<ExtArgs>
+  }, ExtArgs["result"]["transferAuthorisation"]>
+
+  export type TransferAuthorisationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organisationId?: boolean
+    siteId?: boolean
+    principalId?: boolean
+    purposeId?: boolean
+    recipientId?: boolean
+    consentRecordId?: boolean
+    nonce?: boolean
+    status?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+    website?: boolean | WebsiteDefaultArgs<ExtArgs>
+    principal?: boolean | PrincipalDefaultArgs<ExtArgs>
+    purpose?: boolean | PurposeDefaultArgs<ExtArgs>
+    recipient?: boolean | DataRecipientDefaultArgs<ExtArgs>
+    consentRecord?: boolean | ConsentRecordDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["transferAuthorisation"]>
+
+  export type TransferAuthorisationSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organisationId?: boolean
+    siteId?: boolean
+    principalId?: boolean
+    purposeId?: boolean
+    recipientId?: boolean
+    consentRecordId?: boolean
+    nonce?: boolean
+    status?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+    website?: boolean | WebsiteDefaultArgs<ExtArgs>
+    principal?: boolean | PrincipalDefaultArgs<ExtArgs>
+    purpose?: boolean | PurposeDefaultArgs<ExtArgs>
+    recipient?: boolean | DataRecipientDefaultArgs<ExtArgs>
+    consentRecord?: boolean | ConsentRecordDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["transferAuthorisation"]>
+
+  export type TransferAuthorisationSelectScalar = {
+    id?: boolean
+    organisationId?: boolean
+    siteId?: boolean
+    principalId?: boolean
+    purposeId?: boolean
+    recipientId?: boolean
+    consentRecordId?: boolean
+    nonce?: boolean
+    status?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+  }
+
+  export type TransferAuthorisationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organisationId" | "siteId" | "principalId" | "purposeId" | "recipientId" | "consentRecordId" | "nonce" | "status" | "expiresAt" | "createdAt", ExtArgs["result"]["transferAuthorisation"]>
+  export type TransferAuthorisationInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    website?: boolean | WebsiteDefaultArgs<ExtArgs>
+    principal?: boolean | PrincipalDefaultArgs<ExtArgs>
+    purpose?: boolean | PurposeDefaultArgs<ExtArgs>
+    recipient?: boolean | DataRecipientDefaultArgs<ExtArgs>
+    consentRecord?: boolean | ConsentRecordDefaultArgs<ExtArgs>
+    transfer?: boolean | TransferAuthorisation$transferArgs<ExtArgs>
+  }
+  export type TransferAuthorisationIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    website?: boolean | WebsiteDefaultArgs<ExtArgs>
+    principal?: boolean | PrincipalDefaultArgs<ExtArgs>
+    purpose?: boolean | PurposeDefaultArgs<ExtArgs>
+    recipient?: boolean | DataRecipientDefaultArgs<ExtArgs>
+    consentRecord?: boolean | ConsentRecordDefaultArgs<ExtArgs>
+  }
+  export type TransferAuthorisationIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    website?: boolean | WebsiteDefaultArgs<ExtArgs>
+    principal?: boolean | PrincipalDefaultArgs<ExtArgs>
+    purpose?: boolean | PurposeDefaultArgs<ExtArgs>
+    recipient?: boolean | DataRecipientDefaultArgs<ExtArgs>
+    consentRecord?: boolean | ConsentRecordDefaultArgs<ExtArgs>
+  }
+
+  export type $TransferAuthorisationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "TransferAuthorisation"
+    objects: {
+      website: Prisma.$WebsitePayload<ExtArgs>
+      principal: Prisma.$PrincipalPayload<ExtArgs>
+      purpose: Prisma.$PurposePayload<ExtArgs>
+      recipient: Prisma.$DataRecipientPayload<ExtArgs>
+      consentRecord: Prisma.$ConsentRecordPayload<ExtArgs>
+      transfer: Prisma.$TransferRecordPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      organisationId: string
+      siteId: string
+      principalId: string
+      purposeId: string
+      recipientId: string
+      /**
+       * The specific decision relied upon, not a boolean. Phase 2's log is
+       * append-only, so an auditor can always see what justified the transfer.
+       */
+      consentRecordId: string
+      /**
+       * High entropy, single use, and part of the envelope's authenticated data.
+       */
+      nonce: string
+      /**
+       * AUTHORISED | CONSUMED | EXPIRED
+       */
+      status: string
+      expiresAt: Date
+      createdAt: Date
+    }, ExtArgs["result"]["transferAuthorisation"]>
+    composites: {}
+  }
+
+  type TransferAuthorisationGetPayload<S extends boolean | null | undefined | TransferAuthorisationDefaultArgs> = $Result.GetResult<Prisma.$TransferAuthorisationPayload, S>
+
+  type TransferAuthorisationCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<TransferAuthorisationFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: TransferAuthorisationCountAggregateInputType | true
+    }
+
+  export interface TransferAuthorisationDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['TransferAuthorisation'], meta: { name: 'TransferAuthorisation' } }
+    /**
+     * Find zero or one TransferAuthorisation that matches the filter.
+     * @param {TransferAuthorisationFindUniqueArgs} args - Arguments to find a TransferAuthorisation
+     * @example
+     * // Get one TransferAuthorisation
+     * const transferAuthorisation = await prisma.transferAuthorisation.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends TransferAuthorisationFindUniqueArgs>(args: SelectSubset<T, TransferAuthorisationFindUniqueArgs<ExtArgs>>): Prisma__TransferAuthorisationClient<$Result.GetResult<Prisma.$TransferAuthorisationPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one TransferAuthorisation that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {TransferAuthorisationFindUniqueOrThrowArgs} args - Arguments to find a TransferAuthorisation
+     * @example
+     * // Get one TransferAuthorisation
+     * const transferAuthorisation = await prisma.transferAuthorisation.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends TransferAuthorisationFindUniqueOrThrowArgs>(args: SelectSubset<T, TransferAuthorisationFindUniqueOrThrowArgs<ExtArgs>>): Prisma__TransferAuthorisationClient<$Result.GetResult<Prisma.$TransferAuthorisationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first TransferAuthorisation that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TransferAuthorisationFindFirstArgs} args - Arguments to find a TransferAuthorisation
+     * @example
+     * // Get one TransferAuthorisation
+     * const transferAuthorisation = await prisma.transferAuthorisation.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends TransferAuthorisationFindFirstArgs>(args?: SelectSubset<T, TransferAuthorisationFindFirstArgs<ExtArgs>>): Prisma__TransferAuthorisationClient<$Result.GetResult<Prisma.$TransferAuthorisationPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first TransferAuthorisation that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TransferAuthorisationFindFirstOrThrowArgs} args - Arguments to find a TransferAuthorisation
+     * @example
+     * // Get one TransferAuthorisation
+     * const transferAuthorisation = await prisma.transferAuthorisation.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends TransferAuthorisationFindFirstOrThrowArgs>(args?: SelectSubset<T, TransferAuthorisationFindFirstOrThrowArgs<ExtArgs>>): Prisma__TransferAuthorisationClient<$Result.GetResult<Prisma.$TransferAuthorisationPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more TransferAuthorisations that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TransferAuthorisationFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all TransferAuthorisations
+     * const transferAuthorisations = await prisma.transferAuthorisation.findMany()
+     * 
+     * // Get first 10 TransferAuthorisations
+     * const transferAuthorisations = await prisma.transferAuthorisation.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const transferAuthorisationWithIdOnly = await prisma.transferAuthorisation.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends TransferAuthorisationFindManyArgs>(args?: SelectSubset<T, TransferAuthorisationFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TransferAuthorisationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a TransferAuthorisation.
+     * @param {TransferAuthorisationCreateArgs} args - Arguments to create a TransferAuthorisation.
+     * @example
+     * // Create one TransferAuthorisation
+     * const TransferAuthorisation = await prisma.transferAuthorisation.create({
+     *   data: {
+     *     // ... data to create a TransferAuthorisation
+     *   }
+     * })
+     * 
+     */
+    create<T extends TransferAuthorisationCreateArgs>(args: SelectSubset<T, TransferAuthorisationCreateArgs<ExtArgs>>): Prisma__TransferAuthorisationClient<$Result.GetResult<Prisma.$TransferAuthorisationPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many TransferAuthorisations.
+     * @param {TransferAuthorisationCreateManyArgs} args - Arguments to create many TransferAuthorisations.
+     * @example
+     * // Create many TransferAuthorisations
+     * const transferAuthorisation = await prisma.transferAuthorisation.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends TransferAuthorisationCreateManyArgs>(args?: SelectSubset<T, TransferAuthorisationCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many TransferAuthorisations and returns the data saved in the database.
+     * @param {TransferAuthorisationCreateManyAndReturnArgs} args - Arguments to create many TransferAuthorisations.
+     * @example
+     * // Create many TransferAuthorisations
+     * const transferAuthorisation = await prisma.transferAuthorisation.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many TransferAuthorisations and only return the `id`
+     * const transferAuthorisationWithIdOnly = await prisma.transferAuthorisation.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends TransferAuthorisationCreateManyAndReturnArgs>(args?: SelectSubset<T, TransferAuthorisationCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TransferAuthorisationPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a TransferAuthorisation.
+     * @param {TransferAuthorisationDeleteArgs} args - Arguments to delete one TransferAuthorisation.
+     * @example
+     * // Delete one TransferAuthorisation
+     * const TransferAuthorisation = await prisma.transferAuthorisation.delete({
+     *   where: {
+     *     // ... filter to delete one TransferAuthorisation
+     *   }
+     * })
+     * 
+     */
+    delete<T extends TransferAuthorisationDeleteArgs>(args: SelectSubset<T, TransferAuthorisationDeleteArgs<ExtArgs>>): Prisma__TransferAuthorisationClient<$Result.GetResult<Prisma.$TransferAuthorisationPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one TransferAuthorisation.
+     * @param {TransferAuthorisationUpdateArgs} args - Arguments to update one TransferAuthorisation.
+     * @example
+     * // Update one TransferAuthorisation
+     * const transferAuthorisation = await prisma.transferAuthorisation.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends TransferAuthorisationUpdateArgs>(args: SelectSubset<T, TransferAuthorisationUpdateArgs<ExtArgs>>): Prisma__TransferAuthorisationClient<$Result.GetResult<Prisma.$TransferAuthorisationPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more TransferAuthorisations.
+     * @param {TransferAuthorisationDeleteManyArgs} args - Arguments to filter TransferAuthorisations to delete.
+     * @example
+     * // Delete a few TransferAuthorisations
+     * const { count } = await prisma.transferAuthorisation.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends TransferAuthorisationDeleteManyArgs>(args?: SelectSubset<T, TransferAuthorisationDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more TransferAuthorisations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TransferAuthorisationUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many TransferAuthorisations
+     * const transferAuthorisation = await prisma.transferAuthorisation.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends TransferAuthorisationUpdateManyArgs>(args: SelectSubset<T, TransferAuthorisationUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more TransferAuthorisations and returns the data updated in the database.
+     * @param {TransferAuthorisationUpdateManyAndReturnArgs} args - Arguments to update many TransferAuthorisations.
+     * @example
+     * // Update many TransferAuthorisations
+     * const transferAuthorisation = await prisma.transferAuthorisation.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more TransferAuthorisations and only return the `id`
+     * const transferAuthorisationWithIdOnly = await prisma.transferAuthorisation.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends TransferAuthorisationUpdateManyAndReturnArgs>(args: SelectSubset<T, TransferAuthorisationUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TransferAuthorisationPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one TransferAuthorisation.
+     * @param {TransferAuthorisationUpsertArgs} args - Arguments to update or create a TransferAuthorisation.
+     * @example
+     * // Update or create a TransferAuthorisation
+     * const transferAuthorisation = await prisma.transferAuthorisation.upsert({
+     *   create: {
+     *     // ... data to create a TransferAuthorisation
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the TransferAuthorisation we want to update
+     *   }
+     * })
+     */
+    upsert<T extends TransferAuthorisationUpsertArgs>(args: SelectSubset<T, TransferAuthorisationUpsertArgs<ExtArgs>>): Prisma__TransferAuthorisationClient<$Result.GetResult<Prisma.$TransferAuthorisationPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of TransferAuthorisations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TransferAuthorisationCountArgs} args - Arguments to filter TransferAuthorisations to count.
+     * @example
+     * // Count the number of TransferAuthorisations
+     * const count = await prisma.transferAuthorisation.count({
+     *   where: {
+     *     // ... the filter for the TransferAuthorisations we want to count
+     *   }
+     * })
+    **/
+    count<T extends TransferAuthorisationCountArgs>(
+      args?: Subset<T, TransferAuthorisationCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], TransferAuthorisationCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a TransferAuthorisation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TransferAuthorisationAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends TransferAuthorisationAggregateArgs>(args: Subset<T, TransferAuthorisationAggregateArgs>): Prisma.PrismaPromise<GetTransferAuthorisationAggregateType<T>>
+
+    /**
+     * Group by TransferAuthorisation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TransferAuthorisationGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends TransferAuthorisationGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: TransferAuthorisationGroupByArgs['orderBy'] }
+        : { orderBy?: TransferAuthorisationGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, TransferAuthorisationGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetTransferAuthorisationGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the TransferAuthorisation model
+   */
+  readonly fields: TransferAuthorisationFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for TransferAuthorisation.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__TransferAuthorisationClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    website<T extends WebsiteDefaultArgs<ExtArgs> = {}>(args?: Subset<T, WebsiteDefaultArgs<ExtArgs>>): Prisma__WebsiteClient<$Result.GetResult<Prisma.$WebsitePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    principal<T extends PrincipalDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PrincipalDefaultArgs<ExtArgs>>): Prisma__PrincipalClient<$Result.GetResult<Prisma.$PrincipalPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    purpose<T extends PurposeDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PurposeDefaultArgs<ExtArgs>>): Prisma__PurposeClient<$Result.GetResult<Prisma.$PurposePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    recipient<T extends DataRecipientDefaultArgs<ExtArgs> = {}>(args?: Subset<T, DataRecipientDefaultArgs<ExtArgs>>): Prisma__DataRecipientClient<$Result.GetResult<Prisma.$DataRecipientPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    consentRecord<T extends ConsentRecordDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ConsentRecordDefaultArgs<ExtArgs>>): Prisma__ConsentRecordClient<$Result.GetResult<Prisma.$ConsentRecordPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    transfer<T extends TransferAuthorisation$transferArgs<ExtArgs> = {}>(args?: Subset<T, TransferAuthorisation$transferArgs<ExtArgs>>): Prisma__TransferRecordClient<$Result.GetResult<Prisma.$TransferRecordPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the TransferAuthorisation model
+   */
+  interface TransferAuthorisationFieldRefs {
+    readonly id: FieldRef<"TransferAuthorisation", 'String'>
+    readonly organisationId: FieldRef<"TransferAuthorisation", 'String'>
+    readonly siteId: FieldRef<"TransferAuthorisation", 'String'>
+    readonly principalId: FieldRef<"TransferAuthorisation", 'String'>
+    readonly purposeId: FieldRef<"TransferAuthorisation", 'String'>
+    readonly recipientId: FieldRef<"TransferAuthorisation", 'String'>
+    readonly consentRecordId: FieldRef<"TransferAuthorisation", 'String'>
+    readonly nonce: FieldRef<"TransferAuthorisation", 'String'>
+    readonly status: FieldRef<"TransferAuthorisation", 'String'>
+    readonly expiresAt: FieldRef<"TransferAuthorisation", 'DateTime'>
+    readonly createdAt: FieldRef<"TransferAuthorisation", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * TransferAuthorisation findUnique
+   */
+  export type TransferAuthorisationFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferAuthorisation
+     */
+    select?: TransferAuthorisationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferAuthorisation
+     */
+    omit?: TransferAuthorisationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferAuthorisationInclude<ExtArgs> | null
+    /**
+     * Filter, which TransferAuthorisation to fetch.
+     */
+    where: TransferAuthorisationWhereUniqueInput
+  }
+
+  /**
+   * TransferAuthorisation findUniqueOrThrow
+   */
+  export type TransferAuthorisationFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferAuthorisation
+     */
+    select?: TransferAuthorisationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferAuthorisation
+     */
+    omit?: TransferAuthorisationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferAuthorisationInclude<ExtArgs> | null
+    /**
+     * Filter, which TransferAuthorisation to fetch.
+     */
+    where: TransferAuthorisationWhereUniqueInput
+  }
+
+  /**
+   * TransferAuthorisation findFirst
+   */
+  export type TransferAuthorisationFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferAuthorisation
+     */
+    select?: TransferAuthorisationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferAuthorisation
+     */
+    omit?: TransferAuthorisationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferAuthorisationInclude<ExtArgs> | null
+    /**
+     * Filter, which TransferAuthorisation to fetch.
+     */
+    where?: TransferAuthorisationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TransferAuthorisations to fetch.
+     */
+    orderBy?: TransferAuthorisationOrderByWithRelationInput | TransferAuthorisationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for TransferAuthorisations.
+     */
+    cursor?: TransferAuthorisationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TransferAuthorisations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TransferAuthorisations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of TransferAuthorisations.
+     */
+    distinct?: TransferAuthorisationScalarFieldEnum | TransferAuthorisationScalarFieldEnum[]
+  }
+
+  /**
+   * TransferAuthorisation findFirstOrThrow
+   */
+  export type TransferAuthorisationFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferAuthorisation
+     */
+    select?: TransferAuthorisationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferAuthorisation
+     */
+    omit?: TransferAuthorisationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferAuthorisationInclude<ExtArgs> | null
+    /**
+     * Filter, which TransferAuthorisation to fetch.
+     */
+    where?: TransferAuthorisationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TransferAuthorisations to fetch.
+     */
+    orderBy?: TransferAuthorisationOrderByWithRelationInput | TransferAuthorisationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for TransferAuthorisations.
+     */
+    cursor?: TransferAuthorisationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TransferAuthorisations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TransferAuthorisations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of TransferAuthorisations.
+     */
+    distinct?: TransferAuthorisationScalarFieldEnum | TransferAuthorisationScalarFieldEnum[]
+  }
+
+  /**
+   * TransferAuthorisation findMany
+   */
+  export type TransferAuthorisationFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferAuthorisation
+     */
+    select?: TransferAuthorisationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferAuthorisation
+     */
+    omit?: TransferAuthorisationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferAuthorisationInclude<ExtArgs> | null
+    /**
+     * Filter, which TransferAuthorisations to fetch.
+     */
+    where?: TransferAuthorisationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TransferAuthorisations to fetch.
+     */
+    orderBy?: TransferAuthorisationOrderByWithRelationInput | TransferAuthorisationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing TransferAuthorisations.
+     */
+    cursor?: TransferAuthorisationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TransferAuthorisations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TransferAuthorisations.
+     */
+    skip?: number
+    distinct?: TransferAuthorisationScalarFieldEnum | TransferAuthorisationScalarFieldEnum[]
+  }
+
+  /**
+   * TransferAuthorisation create
+   */
+  export type TransferAuthorisationCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferAuthorisation
+     */
+    select?: TransferAuthorisationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferAuthorisation
+     */
+    omit?: TransferAuthorisationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferAuthorisationInclude<ExtArgs> | null
+    /**
+     * The data needed to create a TransferAuthorisation.
+     */
+    data: XOR<TransferAuthorisationCreateInput, TransferAuthorisationUncheckedCreateInput>
+  }
+
+  /**
+   * TransferAuthorisation createMany
+   */
+  export type TransferAuthorisationCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many TransferAuthorisations.
+     */
+    data: TransferAuthorisationCreateManyInput | TransferAuthorisationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * TransferAuthorisation createManyAndReturn
+   */
+  export type TransferAuthorisationCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferAuthorisation
+     */
+    select?: TransferAuthorisationSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferAuthorisation
+     */
+    omit?: TransferAuthorisationOmit<ExtArgs> | null
+    /**
+     * The data used to create many TransferAuthorisations.
+     */
+    data: TransferAuthorisationCreateManyInput | TransferAuthorisationCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferAuthorisationIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * TransferAuthorisation update
+   */
+  export type TransferAuthorisationUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferAuthorisation
+     */
+    select?: TransferAuthorisationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferAuthorisation
+     */
+    omit?: TransferAuthorisationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferAuthorisationInclude<ExtArgs> | null
+    /**
+     * The data needed to update a TransferAuthorisation.
+     */
+    data: XOR<TransferAuthorisationUpdateInput, TransferAuthorisationUncheckedUpdateInput>
+    /**
+     * Choose, which TransferAuthorisation to update.
+     */
+    where: TransferAuthorisationWhereUniqueInput
+  }
+
+  /**
+   * TransferAuthorisation updateMany
+   */
+  export type TransferAuthorisationUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update TransferAuthorisations.
+     */
+    data: XOR<TransferAuthorisationUpdateManyMutationInput, TransferAuthorisationUncheckedUpdateManyInput>
+    /**
+     * Filter which TransferAuthorisations to update
+     */
+    where?: TransferAuthorisationWhereInput
+    /**
+     * Limit how many TransferAuthorisations to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * TransferAuthorisation updateManyAndReturn
+   */
+  export type TransferAuthorisationUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferAuthorisation
+     */
+    select?: TransferAuthorisationSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferAuthorisation
+     */
+    omit?: TransferAuthorisationOmit<ExtArgs> | null
+    /**
+     * The data used to update TransferAuthorisations.
+     */
+    data: XOR<TransferAuthorisationUpdateManyMutationInput, TransferAuthorisationUncheckedUpdateManyInput>
+    /**
+     * Filter which TransferAuthorisations to update
+     */
+    where?: TransferAuthorisationWhereInput
+    /**
+     * Limit how many TransferAuthorisations to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferAuthorisationIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * TransferAuthorisation upsert
+   */
+  export type TransferAuthorisationUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferAuthorisation
+     */
+    select?: TransferAuthorisationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferAuthorisation
+     */
+    omit?: TransferAuthorisationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferAuthorisationInclude<ExtArgs> | null
+    /**
+     * The filter to search for the TransferAuthorisation to update in case it exists.
+     */
+    where: TransferAuthorisationWhereUniqueInput
+    /**
+     * In case the TransferAuthorisation found by the `where` argument doesn't exist, create a new TransferAuthorisation with this data.
+     */
+    create: XOR<TransferAuthorisationCreateInput, TransferAuthorisationUncheckedCreateInput>
+    /**
+     * In case the TransferAuthorisation was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<TransferAuthorisationUpdateInput, TransferAuthorisationUncheckedUpdateInput>
+  }
+
+  /**
+   * TransferAuthorisation delete
+   */
+  export type TransferAuthorisationDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferAuthorisation
+     */
+    select?: TransferAuthorisationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferAuthorisation
+     */
+    omit?: TransferAuthorisationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferAuthorisationInclude<ExtArgs> | null
+    /**
+     * Filter which TransferAuthorisation to delete.
+     */
+    where: TransferAuthorisationWhereUniqueInput
+  }
+
+  /**
+   * TransferAuthorisation deleteMany
+   */
+  export type TransferAuthorisationDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which TransferAuthorisations to delete
+     */
+    where?: TransferAuthorisationWhereInput
+    /**
+     * Limit how many TransferAuthorisations to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * TransferAuthorisation.transfer
+   */
+  export type TransferAuthorisation$transferArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferRecord
+     */
+    select?: TransferRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferRecord
+     */
+    omit?: TransferRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferRecordInclude<ExtArgs> | null
+    where?: TransferRecordWhereInput
+  }
+
+  /**
+   * TransferAuthorisation without action
+   */
+  export type TransferAuthorisationDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferAuthorisation
+     */
+    select?: TransferAuthorisationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferAuthorisation
+     */
+    omit?: TransferAuthorisationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferAuthorisationInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model TransferRecord
+   */
+
+  export type AggregateTransferRecord = {
+    _count: TransferRecordCountAggregateOutputType | null
+    _avg: TransferRecordAvgAggregateOutputType | null
+    _sum: TransferRecordSumAggregateOutputType | null
+    _min: TransferRecordMinAggregateOutputType | null
+    _max: TransferRecordMaxAggregateOutputType | null
+  }
+
+  export type TransferRecordAvgAggregateOutputType = {
+    payloadBytes: number | null
+  }
+
+  export type TransferRecordSumAggregateOutputType = {
+    payloadBytes: number | null
+  }
+
+  export type TransferRecordMinAggregateOutputType = {
+    id: string | null
+    organisationId: string | null
+    authorisationId: string | null
+    ciphertext: string | null
+    iv: string | null
+    authTag: string | null
+    ephemeralPublicKey: string | null
+    ciphertextSha256: string | null
+    payloadBytes: number | null
+    status: string | null
+    failureReason: string | null
+    recordedAt: Date | null
+    deliveredAt: Date | null
+  }
+
+  export type TransferRecordMaxAggregateOutputType = {
+    id: string | null
+    organisationId: string | null
+    authorisationId: string | null
+    ciphertext: string | null
+    iv: string | null
+    authTag: string | null
+    ephemeralPublicKey: string | null
+    ciphertextSha256: string | null
+    payloadBytes: number | null
+    status: string | null
+    failureReason: string | null
+    recordedAt: Date | null
+    deliveredAt: Date | null
+  }
+
+  export type TransferRecordCountAggregateOutputType = {
+    id: number
+    organisationId: number
+    authorisationId: number
+    ciphertext: number
+    iv: number
+    authTag: number
+    ephemeralPublicKey: number
+    ciphertextSha256: number
+    payloadBytes: number
+    status: number
+    failureReason: number
+    recordedAt: number
+    deliveredAt: number
+    _all: number
+  }
+
+
+  export type TransferRecordAvgAggregateInputType = {
+    payloadBytes?: true
+  }
+
+  export type TransferRecordSumAggregateInputType = {
+    payloadBytes?: true
+  }
+
+  export type TransferRecordMinAggregateInputType = {
+    id?: true
+    organisationId?: true
+    authorisationId?: true
+    ciphertext?: true
+    iv?: true
+    authTag?: true
+    ephemeralPublicKey?: true
+    ciphertextSha256?: true
+    payloadBytes?: true
+    status?: true
+    failureReason?: true
+    recordedAt?: true
+    deliveredAt?: true
+  }
+
+  export type TransferRecordMaxAggregateInputType = {
+    id?: true
+    organisationId?: true
+    authorisationId?: true
+    ciphertext?: true
+    iv?: true
+    authTag?: true
+    ephemeralPublicKey?: true
+    ciphertextSha256?: true
+    payloadBytes?: true
+    status?: true
+    failureReason?: true
+    recordedAt?: true
+    deliveredAt?: true
+  }
+
+  export type TransferRecordCountAggregateInputType = {
+    id?: true
+    organisationId?: true
+    authorisationId?: true
+    ciphertext?: true
+    iv?: true
+    authTag?: true
+    ephemeralPublicKey?: true
+    ciphertextSha256?: true
+    payloadBytes?: true
+    status?: true
+    failureReason?: true
+    recordedAt?: true
+    deliveredAt?: true
+    _all?: true
+  }
+
+  export type TransferRecordAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which TransferRecord to aggregate.
+     */
+    where?: TransferRecordWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TransferRecords to fetch.
+     */
+    orderBy?: TransferRecordOrderByWithRelationInput | TransferRecordOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: TransferRecordWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TransferRecords from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TransferRecords.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned TransferRecords
+    **/
+    _count?: true | TransferRecordCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: TransferRecordAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: TransferRecordSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: TransferRecordMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: TransferRecordMaxAggregateInputType
+  }
+
+  export type GetTransferRecordAggregateType<T extends TransferRecordAggregateArgs> = {
+        [P in keyof T & keyof AggregateTransferRecord]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateTransferRecord[P]>
+      : GetScalarType<T[P], AggregateTransferRecord[P]>
+  }
+
+
+
+
+  export type TransferRecordGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TransferRecordWhereInput
+    orderBy?: TransferRecordOrderByWithAggregationInput | TransferRecordOrderByWithAggregationInput[]
+    by: TransferRecordScalarFieldEnum[] | TransferRecordScalarFieldEnum
+    having?: TransferRecordScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: TransferRecordCountAggregateInputType | true
+    _avg?: TransferRecordAvgAggregateInputType
+    _sum?: TransferRecordSumAggregateInputType
+    _min?: TransferRecordMinAggregateInputType
+    _max?: TransferRecordMaxAggregateInputType
+  }
+
+  export type TransferRecordGroupByOutputType = {
+    id: string
+    organisationId: string
+    authorisationId: string
+    ciphertext: string
+    iv: string
+    authTag: string
+    ephemeralPublicKey: string
+    ciphertextSha256: string
+    payloadBytes: number
+    status: string
+    failureReason: string | null
+    recordedAt: Date
+    deliveredAt: Date | null
+    _count: TransferRecordCountAggregateOutputType | null
+    _avg: TransferRecordAvgAggregateOutputType | null
+    _sum: TransferRecordSumAggregateOutputType | null
+    _min: TransferRecordMinAggregateOutputType | null
+    _max: TransferRecordMaxAggregateOutputType | null
+  }
+
+  type GetTransferRecordGroupByPayload<T extends TransferRecordGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<TransferRecordGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof TransferRecordGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], TransferRecordGroupByOutputType[P]>
+            : GetScalarType<T[P], TransferRecordGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type TransferRecordSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organisationId?: boolean
+    authorisationId?: boolean
+    ciphertext?: boolean
+    iv?: boolean
+    authTag?: boolean
+    ephemeralPublicKey?: boolean
+    ciphertextSha256?: boolean
+    payloadBytes?: boolean
+    status?: boolean
+    failureReason?: boolean
+    recordedAt?: boolean
+    deliveredAt?: boolean
+    authorisation?: boolean | TransferAuthorisationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["transferRecord"]>
+
+  export type TransferRecordSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organisationId?: boolean
+    authorisationId?: boolean
+    ciphertext?: boolean
+    iv?: boolean
+    authTag?: boolean
+    ephemeralPublicKey?: boolean
+    ciphertextSha256?: boolean
+    payloadBytes?: boolean
+    status?: boolean
+    failureReason?: boolean
+    recordedAt?: boolean
+    deliveredAt?: boolean
+    authorisation?: boolean | TransferAuthorisationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["transferRecord"]>
+
+  export type TransferRecordSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organisationId?: boolean
+    authorisationId?: boolean
+    ciphertext?: boolean
+    iv?: boolean
+    authTag?: boolean
+    ephemeralPublicKey?: boolean
+    ciphertextSha256?: boolean
+    payloadBytes?: boolean
+    status?: boolean
+    failureReason?: boolean
+    recordedAt?: boolean
+    deliveredAt?: boolean
+    authorisation?: boolean | TransferAuthorisationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["transferRecord"]>
+
+  export type TransferRecordSelectScalar = {
+    id?: boolean
+    organisationId?: boolean
+    authorisationId?: boolean
+    ciphertext?: boolean
+    iv?: boolean
+    authTag?: boolean
+    ephemeralPublicKey?: boolean
+    ciphertextSha256?: boolean
+    payloadBytes?: boolean
+    status?: boolean
+    failureReason?: boolean
+    recordedAt?: boolean
+    deliveredAt?: boolean
+  }
+
+  export type TransferRecordOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organisationId" | "authorisationId" | "ciphertext" | "iv" | "authTag" | "ephemeralPublicKey" | "ciphertextSha256" | "payloadBytes" | "status" | "failureReason" | "recordedAt" | "deliveredAt", ExtArgs["result"]["transferRecord"]>
+  export type TransferRecordInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    authorisation?: boolean | TransferAuthorisationDefaultArgs<ExtArgs>
+  }
+  export type TransferRecordIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    authorisation?: boolean | TransferAuthorisationDefaultArgs<ExtArgs>
+  }
+  export type TransferRecordIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    authorisation?: boolean | TransferAuthorisationDefaultArgs<ExtArgs>
+  }
+
+  export type $TransferRecordPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "TransferRecord"
+    objects: {
+      authorisation: Prisma.$TransferAuthorisationPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      organisationId: string
+      /**
+       * Unique: one transfer per authorisation. This is the database-level half of
+       * replay prevention - a second submission cannot race past the status check.
+       */
+      authorisationId: string
+      /**
+       * The sealed envelope. base64, unreadable without the recipient private key.
+       */
+      ciphertext: string
+      iv: string
+      authTag: string
+      ephemeralPublicKey: string
+      /**
+       * Integrity and accounting, computed without inspecting the content.
+       */
+      ciphertextSha256: string
+      payloadBytes: number
+      /**
+       * RECORDED | DELIVERED | FAILED
+       */
+      status: string
+      failureReason: string | null
+      recordedAt: Date
+      deliveredAt: Date | null
+    }, ExtArgs["result"]["transferRecord"]>
+    composites: {}
+  }
+
+  type TransferRecordGetPayload<S extends boolean | null | undefined | TransferRecordDefaultArgs> = $Result.GetResult<Prisma.$TransferRecordPayload, S>
+
+  type TransferRecordCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<TransferRecordFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: TransferRecordCountAggregateInputType | true
+    }
+
+  export interface TransferRecordDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['TransferRecord'], meta: { name: 'TransferRecord' } }
+    /**
+     * Find zero or one TransferRecord that matches the filter.
+     * @param {TransferRecordFindUniqueArgs} args - Arguments to find a TransferRecord
+     * @example
+     * // Get one TransferRecord
+     * const transferRecord = await prisma.transferRecord.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends TransferRecordFindUniqueArgs>(args: SelectSubset<T, TransferRecordFindUniqueArgs<ExtArgs>>): Prisma__TransferRecordClient<$Result.GetResult<Prisma.$TransferRecordPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one TransferRecord that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {TransferRecordFindUniqueOrThrowArgs} args - Arguments to find a TransferRecord
+     * @example
+     * // Get one TransferRecord
+     * const transferRecord = await prisma.transferRecord.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends TransferRecordFindUniqueOrThrowArgs>(args: SelectSubset<T, TransferRecordFindUniqueOrThrowArgs<ExtArgs>>): Prisma__TransferRecordClient<$Result.GetResult<Prisma.$TransferRecordPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first TransferRecord that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TransferRecordFindFirstArgs} args - Arguments to find a TransferRecord
+     * @example
+     * // Get one TransferRecord
+     * const transferRecord = await prisma.transferRecord.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends TransferRecordFindFirstArgs>(args?: SelectSubset<T, TransferRecordFindFirstArgs<ExtArgs>>): Prisma__TransferRecordClient<$Result.GetResult<Prisma.$TransferRecordPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first TransferRecord that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TransferRecordFindFirstOrThrowArgs} args - Arguments to find a TransferRecord
+     * @example
+     * // Get one TransferRecord
+     * const transferRecord = await prisma.transferRecord.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends TransferRecordFindFirstOrThrowArgs>(args?: SelectSubset<T, TransferRecordFindFirstOrThrowArgs<ExtArgs>>): Prisma__TransferRecordClient<$Result.GetResult<Prisma.$TransferRecordPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more TransferRecords that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TransferRecordFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all TransferRecords
+     * const transferRecords = await prisma.transferRecord.findMany()
+     * 
+     * // Get first 10 TransferRecords
+     * const transferRecords = await prisma.transferRecord.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const transferRecordWithIdOnly = await prisma.transferRecord.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends TransferRecordFindManyArgs>(args?: SelectSubset<T, TransferRecordFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TransferRecordPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a TransferRecord.
+     * @param {TransferRecordCreateArgs} args - Arguments to create a TransferRecord.
+     * @example
+     * // Create one TransferRecord
+     * const TransferRecord = await prisma.transferRecord.create({
+     *   data: {
+     *     // ... data to create a TransferRecord
+     *   }
+     * })
+     * 
+     */
+    create<T extends TransferRecordCreateArgs>(args: SelectSubset<T, TransferRecordCreateArgs<ExtArgs>>): Prisma__TransferRecordClient<$Result.GetResult<Prisma.$TransferRecordPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many TransferRecords.
+     * @param {TransferRecordCreateManyArgs} args - Arguments to create many TransferRecords.
+     * @example
+     * // Create many TransferRecords
+     * const transferRecord = await prisma.transferRecord.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends TransferRecordCreateManyArgs>(args?: SelectSubset<T, TransferRecordCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many TransferRecords and returns the data saved in the database.
+     * @param {TransferRecordCreateManyAndReturnArgs} args - Arguments to create many TransferRecords.
+     * @example
+     * // Create many TransferRecords
+     * const transferRecord = await prisma.transferRecord.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many TransferRecords and only return the `id`
+     * const transferRecordWithIdOnly = await prisma.transferRecord.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends TransferRecordCreateManyAndReturnArgs>(args?: SelectSubset<T, TransferRecordCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TransferRecordPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a TransferRecord.
+     * @param {TransferRecordDeleteArgs} args - Arguments to delete one TransferRecord.
+     * @example
+     * // Delete one TransferRecord
+     * const TransferRecord = await prisma.transferRecord.delete({
+     *   where: {
+     *     // ... filter to delete one TransferRecord
+     *   }
+     * })
+     * 
+     */
+    delete<T extends TransferRecordDeleteArgs>(args: SelectSubset<T, TransferRecordDeleteArgs<ExtArgs>>): Prisma__TransferRecordClient<$Result.GetResult<Prisma.$TransferRecordPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one TransferRecord.
+     * @param {TransferRecordUpdateArgs} args - Arguments to update one TransferRecord.
+     * @example
+     * // Update one TransferRecord
+     * const transferRecord = await prisma.transferRecord.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends TransferRecordUpdateArgs>(args: SelectSubset<T, TransferRecordUpdateArgs<ExtArgs>>): Prisma__TransferRecordClient<$Result.GetResult<Prisma.$TransferRecordPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more TransferRecords.
+     * @param {TransferRecordDeleteManyArgs} args - Arguments to filter TransferRecords to delete.
+     * @example
+     * // Delete a few TransferRecords
+     * const { count } = await prisma.transferRecord.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends TransferRecordDeleteManyArgs>(args?: SelectSubset<T, TransferRecordDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more TransferRecords.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TransferRecordUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many TransferRecords
+     * const transferRecord = await prisma.transferRecord.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends TransferRecordUpdateManyArgs>(args: SelectSubset<T, TransferRecordUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more TransferRecords and returns the data updated in the database.
+     * @param {TransferRecordUpdateManyAndReturnArgs} args - Arguments to update many TransferRecords.
+     * @example
+     * // Update many TransferRecords
+     * const transferRecord = await prisma.transferRecord.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more TransferRecords and only return the `id`
+     * const transferRecordWithIdOnly = await prisma.transferRecord.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends TransferRecordUpdateManyAndReturnArgs>(args: SelectSubset<T, TransferRecordUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TransferRecordPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one TransferRecord.
+     * @param {TransferRecordUpsertArgs} args - Arguments to update or create a TransferRecord.
+     * @example
+     * // Update or create a TransferRecord
+     * const transferRecord = await prisma.transferRecord.upsert({
+     *   create: {
+     *     // ... data to create a TransferRecord
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the TransferRecord we want to update
+     *   }
+     * })
+     */
+    upsert<T extends TransferRecordUpsertArgs>(args: SelectSubset<T, TransferRecordUpsertArgs<ExtArgs>>): Prisma__TransferRecordClient<$Result.GetResult<Prisma.$TransferRecordPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of TransferRecords.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TransferRecordCountArgs} args - Arguments to filter TransferRecords to count.
+     * @example
+     * // Count the number of TransferRecords
+     * const count = await prisma.transferRecord.count({
+     *   where: {
+     *     // ... the filter for the TransferRecords we want to count
+     *   }
+     * })
+    **/
+    count<T extends TransferRecordCountArgs>(
+      args?: Subset<T, TransferRecordCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], TransferRecordCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a TransferRecord.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TransferRecordAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends TransferRecordAggregateArgs>(args: Subset<T, TransferRecordAggregateArgs>): Prisma.PrismaPromise<GetTransferRecordAggregateType<T>>
+
+    /**
+     * Group by TransferRecord.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TransferRecordGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends TransferRecordGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: TransferRecordGroupByArgs['orderBy'] }
+        : { orderBy?: TransferRecordGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, TransferRecordGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetTransferRecordGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the TransferRecord model
+   */
+  readonly fields: TransferRecordFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for TransferRecord.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__TransferRecordClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    authorisation<T extends TransferAuthorisationDefaultArgs<ExtArgs> = {}>(args?: Subset<T, TransferAuthorisationDefaultArgs<ExtArgs>>): Prisma__TransferAuthorisationClient<$Result.GetResult<Prisma.$TransferAuthorisationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the TransferRecord model
+   */
+  interface TransferRecordFieldRefs {
+    readonly id: FieldRef<"TransferRecord", 'String'>
+    readonly organisationId: FieldRef<"TransferRecord", 'String'>
+    readonly authorisationId: FieldRef<"TransferRecord", 'String'>
+    readonly ciphertext: FieldRef<"TransferRecord", 'String'>
+    readonly iv: FieldRef<"TransferRecord", 'String'>
+    readonly authTag: FieldRef<"TransferRecord", 'String'>
+    readonly ephemeralPublicKey: FieldRef<"TransferRecord", 'String'>
+    readonly ciphertextSha256: FieldRef<"TransferRecord", 'String'>
+    readonly payloadBytes: FieldRef<"TransferRecord", 'Int'>
+    readonly status: FieldRef<"TransferRecord", 'String'>
+    readonly failureReason: FieldRef<"TransferRecord", 'String'>
+    readonly recordedAt: FieldRef<"TransferRecord", 'DateTime'>
+    readonly deliveredAt: FieldRef<"TransferRecord", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * TransferRecord findUnique
+   */
+  export type TransferRecordFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferRecord
+     */
+    select?: TransferRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferRecord
+     */
+    omit?: TransferRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferRecordInclude<ExtArgs> | null
+    /**
+     * Filter, which TransferRecord to fetch.
+     */
+    where: TransferRecordWhereUniqueInput
+  }
+
+  /**
+   * TransferRecord findUniqueOrThrow
+   */
+  export type TransferRecordFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferRecord
+     */
+    select?: TransferRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferRecord
+     */
+    omit?: TransferRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferRecordInclude<ExtArgs> | null
+    /**
+     * Filter, which TransferRecord to fetch.
+     */
+    where: TransferRecordWhereUniqueInput
+  }
+
+  /**
+   * TransferRecord findFirst
+   */
+  export type TransferRecordFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferRecord
+     */
+    select?: TransferRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferRecord
+     */
+    omit?: TransferRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferRecordInclude<ExtArgs> | null
+    /**
+     * Filter, which TransferRecord to fetch.
+     */
+    where?: TransferRecordWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TransferRecords to fetch.
+     */
+    orderBy?: TransferRecordOrderByWithRelationInput | TransferRecordOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for TransferRecords.
+     */
+    cursor?: TransferRecordWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TransferRecords from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TransferRecords.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of TransferRecords.
+     */
+    distinct?: TransferRecordScalarFieldEnum | TransferRecordScalarFieldEnum[]
+  }
+
+  /**
+   * TransferRecord findFirstOrThrow
+   */
+  export type TransferRecordFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferRecord
+     */
+    select?: TransferRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferRecord
+     */
+    omit?: TransferRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferRecordInclude<ExtArgs> | null
+    /**
+     * Filter, which TransferRecord to fetch.
+     */
+    where?: TransferRecordWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TransferRecords to fetch.
+     */
+    orderBy?: TransferRecordOrderByWithRelationInput | TransferRecordOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for TransferRecords.
+     */
+    cursor?: TransferRecordWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TransferRecords from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TransferRecords.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of TransferRecords.
+     */
+    distinct?: TransferRecordScalarFieldEnum | TransferRecordScalarFieldEnum[]
+  }
+
+  /**
+   * TransferRecord findMany
+   */
+  export type TransferRecordFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferRecord
+     */
+    select?: TransferRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferRecord
+     */
+    omit?: TransferRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferRecordInclude<ExtArgs> | null
+    /**
+     * Filter, which TransferRecords to fetch.
+     */
+    where?: TransferRecordWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TransferRecords to fetch.
+     */
+    orderBy?: TransferRecordOrderByWithRelationInput | TransferRecordOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing TransferRecords.
+     */
+    cursor?: TransferRecordWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TransferRecords from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TransferRecords.
+     */
+    skip?: number
+    distinct?: TransferRecordScalarFieldEnum | TransferRecordScalarFieldEnum[]
+  }
+
+  /**
+   * TransferRecord create
+   */
+  export type TransferRecordCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferRecord
+     */
+    select?: TransferRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferRecord
+     */
+    omit?: TransferRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferRecordInclude<ExtArgs> | null
+    /**
+     * The data needed to create a TransferRecord.
+     */
+    data: XOR<TransferRecordCreateInput, TransferRecordUncheckedCreateInput>
+  }
+
+  /**
+   * TransferRecord createMany
+   */
+  export type TransferRecordCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many TransferRecords.
+     */
+    data: TransferRecordCreateManyInput | TransferRecordCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * TransferRecord createManyAndReturn
+   */
+  export type TransferRecordCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferRecord
+     */
+    select?: TransferRecordSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferRecord
+     */
+    omit?: TransferRecordOmit<ExtArgs> | null
+    /**
+     * The data used to create many TransferRecords.
+     */
+    data: TransferRecordCreateManyInput | TransferRecordCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferRecordIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * TransferRecord update
+   */
+  export type TransferRecordUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferRecord
+     */
+    select?: TransferRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferRecord
+     */
+    omit?: TransferRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferRecordInclude<ExtArgs> | null
+    /**
+     * The data needed to update a TransferRecord.
+     */
+    data: XOR<TransferRecordUpdateInput, TransferRecordUncheckedUpdateInput>
+    /**
+     * Choose, which TransferRecord to update.
+     */
+    where: TransferRecordWhereUniqueInput
+  }
+
+  /**
+   * TransferRecord updateMany
+   */
+  export type TransferRecordUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update TransferRecords.
+     */
+    data: XOR<TransferRecordUpdateManyMutationInput, TransferRecordUncheckedUpdateManyInput>
+    /**
+     * Filter which TransferRecords to update
+     */
+    where?: TransferRecordWhereInput
+    /**
+     * Limit how many TransferRecords to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * TransferRecord updateManyAndReturn
+   */
+  export type TransferRecordUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferRecord
+     */
+    select?: TransferRecordSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferRecord
+     */
+    omit?: TransferRecordOmit<ExtArgs> | null
+    /**
+     * The data used to update TransferRecords.
+     */
+    data: XOR<TransferRecordUpdateManyMutationInput, TransferRecordUncheckedUpdateManyInput>
+    /**
+     * Filter which TransferRecords to update
+     */
+    where?: TransferRecordWhereInput
+    /**
+     * Limit how many TransferRecords to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferRecordIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * TransferRecord upsert
+   */
+  export type TransferRecordUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferRecord
+     */
+    select?: TransferRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferRecord
+     */
+    omit?: TransferRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferRecordInclude<ExtArgs> | null
+    /**
+     * The filter to search for the TransferRecord to update in case it exists.
+     */
+    where: TransferRecordWhereUniqueInput
+    /**
+     * In case the TransferRecord found by the `where` argument doesn't exist, create a new TransferRecord with this data.
+     */
+    create: XOR<TransferRecordCreateInput, TransferRecordUncheckedCreateInput>
+    /**
+     * In case the TransferRecord was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<TransferRecordUpdateInput, TransferRecordUncheckedUpdateInput>
+  }
+
+  /**
+   * TransferRecord delete
+   */
+  export type TransferRecordDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferRecord
+     */
+    select?: TransferRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferRecord
+     */
+    omit?: TransferRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferRecordInclude<ExtArgs> | null
+    /**
+     * Filter which TransferRecord to delete.
+     */
+    where: TransferRecordWhereUniqueInput
+  }
+
+  /**
+   * TransferRecord deleteMany
+   */
+  export type TransferRecordDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which TransferRecords to delete
+     */
+    where?: TransferRecordWhereInput
+    /**
+     * Limit how many TransferRecords to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * TransferRecord without action
+   */
+  export type TransferRecordDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TransferRecord
+     */
+    select?: TransferRecordSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TransferRecord
+     */
+    omit?: TransferRecordOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransferRecordInclude<ExtArgs> | null
   }
 
 
@@ -14768,6 +18847,57 @@ export namespace Prisma {
   export type ConsentRecordScalarFieldEnum = (typeof ConsentRecordScalarFieldEnum)[keyof typeof ConsentRecordScalarFieldEnum]
 
 
+  export const DataRecipientScalarFieldEnum: {
+    id: 'id',
+    organisationId: 'organisationId',
+    code: 'code',
+    name: 'name',
+    publicKey: 'publicKey',
+    algorithm: 'algorithm',
+    deliveryKeyHash: 'deliveryKeyHash',
+    isActive: 'isActive',
+    createdAt: 'createdAt'
+  };
+
+  export type DataRecipientScalarFieldEnum = (typeof DataRecipientScalarFieldEnum)[keyof typeof DataRecipientScalarFieldEnum]
+
+
+  export const TransferAuthorisationScalarFieldEnum: {
+    id: 'id',
+    organisationId: 'organisationId',
+    siteId: 'siteId',
+    principalId: 'principalId',
+    purposeId: 'purposeId',
+    recipientId: 'recipientId',
+    consentRecordId: 'consentRecordId',
+    nonce: 'nonce',
+    status: 'status',
+    expiresAt: 'expiresAt',
+    createdAt: 'createdAt'
+  };
+
+  export type TransferAuthorisationScalarFieldEnum = (typeof TransferAuthorisationScalarFieldEnum)[keyof typeof TransferAuthorisationScalarFieldEnum]
+
+
+  export const TransferRecordScalarFieldEnum: {
+    id: 'id',
+    organisationId: 'organisationId',
+    authorisationId: 'authorisationId',
+    ciphertext: 'ciphertext',
+    iv: 'iv',
+    authTag: 'authTag',
+    ephemeralPublicKey: 'ephemeralPublicKey',
+    ciphertextSha256: 'ciphertextSha256',
+    payloadBytes: 'payloadBytes',
+    status: 'status',
+    failureReason: 'failureReason',
+    recordedAt: 'recordedAt',
+    deliveredAt: 'deliveredAt'
+  };
+
+  export type TransferRecordScalarFieldEnum = (typeof TransferRecordScalarFieldEnum)[keyof typeof TransferRecordScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
@@ -14875,6 +19005,20 @@ export namespace Prisma {
    */
   export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
     
+
+
+  /**
+   * Reference to a field of type 'Float'
+   */
+  export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
+    
+
+
+  /**
+   * Reference to a field of type 'Float[]'
+   */
+  export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
+    
   /**
    * Deep Input Types
    */
@@ -14893,6 +19037,7 @@ export namespace Prisma {
     purposes?: PurposeListRelationFilter
     policies?: PolicyListRelationFilter
     notices?: NoticeListRelationFilter
+    recipients?: DataRecipientListRelationFilter
   }
 
   export type OrganisationOrderByWithRelationInput = {
@@ -14905,6 +19050,7 @@ export namespace Prisma {
     purposes?: PurposeOrderByRelationAggregateInput
     policies?: PolicyOrderByRelationAggregateInput
     notices?: NoticeOrderByRelationAggregateInput
+    recipients?: DataRecipientOrderByRelationAggregateInput
   }
 
   export type OrganisationWhereUniqueInput = Prisma.AtLeast<{
@@ -14920,6 +19066,7 @@ export namespace Prisma {
     purposes?: PurposeListRelationFilter
     policies?: PolicyListRelationFilter
     notices?: NoticeListRelationFilter
+    recipients?: DataRecipientListRelationFilter
   }, "id" | "slug" | "secretKeyHash">
 
   export type OrganisationOrderByWithAggregationInput = {
@@ -14960,6 +19107,7 @@ export namespace Prisma {
     events?: EventListRelationFilter
     principals?: PrincipalListRelationFilter
     consentRecords?: ConsentRecordListRelationFilter
+    transferAuthorisations?: TransferAuthorisationListRelationFilter
   }
 
   export type WebsiteOrderByWithRelationInput = {
@@ -14975,6 +19123,7 @@ export namespace Prisma {
     events?: EventOrderByRelationAggregateInput
     principals?: PrincipalOrderByRelationAggregateInput
     consentRecords?: ConsentRecordOrderByRelationAggregateInput
+    transferAuthorisations?: TransferAuthorisationOrderByRelationAggregateInput
   }
 
   export type WebsiteWhereUniqueInput = Prisma.AtLeast<{
@@ -14994,6 +19143,7 @@ export namespace Prisma {
     events?: EventListRelationFilter
     principals?: PrincipalListRelationFilter
     consentRecords?: ConsentRecordListRelationFilter
+    transferAuthorisations?: TransferAuthorisationListRelationFilter
   }, "id" | "publicKey" | "id_organisationId">
 
   export type WebsiteOrderByWithAggregationInput = {
@@ -15195,6 +19345,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"Principal"> | Date | string
     website?: XOR<WebsiteScalarRelationFilter, WebsiteWhereInput>
     consentRecords?: ConsentRecordListRelationFilter
+    transferAuthorisations?: TransferAuthorisationListRelationFilter
   }
 
   export type PrincipalOrderByWithRelationInput = {
@@ -15205,6 +19356,7 @@ export namespace Prisma {
     createdAt?: SortOrder
     website?: WebsiteOrderByWithRelationInput
     consentRecords?: ConsentRecordOrderByRelationAggregateInput
+    transferAuthorisations?: TransferAuthorisationOrderByRelationAggregateInput
   }
 
   export type PrincipalWhereUniqueInput = Prisma.AtLeast<{
@@ -15220,6 +19372,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"Principal"> | Date | string
     website?: XOR<WebsiteScalarRelationFilter, WebsiteWhereInput>
     consentRecords?: ConsentRecordListRelationFilter
+    transferAuthorisations?: TransferAuthorisationListRelationFilter
   }, "id" | "siteId_externalId" | "id_siteId">
 
   export type PrincipalOrderByWithAggregationInput = {
@@ -15258,6 +19411,7 @@ export namespace Prisma {
     organisation?: XOR<OrganisationScalarRelationFilter, OrganisationWhereInput>
     noticePurposes?: NoticePurposeListRelationFilter
     consentRecords?: ConsentRecordListRelationFilter
+    transferAuthorisations?: TransferAuthorisationListRelationFilter
   }
 
   export type PurposeOrderByWithRelationInput = {
@@ -15271,6 +19425,7 @@ export namespace Prisma {
     organisation?: OrganisationOrderByWithRelationInput
     noticePurposes?: NoticePurposeOrderByRelationAggregateInput
     consentRecords?: ConsentRecordOrderByRelationAggregateInput
+    transferAuthorisations?: TransferAuthorisationOrderByRelationAggregateInput
   }
 
   export type PurposeWhereUniqueInput = Prisma.AtLeast<{
@@ -15289,6 +19444,7 @@ export namespace Prisma {
     organisation?: XOR<OrganisationScalarRelationFilter, OrganisationWhereInput>
     noticePurposes?: NoticePurposeListRelationFilter
     consentRecords?: ConsentRecordListRelationFilter
+    transferAuthorisations?: TransferAuthorisationListRelationFilter
   }, "id" | "organisationId_code" | "id_organisationId">
 
   export type PurposeOrderByWithAggregationInput = {
@@ -15586,6 +19742,7 @@ export namespace Prisma {
     purpose?: XOR<PurposeScalarRelationFilter, PurposeWhereInput>
     notice?: XOR<NoticeNullableScalarRelationFilter, NoticeWhereInput> | null
     policyVersion?: XOR<PolicyVersionNullableScalarRelationFilter, PolicyVersionWhereInput> | null
+    transferAuthorisations?: TransferAuthorisationListRelationFilter
   }
 
   export type ConsentRecordOrderByWithRelationInput = {
@@ -15606,10 +19763,12 @@ export namespace Prisma {
     purpose?: PurposeOrderByWithRelationInput
     notice?: NoticeOrderByWithRelationInput
     policyVersion?: PolicyVersionOrderByWithRelationInput
+    transferAuthorisations?: TransferAuthorisationOrderByRelationAggregateInput
   }
 
   export type ConsentRecordWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    id_organisationId?: ConsentRecordIdOrganisationIdCompoundUniqueInput
     AND?: ConsentRecordWhereInput | ConsentRecordWhereInput[]
     OR?: ConsentRecordWhereInput[]
     NOT?: ConsentRecordWhereInput | ConsentRecordWhereInput[]
@@ -15629,7 +19788,8 @@ export namespace Prisma {
     purpose?: XOR<PurposeScalarRelationFilter, PurposeWhereInput>
     notice?: XOR<NoticeNullableScalarRelationFilter, NoticeWhereInput> | null
     policyVersion?: XOR<PolicyVersionNullableScalarRelationFilter, PolicyVersionWhereInput> | null
-  }, "id">
+    transferAuthorisations?: TransferAuthorisationListRelationFilter
+  }, "id" | "id_organisationId">
 
   export type ConsentRecordOrderByWithAggregationInput = {
     id?: SortOrder
@@ -15667,6 +19827,285 @@ export namespace Prisma {
     metadata?: JsonNullableWithAggregatesFilter<"ConsentRecord">
   }
 
+  export type DataRecipientWhereInput = {
+    AND?: DataRecipientWhereInput | DataRecipientWhereInput[]
+    OR?: DataRecipientWhereInput[]
+    NOT?: DataRecipientWhereInput | DataRecipientWhereInput[]
+    id?: StringFilter<"DataRecipient"> | string
+    organisationId?: StringFilter<"DataRecipient"> | string
+    code?: StringFilter<"DataRecipient"> | string
+    name?: StringFilter<"DataRecipient"> | string
+    publicKey?: StringFilter<"DataRecipient"> | string
+    algorithm?: StringFilter<"DataRecipient"> | string
+    deliveryKeyHash?: StringFilter<"DataRecipient"> | string
+    isActive?: BoolFilter<"DataRecipient"> | boolean
+    createdAt?: DateTimeFilter<"DataRecipient"> | Date | string
+    organisation?: XOR<OrganisationScalarRelationFilter, OrganisationWhereInput>
+    authorisations?: TransferAuthorisationListRelationFilter
+  }
+
+  export type DataRecipientOrderByWithRelationInput = {
+    id?: SortOrder
+    organisationId?: SortOrder
+    code?: SortOrder
+    name?: SortOrder
+    publicKey?: SortOrder
+    algorithm?: SortOrder
+    deliveryKeyHash?: SortOrder
+    isActive?: SortOrder
+    createdAt?: SortOrder
+    organisation?: OrganisationOrderByWithRelationInput
+    authorisations?: TransferAuthorisationOrderByRelationAggregateInput
+  }
+
+  export type DataRecipientWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    deliveryKeyHash?: string
+    organisationId_code?: DataRecipientOrganisationIdCodeCompoundUniqueInput
+    id_organisationId?: DataRecipientIdOrganisationIdCompoundUniqueInput
+    AND?: DataRecipientWhereInput | DataRecipientWhereInput[]
+    OR?: DataRecipientWhereInput[]
+    NOT?: DataRecipientWhereInput | DataRecipientWhereInput[]
+    organisationId?: StringFilter<"DataRecipient"> | string
+    code?: StringFilter<"DataRecipient"> | string
+    name?: StringFilter<"DataRecipient"> | string
+    publicKey?: StringFilter<"DataRecipient"> | string
+    algorithm?: StringFilter<"DataRecipient"> | string
+    isActive?: BoolFilter<"DataRecipient"> | boolean
+    createdAt?: DateTimeFilter<"DataRecipient"> | Date | string
+    organisation?: XOR<OrganisationScalarRelationFilter, OrganisationWhereInput>
+    authorisations?: TransferAuthorisationListRelationFilter
+  }, "id" | "deliveryKeyHash" | "organisationId_code" | "id_organisationId">
+
+  export type DataRecipientOrderByWithAggregationInput = {
+    id?: SortOrder
+    organisationId?: SortOrder
+    code?: SortOrder
+    name?: SortOrder
+    publicKey?: SortOrder
+    algorithm?: SortOrder
+    deliveryKeyHash?: SortOrder
+    isActive?: SortOrder
+    createdAt?: SortOrder
+    _count?: DataRecipientCountOrderByAggregateInput
+    _max?: DataRecipientMaxOrderByAggregateInput
+    _min?: DataRecipientMinOrderByAggregateInput
+  }
+
+  export type DataRecipientScalarWhereWithAggregatesInput = {
+    AND?: DataRecipientScalarWhereWithAggregatesInput | DataRecipientScalarWhereWithAggregatesInput[]
+    OR?: DataRecipientScalarWhereWithAggregatesInput[]
+    NOT?: DataRecipientScalarWhereWithAggregatesInput | DataRecipientScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"DataRecipient"> | string
+    organisationId?: StringWithAggregatesFilter<"DataRecipient"> | string
+    code?: StringWithAggregatesFilter<"DataRecipient"> | string
+    name?: StringWithAggregatesFilter<"DataRecipient"> | string
+    publicKey?: StringWithAggregatesFilter<"DataRecipient"> | string
+    algorithm?: StringWithAggregatesFilter<"DataRecipient"> | string
+    deliveryKeyHash?: StringWithAggregatesFilter<"DataRecipient"> | string
+    isActive?: BoolWithAggregatesFilter<"DataRecipient"> | boolean
+    createdAt?: DateTimeWithAggregatesFilter<"DataRecipient"> | Date | string
+  }
+
+  export type TransferAuthorisationWhereInput = {
+    AND?: TransferAuthorisationWhereInput | TransferAuthorisationWhereInput[]
+    OR?: TransferAuthorisationWhereInput[]
+    NOT?: TransferAuthorisationWhereInput | TransferAuthorisationWhereInput[]
+    id?: StringFilter<"TransferAuthorisation"> | string
+    organisationId?: StringFilter<"TransferAuthorisation"> | string
+    siteId?: StringFilter<"TransferAuthorisation"> | string
+    principalId?: StringFilter<"TransferAuthorisation"> | string
+    purposeId?: StringFilter<"TransferAuthorisation"> | string
+    recipientId?: StringFilter<"TransferAuthorisation"> | string
+    consentRecordId?: StringFilter<"TransferAuthorisation"> | string
+    nonce?: StringFilter<"TransferAuthorisation"> | string
+    status?: StringFilter<"TransferAuthorisation"> | string
+    expiresAt?: DateTimeFilter<"TransferAuthorisation"> | Date | string
+    createdAt?: DateTimeFilter<"TransferAuthorisation"> | Date | string
+    website?: XOR<WebsiteScalarRelationFilter, WebsiteWhereInput>
+    principal?: XOR<PrincipalScalarRelationFilter, PrincipalWhereInput>
+    purpose?: XOR<PurposeScalarRelationFilter, PurposeWhereInput>
+    recipient?: XOR<DataRecipientScalarRelationFilter, DataRecipientWhereInput>
+    consentRecord?: XOR<ConsentRecordScalarRelationFilter, ConsentRecordWhereInput>
+    transfer?: XOR<TransferRecordNullableScalarRelationFilter, TransferRecordWhereInput> | null
+  }
+
+  export type TransferAuthorisationOrderByWithRelationInput = {
+    id?: SortOrder
+    organisationId?: SortOrder
+    siteId?: SortOrder
+    principalId?: SortOrder
+    purposeId?: SortOrder
+    recipientId?: SortOrder
+    consentRecordId?: SortOrder
+    nonce?: SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    website?: WebsiteOrderByWithRelationInput
+    principal?: PrincipalOrderByWithRelationInput
+    purpose?: PurposeOrderByWithRelationInput
+    recipient?: DataRecipientOrderByWithRelationInput
+    consentRecord?: ConsentRecordOrderByWithRelationInput
+    transfer?: TransferRecordOrderByWithRelationInput
+  }
+
+  export type TransferAuthorisationWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    nonce?: string
+    id_organisationId?: TransferAuthorisationIdOrganisationIdCompoundUniqueInput
+    AND?: TransferAuthorisationWhereInput | TransferAuthorisationWhereInput[]
+    OR?: TransferAuthorisationWhereInput[]
+    NOT?: TransferAuthorisationWhereInput | TransferAuthorisationWhereInput[]
+    organisationId?: StringFilter<"TransferAuthorisation"> | string
+    siteId?: StringFilter<"TransferAuthorisation"> | string
+    principalId?: StringFilter<"TransferAuthorisation"> | string
+    purposeId?: StringFilter<"TransferAuthorisation"> | string
+    recipientId?: StringFilter<"TransferAuthorisation"> | string
+    consentRecordId?: StringFilter<"TransferAuthorisation"> | string
+    status?: StringFilter<"TransferAuthorisation"> | string
+    expiresAt?: DateTimeFilter<"TransferAuthorisation"> | Date | string
+    createdAt?: DateTimeFilter<"TransferAuthorisation"> | Date | string
+    website?: XOR<WebsiteScalarRelationFilter, WebsiteWhereInput>
+    principal?: XOR<PrincipalScalarRelationFilter, PrincipalWhereInput>
+    purpose?: XOR<PurposeScalarRelationFilter, PurposeWhereInput>
+    recipient?: XOR<DataRecipientScalarRelationFilter, DataRecipientWhereInput>
+    consentRecord?: XOR<ConsentRecordScalarRelationFilter, ConsentRecordWhereInput>
+    transfer?: XOR<TransferRecordNullableScalarRelationFilter, TransferRecordWhereInput> | null
+  }, "id" | "nonce" | "id_organisationId">
+
+  export type TransferAuthorisationOrderByWithAggregationInput = {
+    id?: SortOrder
+    organisationId?: SortOrder
+    siteId?: SortOrder
+    principalId?: SortOrder
+    purposeId?: SortOrder
+    recipientId?: SortOrder
+    consentRecordId?: SortOrder
+    nonce?: SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    _count?: TransferAuthorisationCountOrderByAggregateInput
+    _max?: TransferAuthorisationMaxOrderByAggregateInput
+    _min?: TransferAuthorisationMinOrderByAggregateInput
+  }
+
+  export type TransferAuthorisationScalarWhereWithAggregatesInput = {
+    AND?: TransferAuthorisationScalarWhereWithAggregatesInput | TransferAuthorisationScalarWhereWithAggregatesInput[]
+    OR?: TransferAuthorisationScalarWhereWithAggregatesInput[]
+    NOT?: TransferAuthorisationScalarWhereWithAggregatesInput | TransferAuthorisationScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"TransferAuthorisation"> | string
+    organisationId?: StringWithAggregatesFilter<"TransferAuthorisation"> | string
+    siteId?: StringWithAggregatesFilter<"TransferAuthorisation"> | string
+    principalId?: StringWithAggregatesFilter<"TransferAuthorisation"> | string
+    purposeId?: StringWithAggregatesFilter<"TransferAuthorisation"> | string
+    recipientId?: StringWithAggregatesFilter<"TransferAuthorisation"> | string
+    consentRecordId?: StringWithAggregatesFilter<"TransferAuthorisation"> | string
+    nonce?: StringWithAggregatesFilter<"TransferAuthorisation"> | string
+    status?: StringWithAggregatesFilter<"TransferAuthorisation"> | string
+    expiresAt?: DateTimeWithAggregatesFilter<"TransferAuthorisation"> | Date | string
+    createdAt?: DateTimeWithAggregatesFilter<"TransferAuthorisation"> | Date | string
+  }
+
+  export type TransferRecordWhereInput = {
+    AND?: TransferRecordWhereInput | TransferRecordWhereInput[]
+    OR?: TransferRecordWhereInput[]
+    NOT?: TransferRecordWhereInput | TransferRecordWhereInput[]
+    id?: StringFilter<"TransferRecord"> | string
+    organisationId?: StringFilter<"TransferRecord"> | string
+    authorisationId?: StringFilter<"TransferRecord"> | string
+    ciphertext?: StringFilter<"TransferRecord"> | string
+    iv?: StringFilter<"TransferRecord"> | string
+    authTag?: StringFilter<"TransferRecord"> | string
+    ephemeralPublicKey?: StringFilter<"TransferRecord"> | string
+    ciphertextSha256?: StringFilter<"TransferRecord"> | string
+    payloadBytes?: IntFilter<"TransferRecord"> | number
+    status?: StringFilter<"TransferRecord"> | string
+    failureReason?: StringNullableFilter<"TransferRecord"> | string | null
+    recordedAt?: DateTimeFilter<"TransferRecord"> | Date | string
+    deliveredAt?: DateTimeNullableFilter<"TransferRecord"> | Date | string | null
+    authorisation?: XOR<TransferAuthorisationScalarRelationFilter, TransferAuthorisationWhereInput>
+  }
+
+  export type TransferRecordOrderByWithRelationInput = {
+    id?: SortOrder
+    organisationId?: SortOrder
+    authorisationId?: SortOrder
+    ciphertext?: SortOrder
+    iv?: SortOrder
+    authTag?: SortOrder
+    ephemeralPublicKey?: SortOrder
+    ciphertextSha256?: SortOrder
+    payloadBytes?: SortOrder
+    status?: SortOrder
+    failureReason?: SortOrderInput | SortOrder
+    recordedAt?: SortOrder
+    deliveredAt?: SortOrderInput | SortOrder
+    authorisation?: TransferAuthorisationOrderByWithRelationInput
+  }
+
+  export type TransferRecordWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    authorisationId?: string
+    authorisationId_organisationId?: TransferRecordAuthorisationIdOrganisationIdCompoundUniqueInput
+    AND?: TransferRecordWhereInput | TransferRecordWhereInput[]
+    OR?: TransferRecordWhereInput[]
+    NOT?: TransferRecordWhereInput | TransferRecordWhereInput[]
+    organisationId?: StringFilter<"TransferRecord"> | string
+    ciphertext?: StringFilter<"TransferRecord"> | string
+    iv?: StringFilter<"TransferRecord"> | string
+    authTag?: StringFilter<"TransferRecord"> | string
+    ephemeralPublicKey?: StringFilter<"TransferRecord"> | string
+    ciphertextSha256?: StringFilter<"TransferRecord"> | string
+    payloadBytes?: IntFilter<"TransferRecord"> | number
+    status?: StringFilter<"TransferRecord"> | string
+    failureReason?: StringNullableFilter<"TransferRecord"> | string | null
+    recordedAt?: DateTimeFilter<"TransferRecord"> | Date | string
+    deliveredAt?: DateTimeNullableFilter<"TransferRecord"> | Date | string | null
+    authorisation?: XOR<TransferAuthorisationScalarRelationFilter, TransferAuthorisationWhereInput>
+  }, "id" | "authorisationId" | "authorisationId_organisationId">
+
+  export type TransferRecordOrderByWithAggregationInput = {
+    id?: SortOrder
+    organisationId?: SortOrder
+    authorisationId?: SortOrder
+    ciphertext?: SortOrder
+    iv?: SortOrder
+    authTag?: SortOrder
+    ephemeralPublicKey?: SortOrder
+    ciphertextSha256?: SortOrder
+    payloadBytes?: SortOrder
+    status?: SortOrder
+    failureReason?: SortOrderInput | SortOrder
+    recordedAt?: SortOrder
+    deliveredAt?: SortOrderInput | SortOrder
+    _count?: TransferRecordCountOrderByAggregateInput
+    _avg?: TransferRecordAvgOrderByAggregateInput
+    _max?: TransferRecordMaxOrderByAggregateInput
+    _min?: TransferRecordMinOrderByAggregateInput
+    _sum?: TransferRecordSumOrderByAggregateInput
+  }
+
+  export type TransferRecordScalarWhereWithAggregatesInput = {
+    AND?: TransferRecordScalarWhereWithAggregatesInput | TransferRecordScalarWhereWithAggregatesInput[]
+    OR?: TransferRecordScalarWhereWithAggregatesInput[]
+    NOT?: TransferRecordScalarWhereWithAggregatesInput | TransferRecordScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"TransferRecord"> | string
+    organisationId?: StringWithAggregatesFilter<"TransferRecord"> | string
+    authorisationId?: StringWithAggregatesFilter<"TransferRecord"> | string
+    ciphertext?: StringWithAggregatesFilter<"TransferRecord"> | string
+    iv?: StringWithAggregatesFilter<"TransferRecord"> | string
+    authTag?: StringWithAggregatesFilter<"TransferRecord"> | string
+    ephemeralPublicKey?: StringWithAggregatesFilter<"TransferRecord"> | string
+    ciphertextSha256?: StringWithAggregatesFilter<"TransferRecord"> | string
+    payloadBytes?: IntWithAggregatesFilter<"TransferRecord"> | number
+    status?: StringWithAggregatesFilter<"TransferRecord"> | string
+    failureReason?: StringNullableWithAggregatesFilter<"TransferRecord"> | string | null
+    recordedAt?: DateTimeWithAggregatesFilter<"TransferRecord"> | Date | string
+    deliveredAt?: DateTimeNullableWithAggregatesFilter<"TransferRecord"> | Date | string | null
+  }
+
   export type OrganisationCreateInput = {
     id?: string
     name: string
@@ -15677,6 +20116,7 @@ export namespace Prisma {
     purposes?: PurposeCreateNestedManyWithoutOrganisationInput
     policies?: PolicyCreateNestedManyWithoutOrganisationInput
     notices?: NoticeCreateNestedManyWithoutOrganisationInput
+    recipients?: DataRecipientCreateNestedManyWithoutOrganisationInput
   }
 
   export type OrganisationUncheckedCreateInput = {
@@ -15689,6 +20129,7 @@ export namespace Prisma {
     purposes?: PurposeUncheckedCreateNestedManyWithoutOrganisationInput
     policies?: PolicyUncheckedCreateNestedManyWithoutOrganisationInput
     notices?: NoticeUncheckedCreateNestedManyWithoutOrganisationInput
+    recipients?: DataRecipientUncheckedCreateNestedManyWithoutOrganisationInput
   }
 
   export type OrganisationUpdateInput = {
@@ -15701,6 +20142,7 @@ export namespace Prisma {
     purposes?: PurposeUpdateManyWithoutOrganisationNestedInput
     policies?: PolicyUpdateManyWithoutOrganisationNestedInput
     notices?: NoticeUpdateManyWithoutOrganisationNestedInput
+    recipients?: DataRecipientUpdateManyWithoutOrganisationNestedInput
   }
 
   export type OrganisationUncheckedUpdateInput = {
@@ -15713,6 +20155,7 @@ export namespace Prisma {
     purposes?: PurposeUncheckedUpdateManyWithoutOrganisationNestedInput
     policies?: PolicyUncheckedUpdateManyWithoutOrganisationNestedInput
     notices?: NoticeUncheckedUpdateManyWithoutOrganisationNestedInput
+    recipients?: DataRecipientUncheckedUpdateManyWithoutOrganisationNestedInput
   }
 
   export type OrganisationCreateManyInput = {
@@ -15751,6 +20194,7 @@ export namespace Prisma {
     events?: EventCreateNestedManyWithoutWebsiteInput
     principals?: PrincipalCreateNestedManyWithoutWebsiteInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutWebsiteInput
+    transferAuthorisations?: TransferAuthorisationCreateNestedManyWithoutWebsiteInput
   }
 
   export type WebsiteUncheckedCreateInput = {
@@ -15765,6 +20209,7 @@ export namespace Prisma {
     events?: EventUncheckedCreateNestedManyWithoutWebsiteInput
     principals?: PrincipalUncheckedCreateNestedManyWithoutWebsiteInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutWebsiteInput
+    transferAuthorisations?: TransferAuthorisationUncheckedCreateNestedManyWithoutWebsiteInput
   }
 
   export type WebsiteUpdateInput = {
@@ -15779,6 +20224,7 @@ export namespace Prisma {
     events?: EventUpdateManyWithoutWebsiteNestedInput
     principals?: PrincipalUpdateManyWithoutWebsiteNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutWebsiteNestedInput
+    transferAuthorisations?: TransferAuthorisationUpdateManyWithoutWebsiteNestedInput
   }
 
   export type WebsiteUncheckedUpdateInput = {
@@ -15793,6 +20239,7 @@ export namespace Prisma {
     events?: EventUncheckedUpdateManyWithoutWebsiteNestedInput
     principals?: PrincipalUncheckedUpdateManyWithoutWebsiteNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutWebsiteNestedInput
+    transferAuthorisations?: TransferAuthorisationUncheckedUpdateManyWithoutWebsiteNestedInput
   }
 
   export type WebsiteCreateManyInput = {
@@ -16007,6 +20454,7 @@ export namespace Prisma {
     createdAt?: Date | string
     website: WebsiteCreateNestedOneWithoutPrincipalsInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutPrincipalInput
+    transferAuthorisations?: TransferAuthorisationCreateNestedManyWithoutPrincipalInput
   }
 
   export type PrincipalUncheckedCreateInput = {
@@ -16016,6 +20464,7 @@ export namespace Prisma {
     kind?: string
     createdAt?: Date | string
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutPrincipalInput
+    transferAuthorisations?: TransferAuthorisationUncheckedCreateNestedManyWithoutPrincipalInput
   }
 
   export type PrincipalUpdateInput = {
@@ -16025,6 +20474,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     website?: WebsiteUpdateOneRequiredWithoutPrincipalsNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutPrincipalNestedInput
+    transferAuthorisations?: TransferAuthorisationUpdateManyWithoutPrincipalNestedInput
   }
 
   export type PrincipalUncheckedUpdateInput = {
@@ -16034,6 +20484,7 @@ export namespace Prisma {
     kind?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutPrincipalNestedInput
+    transferAuthorisations?: TransferAuthorisationUncheckedUpdateManyWithoutPrincipalNestedInput
   }
 
   export type PrincipalCreateManyInput = {
@@ -16069,6 +20520,7 @@ export namespace Prisma {
     organisation: OrganisationCreateNestedOneWithoutPurposesInput
     noticePurposes?: NoticePurposeCreateNestedManyWithoutPurposeInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutPurposeInput
+    transferAuthorisations?: TransferAuthorisationCreateNestedManyWithoutPurposeInput
   }
 
   export type PurposeUncheckedCreateInput = {
@@ -16081,6 +20533,7 @@ export namespace Prisma {
     createdAt?: Date | string
     noticePurposes?: NoticePurposeUncheckedCreateNestedManyWithoutPurposeInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutPurposeInput
+    transferAuthorisations?: TransferAuthorisationUncheckedCreateNestedManyWithoutPurposeInput
   }
 
   export type PurposeUpdateInput = {
@@ -16093,6 +20546,7 @@ export namespace Prisma {
     organisation?: OrganisationUpdateOneRequiredWithoutPurposesNestedInput
     noticePurposes?: NoticePurposeUpdateManyWithoutPurposeNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutPurposeNestedInput
+    transferAuthorisations?: TransferAuthorisationUpdateManyWithoutPurposeNestedInput
   }
 
   export type PurposeUncheckedUpdateInput = {
@@ -16105,6 +20559,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     noticePurposes?: NoticePurposeUncheckedUpdateManyWithoutPurposeNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutPurposeNestedInput
+    transferAuthorisations?: TransferAuthorisationUncheckedUpdateManyWithoutPurposeNestedInput
   }
 
   export type PurposeCreateManyInput = {
@@ -16384,6 +20839,7 @@ export namespace Prisma {
     purpose: PurposeCreateNestedOneWithoutConsentRecordsInput
     notice?: NoticeCreateNestedOneWithoutConsentRecordsInput
     policyVersion?: PolicyVersionCreateNestedOneWithoutConsentRecordsInput
+    transferAuthorisations?: TransferAuthorisationCreateNestedManyWithoutConsentRecordInput
   }
 
   export type ConsentRecordUncheckedCreateInput = {
@@ -16399,6 +20855,7 @@ export namespace Prisma {
     decidedAt: Date | string
     recordedAt?: Date | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
+    transferAuthorisations?: TransferAuthorisationUncheckedCreateNestedManyWithoutConsentRecordInput
   }
 
   export type ConsentRecordUpdateInput = {
@@ -16413,6 +20870,7 @@ export namespace Prisma {
     purpose?: PurposeUpdateOneRequiredWithoutConsentRecordsNestedInput
     notice?: NoticeUpdateOneWithoutConsentRecordsNestedInput
     policyVersion?: PolicyVersionUpdateOneWithoutConsentRecordsNestedInput
+    transferAuthorisations?: TransferAuthorisationUpdateManyWithoutConsentRecordNestedInput
   }
 
   export type ConsentRecordUncheckedUpdateInput = {
@@ -16428,6 +20886,7 @@ export namespace Prisma {
     decidedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
+    transferAuthorisations?: TransferAuthorisationUncheckedUpdateManyWithoutConsentRecordNestedInput
   }
 
   export type ConsentRecordCreateManyInput = {
@@ -16467,6 +20926,295 @@ export namespace Prisma {
     decidedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type DataRecipientCreateInput = {
+    id?: string
+    code: string
+    name: string
+    publicKey: string
+    algorithm: string
+    deliveryKeyHash: string
+    isActive?: boolean
+    createdAt?: Date | string
+    organisation: OrganisationCreateNestedOneWithoutRecipientsInput
+    authorisations?: TransferAuthorisationCreateNestedManyWithoutRecipientInput
+  }
+
+  export type DataRecipientUncheckedCreateInput = {
+    id?: string
+    organisationId: string
+    code: string
+    name: string
+    publicKey: string
+    algorithm: string
+    deliveryKeyHash: string
+    isActive?: boolean
+    createdAt?: Date | string
+    authorisations?: TransferAuthorisationUncheckedCreateNestedManyWithoutRecipientInput
+  }
+
+  export type DataRecipientUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    code?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    publicKey?: StringFieldUpdateOperationsInput | string
+    algorithm?: StringFieldUpdateOperationsInput | string
+    deliveryKeyHash?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organisation?: OrganisationUpdateOneRequiredWithoutRecipientsNestedInput
+    authorisations?: TransferAuthorisationUpdateManyWithoutRecipientNestedInput
+  }
+
+  export type DataRecipientUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organisationId?: StringFieldUpdateOperationsInput | string
+    code?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    publicKey?: StringFieldUpdateOperationsInput | string
+    algorithm?: StringFieldUpdateOperationsInput | string
+    deliveryKeyHash?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    authorisations?: TransferAuthorisationUncheckedUpdateManyWithoutRecipientNestedInput
+  }
+
+  export type DataRecipientCreateManyInput = {
+    id?: string
+    organisationId: string
+    code: string
+    name: string
+    publicKey: string
+    algorithm: string
+    deliveryKeyHash: string
+    isActive?: boolean
+    createdAt?: Date | string
+  }
+
+  export type DataRecipientUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    code?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    publicKey?: StringFieldUpdateOperationsInput | string
+    algorithm?: StringFieldUpdateOperationsInput | string
+    deliveryKeyHash?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DataRecipientUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organisationId?: StringFieldUpdateOperationsInput | string
+    code?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    publicKey?: StringFieldUpdateOperationsInput | string
+    algorithm?: StringFieldUpdateOperationsInput | string
+    deliveryKeyHash?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TransferAuthorisationCreateInput = {
+    id?: string
+    nonce: string
+    status?: string
+    expiresAt: Date | string
+    createdAt?: Date | string
+    website: WebsiteCreateNestedOneWithoutTransferAuthorisationsInput
+    principal: PrincipalCreateNestedOneWithoutTransferAuthorisationsInput
+    purpose: PurposeCreateNestedOneWithoutTransferAuthorisationsInput
+    recipient: DataRecipientCreateNestedOneWithoutAuthorisationsInput
+    consentRecord: ConsentRecordCreateNestedOneWithoutTransferAuthorisationsInput
+    transfer?: TransferRecordCreateNestedOneWithoutAuthorisationInput
+  }
+
+  export type TransferAuthorisationUncheckedCreateInput = {
+    id?: string
+    organisationId: string
+    siteId: string
+    principalId: string
+    purposeId: string
+    recipientId: string
+    consentRecordId: string
+    nonce: string
+    status?: string
+    expiresAt: Date | string
+    createdAt?: Date | string
+    transfer?: TransferRecordUncheckedCreateNestedOneWithoutAuthorisationInput
+  }
+
+  export type TransferAuthorisationUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    website?: WebsiteUpdateOneRequiredWithoutTransferAuthorisationsNestedInput
+    principal?: PrincipalUpdateOneRequiredWithoutTransferAuthorisationsNestedInput
+    purpose?: PurposeUpdateOneRequiredWithoutTransferAuthorisationsNestedInput
+    recipient?: DataRecipientUpdateOneRequiredWithoutAuthorisationsNestedInput
+    consentRecord?: ConsentRecordUpdateOneRequiredWithoutTransferAuthorisationsNestedInput
+    transfer?: TransferRecordUpdateOneWithoutAuthorisationNestedInput
+  }
+
+  export type TransferAuthorisationUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organisationId?: StringFieldUpdateOperationsInput | string
+    siteId?: StringFieldUpdateOperationsInput | string
+    principalId?: StringFieldUpdateOperationsInput | string
+    purposeId?: StringFieldUpdateOperationsInput | string
+    recipientId?: StringFieldUpdateOperationsInput | string
+    consentRecordId?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    transfer?: TransferRecordUncheckedUpdateOneWithoutAuthorisationNestedInput
+  }
+
+  export type TransferAuthorisationCreateManyInput = {
+    id?: string
+    organisationId: string
+    siteId: string
+    principalId: string
+    purposeId: string
+    recipientId: string
+    consentRecordId: string
+    nonce: string
+    status?: string
+    expiresAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type TransferAuthorisationUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TransferAuthorisationUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organisationId?: StringFieldUpdateOperationsInput | string
+    siteId?: StringFieldUpdateOperationsInput | string
+    principalId?: StringFieldUpdateOperationsInput | string
+    purposeId?: StringFieldUpdateOperationsInput | string
+    recipientId?: StringFieldUpdateOperationsInput | string
+    consentRecordId?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TransferRecordCreateInput = {
+    id?: string
+    ciphertext: string
+    iv: string
+    authTag: string
+    ephemeralPublicKey: string
+    ciphertextSha256: string
+    payloadBytes: number
+    status?: string
+    failureReason?: string | null
+    recordedAt?: Date | string
+    deliveredAt?: Date | string | null
+    authorisation: TransferAuthorisationCreateNestedOneWithoutTransferInput
+  }
+
+  export type TransferRecordUncheckedCreateInput = {
+    id?: string
+    organisationId: string
+    authorisationId: string
+    ciphertext: string
+    iv: string
+    authTag: string
+    ephemeralPublicKey: string
+    ciphertextSha256: string
+    payloadBytes: number
+    status?: string
+    failureReason?: string | null
+    recordedAt?: Date | string
+    deliveredAt?: Date | string | null
+  }
+
+  export type TransferRecordUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ciphertext?: StringFieldUpdateOperationsInput | string
+    iv?: StringFieldUpdateOperationsInput | string
+    authTag?: StringFieldUpdateOperationsInput | string
+    ephemeralPublicKey?: StringFieldUpdateOperationsInput | string
+    ciphertextSha256?: StringFieldUpdateOperationsInput | string
+    payloadBytes?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    failureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    deliveredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    authorisation?: TransferAuthorisationUpdateOneRequiredWithoutTransferNestedInput
+  }
+
+  export type TransferRecordUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organisationId?: StringFieldUpdateOperationsInput | string
+    authorisationId?: StringFieldUpdateOperationsInput | string
+    ciphertext?: StringFieldUpdateOperationsInput | string
+    iv?: StringFieldUpdateOperationsInput | string
+    authTag?: StringFieldUpdateOperationsInput | string
+    ephemeralPublicKey?: StringFieldUpdateOperationsInput | string
+    ciphertextSha256?: StringFieldUpdateOperationsInput | string
+    payloadBytes?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    failureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    deliveredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type TransferRecordCreateManyInput = {
+    id?: string
+    organisationId: string
+    authorisationId: string
+    ciphertext: string
+    iv: string
+    authTag: string
+    ephemeralPublicKey: string
+    ciphertextSha256: string
+    payloadBytes: number
+    status?: string
+    failureReason?: string | null
+    recordedAt?: Date | string
+    deliveredAt?: Date | string | null
+  }
+
+  export type TransferRecordUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ciphertext?: StringFieldUpdateOperationsInput | string
+    iv?: StringFieldUpdateOperationsInput | string
+    authTag?: StringFieldUpdateOperationsInput | string
+    ephemeralPublicKey?: StringFieldUpdateOperationsInput | string
+    ciphertextSha256?: StringFieldUpdateOperationsInput | string
+    payloadBytes?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    failureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    deliveredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type TransferRecordUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organisationId?: StringFieldUpdateOperationsInput | string
+    authorisationId?: StringFieldUpdateOperationsInput | string
+    ciphertext?: StringFieldUpdateOperationsInput | string
+    iv?: StringFieldUpdateOperationsInput | string
+    authTag?: StringFieldUpdateOperationsInput | string
+    ephemeralPublicKey?: StringFieldUpdateOperationsInput | string
+    ciphertextSha256?: StringFieldUpdateOperationsInput | string
+    payloadBytes?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    failureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    deliveredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type StringFilter<$PrismaModel = never> = {
@@ -16519,6 +21267,12 @@ export namespace Prisma {
     none?: NoticeWhereInput
   }
 
+  export type DataRecipientListRelationFilter = {
+    every?: DataRecipientWhereInput
+    some?: DataRecipientWhereInput
+    none?: DataRecipientWhereInput
+  }
+
   export type WebsiteOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -16532,6 +21286,10 @@ export namespace Prisma {
   }
 
   export type NoticeOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type DataRecipientOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -16625,6 +21383,12 @@ export namespace Prisma {
     none?: ConsentRecordWhereInput
   }
 
+  export type TransferAuthorisationListRelationFilter = {
+    every?: TransferAuthorisationWhereInput
+    some?: TransferAuthorisationWhereInput
+    none?: TransferAuthorisationWhereInput
+  }
+
   export type SessionOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -16638,6 +21402,10 @@ export namespace Prisma {
   }
 
   export type ConsentRecordOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type TransferAuthorisationOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -17120,6 +21888,11 @@ export namespace Prisma {
     isNot?: PolicyVersionWhereInput | null
   }
 
+  export type ConsentRecordIdOrganisationIdCompoundUniqueInput = {
+    id: string
+    organisationId: string
+  }
+
   export type ConsentRecordCountOrderByAggregateInput = {
     id?: SortOrder
     organisationId?: SortOrder
@@ -17163,6 +21936,232 @@ export namespace Prisma {
     recordedAt?: SortOrder
   }
 
+  export type DataRecipientOrganisationIdCodeCompoundUniqueInput = {
+    organisationId: string
+    code: string
+  }
+
+  export type DataRecipientIdOrganisationIdCompoundUniqueInput = {
+    id: string
+    organisationId: string
+  }
+
+  export type DataRecipientCountOrderByAggregateInput = {
+    id?: SortOrder
+    organisationId?: SortOrder
+    code?: SortOrder
+    name?: SortOrder
+    publicKey?: SortOrder
+    algorithm?: SortOrder
+    deliveryKeyHash?: SortOrder
+    isActive?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DataRecipientMaxOrderByAggregateInput = {
+    id?: SortOrder
+    organisationId?: SortOrder
+    code?: SortOrder
+    name?: SortOrder
+    publicKey?: SortOrder
+    algorithm?: SortOrder
+    deliveryKeyHash?: SortOrder
+    isActive?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DataRecipientMinOrderByAggregateInput = {
+    id?: SortOrder
+    organisationId?: SortOrder
+    code?: SortOrder
+    name?: SortOrder
+    publicKey?: SortOrder
+    algorithm?: SortOrder
+    deliveryKeyHash?: SortOrder
+    isActive?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DataRecipientScalarRelationFilter = {
+    is?: DataRecipientWhereInput
+    isNot?: DataRecipientWhereInput
+  }
+
+  export type ConsentRecordScalarRelationFilter = {
+    is?: ConsentRecordWhereInput
+    isNot?: ConsentRecordWhereInput
+  }
+
+  export type TransferRecordNullableScalarRelationFilter = {
+    is?: TransferRecordWhereInput | null
+    isNot?: TransferRecordWhereInput | null
+  }
+
+  export type TransferAuthorisationIdOrganisationIdCompoundUniqueInput = {
+    id: string
+    organisationId: string
+  }
+
+  export type TransferAuthorisationCountOrderByAggregateInput = {
+    id?: SortOrder
+    organisationId?: SortOrder
+    siteId?: SortOrder
+    principalId?: SortOrder
+    purposeId?: SortOrder
+    recipientId?: SortOrder
+    consentRecordId?: SortOrder
+    nonce?: SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type TransferAuthorisationMaxOrderByAggregateInput = {
+    id?: SortOrder
+    organisationId?: SortOrder
+    siteId?: SortOrder
+    principalId?: SortOrder
+    purposeId?: SortOrder
+    recipientId?: SortOrder
+    consentRecordId?: SortOrder
+    nonce?: SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type TransferAuthorisationMinOrderByAggregateInput = {
+    id?: SortOrder
+    organisationId?: SortOrder
+    siteId?: SortOrder
+    principalId?: SortOrder
+    purposeId?: SortOrder
+    recipientId?: SortOrder
+    consentRecordId?: SortOrder
+    nonce?: SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type IntFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntFilter<$PrismaModel> | number
+  }
+
+  export type DateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
+  export type TransferAuthorisationScalarRelationFilter = {
+    is?: TransferAuthorisationWhereInput
+    isNot?: TransferAuthorisationWhereInput
+  }
+
+  export type TransferRecordAuthorisationIdOrganisationIdCompoundUniqueInput = {
+    authorisationId: string
+    organisationId: string
+  }
+
+  export type TransferRecordCountOrderByAggregateInput = {
+    id?: SortOrder
+    organisationId?: SortOrder
+    authorisationId?: SortOrder
+    ciphertext?: SortOrder
+    iv?: SortOrder
+    authTag?: SortOrder
+    ephemeralPublicKey?: SortOrder
+    ciphertextSha256?: SortOrder
+    payloadBytes?: SortOrder
+    status?: SortOrder
+    failureReason?: SortOrder
+    recordedAt?: SortOrder
+    deliveredAt?: SortOrder
+  }
+
+  export type TransferRecordAvgOrderByAggregateInput = {
+    payloadBytes?: SortOrder
+  }
+
+  export type TransferRecordMaxOrderByAggregateInput = {
+    id?: SortOrder
+    organisationId?: SortOrder
+    authorisationId?: SortOrder
+    ciphertext?: SortOrder
+    iv?: SortOrder
+    authTag?: SortOrder
+    ephemeralPublicKey?: SortOrder
+    ciphertextSha256?: SortOrder
+    payloadBytes?: SortOrder
+    status?: SortOrder
+    failureReason?: SortOrder
+    recordedAt?: SortOrder
+    deliveredAt?: SortOrder
+  }
+
+  export type TransferRecordMinOrderByAggregateInput = {
+    id?: SortOrder
+    organisationId?: SortOrder
+    authorisationId?: SortOrder
+    ciphertext?: SortOrder
+    iv?: SortOrder
+    authTag?: SortOrder
+    ephemeralPublicKey?: SortOrder
+    ciphertextSha256?: SortOrder
+    payloadBytes?: SortOrder
+    status?: SortOrder
+    failureReason?: SortOrder
+    recordedAt?: SortOrder
+    deliveredAt?: SortOrder
+  }
+
+  export type TransferRecordSumOrderByAggregateInput = {
+    payloadBytes?: SortOrder
+  }
+
+  export type IntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
   export type WebsiteCreateNestedManyWithoutOrganisationInput = {
     create?: XOR<WebsiteCreateWithoutOrganisationInput, WebsiteUncheckedCreateWithoutOrganisationInput> | WebsiteCreateWithoutOrganisationInput[] | WebsiteUncheckedCreateWithoutOrganisationInput[]
     connectOrCreate?: WebsiteCreateOrConnectWithoutOrganisationInput | WebsiteCreateOrConnectWithoutOrganisationInput[]
@@ -17191,6 +22190,13 @@ export namespace Prisma {
     connect?: NoticeWhereUniqueInput | NoticeWhereUniqueInput[]
   }
 
+  export type DataRecipientCreateNestedManyWithoutOrganisationInput = {
+    create?: XOR<DataRecipientCreateWithoutOrganisationInput, DataRecipientUncheckedCreateWithoutOrganisationInput> | DataRecipientCreateWithoutOrganisationInput[] | DataRecipientUncheckedCreateWithoutOrganisationInput[]
+    connectOrCreate?: DataRecipientCreateOrConnectWithoutOrganisationInput | DataRecipientCreateOrConnectWithoutOrganisationInput[]
+    createMany?: DataRecipientCreateManyOrganisationInputEnvelope
+    connect?: DataRecipientWhereUniqueInput | DataRecipientWhereUniqueInput[]
+  }
+
   export type WebsiteUncheckedCreateNestedManyWithoutOrganisationInput = {
     create?: XOR<WebsiteCreateWithoutOrganisationInput, WebsiteUncheckedCreateWithoutOrganisationInput> | WebsiteCreateWithoutOrganisationInput[] | WebsiteUncheckedCreateWithoutOrganisationInput[]
     connectOrCreate?: WebsiteCreateOrConnectWithoutOrganisationInput | WebsiteCreateOrConnectWithoutOrganisationInput[]
@@ -17217,6 +22223,13 @@ export namespace Prisma {
     connectOrCreate?: NoticeCreateOrConnectWithoutOrganisationInput | NoticeCreateOrConnectWithoutOrganisationInput[]
     createMany?: NoticeCreateManyOrganisationInputEnvelope
     connect?: NoticeWhereUniqueInput | NoticeWhereUniqueInput[]
+  }
+
+  export type DataRecipientUncheckedCreateNestedManyWithoutOrganisationInput = {
+    create?: XOR<DataRecipientCreateWithoutOrganisationInput, DataRecipientUncheckedCreateWithoutOrganisationInput> | DataRecipientCreateWithoutOrganisationInput[] | DataRecipientUncheckedCreateWithoutOrganisationInput[]
+    connectOrCreate?: DataRecipientCreateOrConnectWithoutOrganisationInput | DataRecipientCreateOrConnectWithoutOrganisationInput[]
+    createMany?: DataRecipientCreateManyOrganisationInputEnvelope
+    connect?: DataRecipientWhereUniqueInput | DataRecipientWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -17283,6 +22296,20 @@ export namespace Prisma {
     deleteMany?: NoticeScalarWhereInput | NoticeScalarWhereInput[]
   }
 
+  export type DataRecipientUpdateManyWithoutOrganisationNestedInput = {
+    create?: XOR<DataRecipientCreateWithoutOrganisationInput, DataRecipientUncheckedCreateWithoutOrganisationInput> | DataRecipientCreateWithoutOrganisationInput[] | DataRecipientUncheckedCreateWithoutOrganisationInput[]
+    connectOrCreate?: DataRecipientCreateOrConnectWithoutOrganisationInput | DataRecipientCreateOrConnectWithoutOrganisationInput[]
+    upsert?: DataRecipientUpsertWithWhereUniqueWithoutOrganisationInput | DataRecipientUpsertWithWhereUniqueWithoutOrganisationInput[]
+    createMany?: DataRecipientCreateManyOrganisationInputEnvelope
+    set?: DataRecipientWhereUniqueInput | DataRecipientWhereUniqueInput[]
+    disconnect?: DataRecipientWhereUniqueInput | DataRecipientWhereUniqueInput[]
+    delete?: DataRecipientWhereUniqueInput | DataRecipientWhereUniqueInput[]
+    connect?: DataRecipientWhereUniqueInput | DataRecipientWhereUniqueInput[]
+    update?: DataRecipientUpdateWithWhereUniqueWithoutOrganisationInput | DataRecipientUpdateWithWhereUniqueWithoutOrganisationInput[]
+    updateMany?: DataRecipientUpdateManyWithWhereWithoutOrganisationInput | DataRecipientUpdateManyWithWhereWithoutOrganisationInput[]
+    deleteMany?: DataRecipientScalarWhereInput | DataRecipientScalarWhereInput[]
+  }
+
   export type WebsiteUncheckedUpdateManyWithoutOrganisationNestedInput = {
     create?: XOR<WebsiteCreateWithoutOrganisationInput, WebsiteUncheckedCreateWithoutOrganisationInput> | WebsiteCreateWithoutOrganisationInput[] | WebsiteUncheckedCreateWithoutOrganisationInput[]
     connectOrCreate?: WebsiteCreateOrConnectWithoutOrganisationInput | WebsiteCreateOrConnectWithoutOrganisationInput[]
@@ -17339,6 +22366,20 @@ export namespace Prisma {
     deleteMany?: NoticeScalarWhereInput | NoticeScalarWhereInput[]
   }
 
+  export type DataRecipientUncheckedUpdateManyWithoutOrganisationNestedInput = {
+    create?: XOR<DataRecipientCreateWithoutOrganisationInput, DataRecipientUncheckedCreateWithoutOrganisationInput> | DataRecipientCreateWithoutOrganisationInput[] | DataRecipientUncheckedCreateWithoutOrganisationInput[]
+    connectOrCreate?: DataRecipientCreateOrConnectWithoutOrganisationInput | DataRecipientCreateOrConnectWithoutOrganisationInput[]
+    upsert?: DataRecipientUpsertWithWhereUniqueWithoutOrganisationInput | DataRecipientUpsertWithWhereUniqueWithoutOrganisationInput[]
+    createMany?: DataRecipientCreateManyOrganisationInputEnvelope
+    set?: DataRecipientWhereUniqueInput | DataRecipientWhereUniqueInput[]
+    disconnect?: DataRecipientWhereUniqueInput | DataRecipientWhereUniqueInput[]
+    delete?: DataRecipientWhereUniqueInput | DataRecipientWhereUniqueInput[]
+    connect?: DataRecipientWhereUniqueInput | DataRecipientWhereUniqueInput[]
+    update?: DataRecipientUpdateWithWhereUniqueWithoutOrganisationInput | DataRecipientUpdateWithWhereUniqueWithoutOrganisationInput[]
+    updateMany?: DataRecipientUpdateManyWithWhereWithoutOrganisationInput | DataRecipientUpdateManyWithWhereWithoutOrganisationInput[]
+    deleteMany?: DataRecipientScalarWhereInput | DataRecipientScalarWhereInput[]
+  }
+
   export type OrganisationCreateNestedOneWithoutWebsitesInput = {
     create?: XOR<OrganisationCreateWithoutWebsitesInput, OrganisationUncheckedCreateWithoutWebsitesInput>
     connectOrCreate?: OrganisationCreateOrConnectWithoutWebsitesInput
@@ -17373,6 +22414,13 @@ export namespace Prisma {
     connect?: ConsentRecordWhereUniqueInput | ConsentRecordWhereUniqueInput[]
   }
 
+  export type TransferAuthorisationCreateNestedManyWithoutWebsiteInput = {
+    create?: XOR<TransferAuthorisationCreateWithoutWebsiteInput, TransferAuthorisationUncheckedCreateWithoutWebsiteInput> | TransferAuthorisationCreateWithoutWebsiteInput[] | TransferAuthorisationUncheckedCreateWithoutWebsiteInput[]
+    connectOrCreate?: TransferAuthorisationCreateOrConnectWithoutWebsiteInput | TransferAuthorisationCreateOrConnectWithoutWebsiteInput[]
+    createMany?: TransferAuthorisationCreateManyWebsiteInputEnvelope
+    connect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+  }
+
   export type SessionUncheckedCreateNestedManyWithoutWebsiteInput = {
     create?: XOR<SessionCreateWithoutWebsiteInput, SessionUncheckedCreateWithoutWebsiteInput> | SessionCreateWithoutWebsiteInput[] | SessionUncheckedCreateWithoutWebsiteInput[]
     connectOrCreate?: SessionCreateOrConnectWithoutWebsiteInput | SessionCreateOrConnectWithoutWebsiteInput[]
@@ -17399,6 +22447,13 @@ export namespace Prisma {
     connectOrCreate?: ConsentRecordCreateOrConnectWithoutWebsiteInput | ConsentRecordCreateOrConnectWithoutWebsiteInput[]
     createMany?: ConsentRecordCreateManyWebsiteInputEnvelope
     connect?: ConsentRecordWhereUniqueInput | ConsentRecordWhereUniqueInput[]
+  }
+
+  export type TransferAuthorisationUncheckedCreateNestedManyWithoutWebsiteInput = {
+    create?: XOR<TransferAuthorisationCreateWithoutWebsiteInput, TransferAuthorisationUncheckedCreateWithoutWebsiteInput> | TransferAuthorisationCreateWithoutWebsiteInput[] | TransferAuthorisationUncheckedCreateWithoutWebsiteInput[]
+    connectOrCreate?: TransferAuthorisationCreateOrConnectWithoutWebsiteInput | TransferAuthorisationCreateOrConnectWithoutWebsiteInput[]
+    createMany?: TransferAuthorisationCreateManyWebsiteInputEnvelope
+    connect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
   }
 
   export type BoolFieldUpdateOperationsInput = {
@@ -17469,6 +22524,20 @@ export namespace Prisma {
     deleteMany?: ConsentRecordScalarWhereInput | ConsentRecordScalarWhereInput[]
   }
 
+  export type TransferAuthorisationUpdateManyWithoutWebsiteNestedInput = {
+    create?: XOR<TransferAuthorisationCreateWithoutWebsiteInput, TransferAuthorisationUncheckedCreateWithoutWebsiteInput> | TransferAuthorisationCreateWithoutWebsiteInput[] | TransferAuthorisationUncheckedCreateWithoutWebsiteInput[]
+    connectOrCreate?: TransferAuthorisationCreateOrConnectWithoutWebsiteInput | TransferAuthorisationCreateOrConnectWithoutWebsiteInput[]
+    upsert?: TransferAuthorisationUpsertWithWhereUniqueWithoutWebsiteInput | TransferAuthorisationUpsertWithWhereUniqueWithoutWebsiteInput[]
+    createMany?: TransferAuthorisationCreateManyWebsiteInputEnvelope
+    set?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    disconnect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    delete?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    connect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    update?: TransferAuthorisationUpdateWithWhereUniqueWithoutWebsiteInput | TransferAuthorisationUpdateWithWhereUniqueWithoutWebsiteInput[]
+    updateMany?: TransferAuthorisationUpdateManyWithWhereWithoutWebsiteInput | TransferAuthorisationUpdateManyWithWhereWithoutWebsiteInput[]
+    deleteMany?: TransferAuthorisationScalarWhereInput | TransferAuthorisationScalarWhereInput[]
+  }
+
   export type SessionUncheckedUpdateManyWithoutWebsiteNestedInput = {
     create?: XOR<SessionCreateWithoutWebsiteInput, SessionUncheckedCreateWithoutWebsiteInput> | SessionCreateWithoutWebsiteInput[] | SessionUncheckedCreateWithoutWebsiteInput[]
     connectOrCreate?: SessionCreateOrConnectWithoutWebsiteInput | SessionCreateOrConnectWithoutWebsiteInput[]
@@ -17523,6 +22592,20 @@ export namespace Prisma {
     update?: ConsentRecordUpdateWithWhereUniqueWithoutWebsiteInput | ConsentRecordUpdateWithWhereUniqueWithoutWebsiteInput[]
     updateMany?: ConsentRecordUpdateManyWithWhereWithoutWebsiteInput | ConsentRecordUpdateManyWithWhereWithoutWebsiteInput[]
     deleteMany?: ConsentRecordScalarWhereInput | ConsentRecordScalarWhereInput[]
+  }
+
+  export type TransferAuthorisationUncheckedUpdateManyWithoutWebsiteNestedInput = {
+    create?: XOR<TransferAuthorisationCreateWithoutWebsiteInput, TransferAuthorisationUncheckedCreateWithoutWebsiteInput> | TransferAuthorisationCreateWithoutWebsiteInput[] | TransferAuthorisationUncheckedCreateWithoutWebsiteInput[]
+    connectOrCreate?: TransferAuthorisationCreateOrConnectWithoutWebsiteInput | TransferAuthorisationCreateOrConnectWithoutWebsiteInput[]
+    upsert?: TransferAuthorisationUpsertWithWhereUniqueWithoutWebsiteInput | TransferAuthorisationUpsertWithWhereUniqueWithoutWebsiteInput[]
+    createMany?: TransferAuthorisationCreateManyWebsiteInputEnvelope
+    set?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    disconnect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    delete?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    connect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    update?: TransferAuthorisationUpdateWithWhereUniqueWithoutWebsiteInput | TransferAuthorisationUpdateWithWhereUniqueWithoutWebsiteInput[]
+    updateMany?: TransferAuthorisationUpdateManyWithWhereWithoutWebsiteInput | TransferAuthorisationUpdateManyWithWhereWithoutWebsiteInput[]
+    deleteMany?: TransferAuthorisationScalarWhereInput | TransferAuthorisationScalarWhereInput[]
   }
 
   export type WebsiteCreateNestedOneWithoutSessionsInput = {
@@ -17626,11 +22709,25 @@ export namespace Prisma {
     connect?: ConsentRecordWhereUniqueInput | ConsentRecordWhereUniqueInput[]
   }
 
+  export type TransferAuthorisationCreateNestedManyWithoutPrincipalInput = {
+    create?: XOR<TransferAuthorisationCreateWithoutPrincipalInput, TransferAuthorisationUncheckedCreateWithoutPrincipalInput> | TransferAuthorisationCreateWithoutPrincipalInput[] | TransferAuthorisationUncheckedCreateWithoutPrincipalInput[]
+    connectOrCreate?: TransferAuthorisationCreateOrConnectWithoutPrincipalInput | TransferAuthorisationCreateOrConnectWithoutPrincipalInput[]
+    createMany?: TransferAuthorisationCreateManyPrincipalInputEnvelope
+    connect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+  }
+
   export type ConsentRecordUncheckedCreateNestedManyWithoutPrincipalInput = {
     create?: XOR<ConsentRecordCreateWithoutPrincipalInput, ConsentRecordUncheckedCreateWithoutPrincipalInput> | ConsentRecordCreateWithoutPrincipalInput[] | ConsentRecordUncheckedCreateWithoutPrincipalInput[]
     connectOrCreate?: ConsentRecordCreateOrConnectWithoutPrincipalInput | ConsentRecordCreateOrConnectWithoutPrincipalInput[]
     createMany?: ConsentRecordCreateManyPrincipalInputEnvelope
     connect?: ConsentRecordWhereUniqueInput | ConsentRecordWhereUniqueInput[]
+  }
+
+  export type TransferAuthorisationUncheckedCreateNestedManyWithoutPrincipalInput = {
+    create?: XOR<TransferAuthorisationCreateWithoutPrincipalInput, TransferAuthorisationUncheckedCreateWithoutPrincipalInput> | TransferAuthorisationCreateWithoutPrincipalInput[] | TransferAuthorisationUncheckedCreateWithoutPrincipalInput[]
+    connectOrCreate?: TransferAuthorisationCreateOrConnectWithoutPrincipalInput | TransferAuthorisationCreateOrConnectWithoutPrincipalInput[]
+    createMany?: TransferAuthorisationCreateManyPrincipalInputEnvelope
+    connect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
   }
 
   export type WebsiteUpdateOneRequiredWithoutPrincipalsNestedInput = {
@@ -17655,6 +22752,20 @@ export namespace Prisma {
     deleteMany?: ConsentRecordScalarWhereInput | ConsentRecordScalarWhereInput[]
   }
 
+  export type TransferAuthorisationUpdateManyWithoutPrincipalNestedInput = {
+    create?: XOR<TransferAuthorisationCreateWithoutPrincipalInput, TransferAuthorisationUncheckedCreateWithoutPrincipalInput> | TransferAuthorisationCreateWithoutPrincipalInput[] | TransferAuthorisationUncheckedCreateWithoutPrincipalInput[]
+    connectOrCreate?: TransferAuthorisationCreateOrConnectWithoutPrincipalInput | TransferAuthorisationCreateOrConnectWithoutPrincipalInput[]
+    upsert?: TransferAuthorisationUpsertWithWhereUniqueWithoutPrincipalInput | TransferAuthorisationUpsertWithWhereUniqueWithoutPrincipalInput[]
+    createMany?: TransferAuthorisationCreateManyPrincipalInputEnvelope
+    set?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    disconnect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    delete?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    connect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    update?: TransferAuthorisationUpdateWithWhereUniqueWithoutPrincipalInput | TransferAuthorisationUpdateWithWhereUniqueWithoutPrincipalInput[]
+    updateMany?: TransferAuthorisationUpdateManyWithWhereWithoutPrincipalInput | TransferAuthorisationUpdateManyWithWhereWithoutPrincipalInput[]
+    deleteMany?: TransferAuthorisationScalarWhereInput | TransferAuthorisationScalarWhereInput[]
+  }
+
   export type ConsentRecordUncheckedUpdateManyWithoutPrincipalNestedInput = {
     create?: XOR<ConsentRecordCreateWithoutPrincipalInput, ConsentRecordUncheckedCreateWithoutPrincipalInput> | ConsentRecordCreateWithoutPrincipalInput[] | ConsentRecordUncheckedCreateWithoutPrincipalInput[]
     connectOrCreate?: ConsentRecordCreateOrConnectWithoutPrincipalInput | ConsentRecordCreateOrConnectWithoutPrincipalInput[]
@@ -17667,6 +22778,20 @@ export namespace Prisma {
     update?: ConsentRecordUpdateWithWhereUniqueWithoutPrincipalInput | ConsentRecordUpdateWithWhereUniqueWithoutPrincipalInput[]
     updateMany?: ConsentRecordUpdateManyWithWhereWithoutPrincipalInput | ConsentRecordUpdateManyWithWhereWithoutPrincipalInput[]
     deleteMany?: ConsentRecordScalarWhereInput | ConsentRecordScalarWhereInput[]
+  }
+
+  export type TransferAuthorisationUncheckedUpdateManyWithoutPrincipalNestedInput = {
+    create?: XOR<TransferAuthorisationCreateWithoutPrincipalInput, TransferAuthorisationUncheckedCreateWithoutPrincipalInput> | TransferAuthorisationCreateWithoutPrincipalInput[] | TransferAuthorisationUncheckedCreateWithoutPrincipalInput[]
+    connectOrCreate?: TransferAuthorisationCreateOrConnectWithoutPrincipalInput | TransferAuthorisationCreateOrConnectWithoutPrincipalInput[]
+    upsert?: TransferAuthorisationUpsertWithWhereUniqueWithoutPrincipalInput | TransferAuthorisationUpsertWithWhereUniqueWithoutPrincipalInput[]
+    createMany?: TransferAuthorisationCreateManyPrincipalInputEnvelope
+    set?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    disconnect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    delete?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    connect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    update?: TransferAuthorisationUpdateWithWhereUniqueWithoutPrincipalInput | TransferAuthorisationUpdateWithWhereUniqueWithoutPrincipalInput[]
+    updateMany?: TransferAuthorisationUpdateManyWithWhereWithoutPrincipalInput | TransferAuthorisationUpdateManyWithWhereWithoutPrincipalInput[]
+    deleteMany?: TransferAuthorisationScalarWhereInput | TransferAuthorisationScalarWhereInput[]
   }
 
   export type OrganisationCreateNestedOneWithoutPurposesInput = {
@@ -17689,6 +22814,13 @@ export namespace Prisma {
     connect?: ConsentRecordWhereUniqueInput | ConsentRecordWhereUniqueInput[]
   }
 
+  export type TransferAuthorisationCreateNestedManyWithoutPurposeInput = {
+    create?: XOR<TransferAuthorisationCreateWithoutPurposeInput, TransferAuthorisationUncheckedCreateWithoutPurposeInput> | TransferAuthorisationCreateWithoutPurposeInput[] | TransferAuthorisationUncheckedCreateWithoutPurposeInput[]
+    connectOrCreate?: TransferAuthorisationCreateOrConnectWithoutPurposeInput | TransferAuthorisationCreateOrConnectWithoutPurposeInput[]
+    createMany?: TransferAuthorisationCreateManyPurposeInputEnvelope
+    connect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+  }
+
   export type NoticePurposeUncheckedCreateNestedManyWithoutPurposeInput = {
     create?: XOR<NoticePurposeCreateWithoutPurposeInput, NoticePurposeUncheckedCreateWithoutPurposeInput> | NoticePurposeCreateWithoutPurposeInput[] | NoticePurposeUncheckedCreateWithoutPurposeInput[]
     connectOrCreate?: NoticePurposeCreateOrConnectWithoutPurposeInput | NoticePurposeCreateOrConnectWithoutPurposeInput[]
@@ -17701,6 +22833,13 @@ export namespace Prisma {
     connectOrCreate?: ConsentRecordCreateOrConnectWithoutPurposeInput | ConsentRecordCreateOrConnectWithoutPurposeInput[]
     createMany?: ConsentRecordCreateManyPurposeInputEnvelope
     connect?: ConsentRecordWhereUniqueInput | ConsentRecordWhereUniqueInput[]
+  }
+
+  export type TransferAuthorisationUncheckedCreateNestedManyWithoutPurposeInput = {
+    create?: XOR<TransferAuthorisationCreateWithoutPurposeInput, TransferAuthorisationUncheckedCreateWithoutPurposeInput> | TransferAuthorisationCreateWithoutPurposeInput[] | TransferAuthorisationUncheckedCreateWithoutPurposeInput[]
+    connectOrCreate?: TransferAuthorisationCreateOrConnectWithoutPurposeInput | TransferAuthorisationCreateOrConnectWithoutPurposeInput[]
+    createMany?: TransferAuthorisationCreateManyPurposeInputEnvelope
+    connect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
   }
 
   export type OrganisationUpdateOneRequiredWithoutPurposesNestedInput = {
@@ -17739,6 +22878,20 @@ export namespace Prisma {
     deleteMany?: ConsentRecordScalarWhereInput | ConsentRecordScalarWhereInput[]
   }
 
+  export type TransferAuthorisationUpdateManyWithoutPurposeNestedInput = {
+    create?: XOR<TransferAuthorisationCreateWithoutPurposeInput, TransferAuthorisationUncheckedCreateWithoutPurposeInput> | TransferAuthorisationCreateWithoutPurposeInput[] | TransferAuthorisationUncheckedCreateWithoutPurposeInput[]
+    connectOrCreate?: TransferAuthorisationCreateOrConnectWithoutPurposeInput | TransferAuthorisationCreateOrConnectWithoutPurposeInput[]
+    upsert?: TransferAuthorisationUpsertWithWhereUniqueWithoutPurposeInput | TransferAuthorisationUpsertWithWhereUniqueWithoutPurposeInput[]
+    createMany?: TransferAuthorisationCreateManyPurposeInputEnvelope
+    set?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    disconnect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    delete?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    connect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    update?: TransferAuthorisationUpdateWithWhereUniqueWithoutPurposeInput | TransferAuthorisationUpdateWithWhereUniqueWithoutPurposeInput[]
+    updateMany?: TransferAuthorisationUpdateManyWithWhereWithoutPurposeInput | TransferAuthorisationUpdateManyWithWhereWithoutPurposeInput[]
+    deleteMany?: TransferAuthorisationScalarWhereInput | TransferAuthorisationScalarWhereInput[]
+  }
+
   export type NoticePurposeUncheckedUpdateManyWithoutPurposeNestedInput = {
     create?: XOR<NoticePurposeCreateWithoutPurposeInput, NoticePurposeUncheckedCreateWithoutPurposeInput> | NoticePurposeCreateWithoutPurposeInput[] | NoticePurposeUncheckedCreateWithoutPurposeInput[]
     connectOrCreate?: NoticePurposeCreateOrConnectWithoutPurposeInput | NoticePurposeCreateOrConnectWithoutPurposeInput[]
@@ -17765,6 +22918,20 @@ export namespace Prisma {
     update?: ConsentRecordUpdateWithWhereUniqueWithoutPurposeInput | ConsentRecordUpdateWithWhereUniqueWithoutPurposeInput[]
     updateMany?: ConsentRecordUpdateManyWithWhereWithoutPurposeInput | ConsentRecordUpdateManyWithWhereWithoutPurposeInput[]
     deleteMany?: ConsentRecordScalarWhereInput | ConsentRecordScalarWhereInput[]
+  }
+
+  export type TransferAuthorisationUncheckedUpdateManyWithoutPurposeNestedInput = {
+    create?: XOR<TransferAuthorisationCreateWithoutPurposeInput, TransferAuthorisationUncheckedCreateWithoutPurposeInput> | TransferAuthorisationCreateWithoutPurposeInput[] | TransferAuthorisationUncheckedCreateWithoutPurposeInput[]
+    connectOrCreate?: TransferAuthorisationCreateOrConnectWithoutPurposeInput | TransferAuthorisationCreateOrConnectWithoutPurposeInput[]
+    upsert?: TransferAuthorisationUpsertWithWhereUniqueWithoutPurposeInput | TransferAuthorisationUpsertWithWhereUniqueWithoutPurposeInput[]
+    createMany?: TransferAuthorisationCreateManyPurposeInputEnvelope
+    set?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    disconnect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    delete?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    connect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    update?: TransferAuthorisationUpdateWithWhereUniqueWithoutPurposeInput | TransferAuthorisationUpdateWithWhereUniqueWithoutPurposeInput[]
+    updateMany?: TransferAuthorisationUpdateManyWithWhereWithoutPurposeInput | TransferAuthorisationUpdateManyWithWhereWithoutPurposeInput[]
+    deleteMany?: TransferAuthorisationScalarWhereInput | TransferAuthorisationScalarWhereInput[]
   }
 
   export type OrganisationCreateNestedOneWithoutPoliciesInput = {
@@ -18091,6 +23258,20 @@ export namespace Prisma {
     connect?: PolicyVersionWhereUniqueInput
   }
 
+  export type TransferAuthorisationCreateNestedManyWithoutConsentRecordInput = {
+    create?: XOR<TransferAuthorisationCreateWithoutConsentRecordInput, TransferAuthorisationUncheckedCreateWithoutConsentRecordInput> | TransferAuthorisationCreateWithoutConsentRecordInput[] | TransferAuthorisationUncheckedCreateWithoutConsentRecordInput[]
+    connectOrCreate?: TransferAuthorisationCreateOrConnectWithoutConsentRecordInput | TransferAuthorisationCreateOrConnectWithoutConsentRecordInput[]
+    createMany?: TransferAuthorisationCreateManyConsentRecordInputEnvelope
+    connect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+  }
+
+  export type TransferAuthorisationUncheckedCreateNestedManyWithoutConsentRecordInput = {
+    create?: XOR<TransferAuthorisationCreateWithoutConsentRecordInput, TransferAuthorisationUncheckedCreateWithoutConsentRecordInput> | TransferAuthorisationCreateWithoutConsentRecordInput[] | TransferAuthorisationUncheckedCreateWithoutConsentRecordInput[]
+    connectOrCreate?: TransferAuthorisationCreateOrConnectWithoutConsentRecordInput | TransferAuthorisationCreateOrConnectWithoutConsentRecordInput[]
+    createMany?: TransferAuthorisationCreateManyConsentRecordInputEnvelope
+    connect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+  }
+
   export type WebsiteUpdateOneRequiredWithoutConsentRecordsNestedInput = {
     create?: XOR<WebsiteCreateWithoutConsentRecordsInput, WebsiteUncheckedCreateWithoutConsentRecordsInput>
     connectOrCreate?: WebsiteCreateOrConnectWithoutConsentRecordsInput
@@ -18133,6 +23314,218 @@ export namespace Prisma {
     delete?: PolicyVersionWhereInput | boolean
     connect?: PolicyVersionWhereUniqueInput
     update?: XOR<XOR<PolicyVersionUpdateToOneWithWhereWithoutConsentRecordsInput, PolicyVersionUpdateWithoutConsentRecordsInput>, PolicyVersionUncheckedUpdateWithoutConsentRecordsInput>
+  }
+
+  export type TransferAuthorisationUpdateManyWithoutConsentRecordNestedInput = {
+    create?: XOR<TransferAuthorisationCreateWithoutConsentRecordInput, TransferAuthorisationUncheckedCreateWithoutConsentRecordInput> | TransferAuthorisationCreateWithoutConsentRecordInput[] | TransferAuthorisationUncheckedCreateWithoutConsentRecordInput[]
+    connectOrCreate?: TransferAuthorisationCreateOrConnectWithoutConsentRecordInput | TransferAuthorisationCreateOrConnectWithoutConsentRecordInput[]
+    upsert?: TransferAuthorisationUpsertWithWhereUniqueWithoutConsentRecordInput | TransferAuthorisationUpsertWithWhereUniqueWithoutConsentRecordInput[]
+    createMany?: TransferAuthorisationCreateManyConsentRecordInputEnvelope
+    set?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    disconnect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    delete?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    connect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    update?: TransferAuthorisationUpdateWithWhereUniqueWithoutConsentRecordInput | TransferAuthorisationUpdateWithWhereUniqueWithoutConsentRecordInput[]
+    updateMany?: TransferAuthorisationUpdateManyWithWhereWithoutConsentRecordInput | TransferAuthorisationUpdateManyWithWhereWithoutConsentRecordInput[]
+    deleteMany?: TransferAuthorisationScalarWhereInput | TransferAuthorisationScalarWhereInput[]
+  }
+
+  export type TransferAuthorisationUncheckedUpdateManyWithoutConsentRecordNestedInput = {
+    create?: XOR<TransferAuthorisationCreateWithoutConsentRecordInput, TransferAuthorisationUncheckedCreateWithoutConsentRecordInput> | TransferAuthorisationCreateWithoutConsentRecordInput[] | TransferAuthorisationUncheckedCreateWithoutConsentRecordInput[]
+    connectOrCreate?: TransferAuthorisationCreateOrConnectWithoutConsentRecordInput | TransferAuthorisationCreateOrConnectWithoutConsentRecordInput[]
+    upsert?: TransferAuthorisationUpsertWithWhereUniqueWithoutConsentRecordInput | TransferAuthorisationUpsertWithWhereUniqueWithoutConsentRecordInput[]
+    createMany?: TransferAuthorisationCreateManyConsentRecordInputEnvelope
+    set?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    disconnect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    delete?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    connect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    update?: TransferAuthorisationUpdateWithWhereUniqueWithoutConsentRecordInput | TransferAuthorisationUpdateWithWhereUniqueWithoutConsentRecordInput[]
+    updateMany?: TransferAuthorisationUpdateManyWithWhereWithoutConsentRecordInput | TransferAuthorisationUpdateManyWithWhereWithoutConsentRecordInput[]
+    deleteMany?: TransferAuthorisationScalarWhereInput | TransferAuthorisationScalarWhereInput[]
+  }
+
+  export type OrganisationCreateNestedOneWithoutRecipientsInput = {
+    create?: XOR<OrganisationCreateWithoutRecipientsInput, OrganisationUncheckedCreateWithoutRecipientsInput>
+    connectOrCreate?: OrganisationCreateOrConnectWithoutRecipientsInput
+    connect?: OrganisationWhereUniqueInput
+  }
+
+  export type TransferAuthorisationCreateNestedManyWithoutRecipientInput = {
+    create?: XOR<TransferAuthorisationCreateWithoutRecipientInput, TransferAuthorisationUncheckedCreateWithoutRecipientInput> | TransferAuthorisationCreateWithoutRecipientInput[] | TransferAuthorisationUncheckedCreateWithoutRecipientInput[]
+    connectOrCreate?: TransferAuthorisationCreateOrConnectWithoutRecipientInput | TransferAuthorisationCreateOrConnectWithoutRecipientInput[]
+    createMany?: TransferAuthorisationCreateManyRecipientInputEnvelope
+    connect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+  }
+
+  export type TransferAuthorisationUncheckedCreateNestedManyWithoutRecipientInput = {
+    create?: XOR<TransferAuthorisationCreateWithoutRecipientInput, TransferAuthorisationUncheckedCreateWithoutRecipientInput> | TransferAuthorisationCreateWithoutRecipientInput[] | TransferAuthorisationUncheckedCreateWithoutRecipientInput[]
+    connectOrCreate?: TransferAuthorisationCreateOrConnectWithoutRecipientInput | TransferAuthorisationCreateOrConnectWithoutRecipientInput[]
+    createMany?: TransferAuthorisationCreateManyRecipientInputEnvelope
+    connect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+  }
+
+  export type OrganisationUpdateOneRequiredWithoutRecipientsNestedInput = {
+    create?: XOR<OrganisationCreateWithoutRecipientsInput, OrganisationUncheckedCreateWithoutRecipientsInput>
+    connectOrCreate?: OrganisationCreateOrConnectWithoutRecipientsInput
+    upsert?: OrganisationUpsertWithoutRecipientsInput
+    connect?: OrganisationWhereUniqueInput
+    update?: XOR<XOR<OrganisationUpdateToOneWithWhereWithoutRecipientsInput, OrganisationUpdateWithoutRecipientsInput>, OrganisationUncheckedUpdateWithoutRecipientsInput>
+  }
+
+  export type TransferAuthorisationUpdateManyWithoutRecipientNestedInput = {
+    create?: XOR<TransferAuthorisationCreateWithoutRecipientInput, TransferAuthorisationUncheckedCreateWithoutRecipientInput> | TransferAuthorisationCreateWithoutRecipientInput[] | TransferAuthorisationUncheckedCreateWithoutRecipientInput[]
+    connectOrCreate?: TransferAuthorisationCreateOrConnectWithoutRecipientInput | TransferAuthorisationCreateOrConnectWithoutRecipientInput[]
+    upsert?: TransferAuthorisationUpsertWithWhereUniqueWithoutRecipientInput | TransferAuthorisationUpsertWithWhereUniqueWithoutRecipientInput[]
+    createMany?: TransferAuthorisationCreateManyRecipientInputEnvelope
+    set?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    disconnect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    delete?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    connect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    update?: TransferAuthorisationUpdateWithWhereUniqueWithoutRecipientInput | TransferAuthorisationUpdateWithWhereUniqueWithoutRecipientInput[]
+    updateMany?: TransferAuthorisationUpdateManyWithWhereWithoutRecipientInput | TransferAuthorisationUpdateManyWithWhereWithoutRecipientInput[]
+    deleteMany?: TransferAuthorisationScalarWhereInput | TransferAuthorisationScalarWhereInput[]
+  }
+
+  export type TransferAuthorisationUncheckedUpdateManyWithoutRecipientNestedInput = {
+    create?: XOR<TransferAuthorisationCreateWithoutRecipientInput, TransferAuthorisationUncheckedCreateWithoutRecipientInput> | TransferAuthorisationCreateWithoutRecipientInput[] | TransferAuthorisationUncheckedCreateWithoutRecipientInput[]
+    connectOrCreate?: TransferAuthorisationCreateOrConnectWithoutRecipientInput | TransferAuthorisationCreateOrConnectWithoutRecipientInput[]
+    upsert?: TransferAuthorisationUpsertWithWhereUniqueWithoutRecipientInput | TransferAuthorisationUpsertWithWhereUniqueWithoutRecipientInput[]
+    createMany?: TransferAuthorisationCreateManyRecipientInputEnvelope
+    set?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    disconnect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    delete?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    connect?: TransferAuthorisationWhereUniqueInput | TransferAuthorisationWhereUniqueInput[]
+    update?: TransferAuthorisationUpdateWithWhereUniqueWithoutRecipientInput | TransferAuthorisationUpdateWithWhereUniqueWithoutRecipientInput[]
+    updateMany?: TransferAuthorisationUpdateManyWithWhereWithoutRecipientInput | TransferAuthorisationUpdateManyWithWhereWithoutRecipientInput[]
+    deleteMany?: TransferAuthorisationScalarWhereInput | TransferAuthorisationScalarWhereInput[]
+  }
+
+  export type WebsiteCreateNestedOneWithoutTransferAuthorisationsInput = {
+    create?: XOR<WebsiteCreateWithoutTransferAuthorisationsInput, WebsiteUncheckedCreateWithoutTransferAuthorisationsInput>
+    connectOrCreate?: WebsiteCreateOrConnectWithoutTransferAuthorisationsInput
+    connect?: WebsiteWhereUniqueInput
+  }
+
+  export type PrincipalCreateNestedOneWithoutTransferAuthorisationsInput = {
+    create?: XOR<PrincipalCreateWithoutTransferAuthorisationsInput, PrincipalUncheckedCreateWithoutTransferAuthorisationsInput>
+    connectOrCreate?: PrincipalCreateOrConnectWithoutTransferAuthorisationsInput
+    connect?: PrincipalWhereUniqueInput
+  }
+
+  export type PurposeCreateNestedOneWithoutTransferAuthorisationsInput = {
+    create?: XOR<PurposeCreateWithoutTransferAuthorisationsInput, PurposeUncheckedCreateWithoutTransferAuthorisationsInput>
+    connectOrCreate?: PurposeCreateOrConnectWithoutTransferAuthorisationsInput
+    connect?: PurposeWhereUniqueInput
+  }
+
+  export type DataRecipientCreateNestedOneWithoutAuthorisationsInput = {
+    create?: XOR<DataRecipientCreateWithoutAuthorisationsInput, DataRecipientUncheckedCreateWithoutAuthorisationsInput>
+    connectOrCreate?: DataRecipientCreateOrConnectWithoutAuthorisationsInput
+    connect?: DataRecipientWhereUniqueInput
+  }
+
+  export type ConsentRecordCreateNestedOneWithoutTransferAuthorisationsInput = {
+    create?: XOR<ConsentRecordCreateWithoutTransferAuthorisationsInput, ConsentRecordUncheckedCreateWithoutTransferAuthorisationsInput>
+    connectOrCreate?: ConsentRecordCreateOrConnectWithoutTransferAuthorisationsInput
+    connect?: ConsentRecordWhereUniqueInput
+  }
+
+  export type TransferRecordCreateNestedOneWithoutAuthorisationInput = {
+    create?: XOR<TransferRecordCreateWithoutAuthorisationInput, TransferRecordUncheckedCreateWithoutAuthorisationInput>
+    connectOrCreate?: TransferRecordCreateOrConnectWithoutAuthorisationInput
+    connect?: TransferRecordWhereUniqueInput
+  }
+
+  export type TransferRecordUncheckedCreateNestedOneWithoutAuthorisationInput = {
+    create?: XOR<TransferRecordCreateWithoutAuthorisationInput, TransferRecordUncheckedCreateWithoutAuthorisationInput>
+    connectOrCreate?: TransferRecordCreateOrConnectWithoutAuthorisationInput
+    connect?: TransferRecordWhereUniqueInput
+  }
+
+  export type WebsiteUpdateOneRequiredWithoutTransferAuthorisationsNestedInput = {
+    create?: XOR<WebsiteCreateWithoutTransferAuthorisationsInput, WebsiteUncheckedCreateWithoutTransferAuthorisationsInput>
+    connectOrCreate?: WebsiteCreateOrConnectWithoutTransferAuthorisationsInput
+    upsert?: WebsiteUpsertWithoutTransferAuthorisationsInput
+    connect?: WebsiteWhereUniqueInput
+    update?: XOR<XOR<WebsiteUpdateToOneWithWhereWithoutTransferAuthorisationsInput, WebsiteUpdateWithoutTransferAuthorisationsInput>, WebsiteUncheckedUpdateWithoutTransferAuthorisationsInput>
+  }
+
+  export type PrincipalUpdateOneRequiredWithoutTransferAuthorisationsNestedInput = {
+    create?: XOR<PrincipalCreateWithoutTransferAuthorisationsInput, PrincipalUncheckedCreateWithoutTransferAuthorisationsInput>
+    connectOrCreate?: PrincipalCreateOrConnectWithoutTransferAuthorisationsInput
+    upsert?: PrincipalUpsertWithoutTransferAuthorisationsInput
+    connect?: PrincipalWhereUniqueInput
+    update?: XOR<XOR<PrincipalUpdateToOneWithWhereWithoutTransferAuthorisationsInput, PrincipalUpdateWithoutTransferAuthorisationsInput>, PrincipalUncheckedUpdateWithoutTransferAuthorisationsInput>
+  }
+
+  export type PurposeUpdateOneRequiredWithoutTransferAuthorisationsNestedInput = {
+    create?: XOR<PurposeCreateWithoutTransferAuthorisationsInput, PurposeUncheckedCreateWithoutTransferAuthorisationsInput>
+    connectOrCreate?: PurposeCreateOrConnectWithoutTransferAuthorisationsInput
+    upsert?: PurposeUpsertWithoutTransferAuthorisationsInput
+    connect?: PurposeWhereUniqueInput
+    update?: XOR<XOR<PurposeUpdateToOneWithWhereWithoutTransferAuthorisationsInput, PurposeUpdateWithoutTransferAuthorisationsInput>, PurposeUncheckedUpdateWithoutTransferAuthorisationsInput>
+  }
+
+  export type DataRecipientUpdateOneRequiredWithoutAuthorisationsNestedInput = {
+    create?: XOR<DataRecipientCreateWithoutAuthorisationsInput, DataRecipientUncheckedCreateWithoutAuthorisationsInput>
+    connectOrCreate?: DataRecipientCreateOrConnectWithoutAuthorisationsInput
+    upsert?: DataRecipientUpsertWithoutAuthorisationsInput
+    connect?: DataRecipientWhereUniqueInput
+    update?: XOR<XOR<DataRecipientUpdateToOneWithWhereWithoutAuthorisationsInput, DataRecipientUpdateWithoutAuthorisationsInput>, DataRecipientUncheckedUpdateWithoutAuthorisationsInput>
+  }
+
+  export type ConsentRecordUpdateOneRequiredWithoutTransferAuthorisationsNestedInput = {
+    create?: XOR<ConsentRecordCreateWithoutTransferAuthorisationsInput, ConsentRecordUncheckedCreateWithoutTransferAuthorisationsInput>
+    connectOrCreate?: ConsentRecordCreateOrConnectWithoutTransferAuthorisationsInput
+    upsert?: ConsentRecordUpsertWithoutTransferAuthorisationsInput
+    connect?: ConsentRecordWhereUniqueInput
+    update?: XOR<XOR<ConsentRecordUpdateToOneWithWhereWithoutTransferAuthorisationsInput, ConsentRecordUpdateWithoutTransferAuthorisationsInput>, ConsentRecordUncheckedUpdateWithoutTransferAuthorisationsInput>
+  }
+
+  export type TransferRecordUpdateOneWithoutAuthorisationNestedInput = {
+    create?: XOR<TransferRecordCreateWithoutAuthorisationInput, TransferRecordUncheckedCreateWithoutAuthorisationInput>
+    connectOrCreate?: TransferRecordCreateOrConnectWithoutAuthorisationInput
+    upsert?: TransferRecordUpsertWithoutAuthorisationInput
+    disconnect?: TransferRecordWhereInput | boolean
+    delete?: TransferRecordWhereInput | boolean
+    connect?: TransferRecordWhereUniqueInput
+    update?: XOR<XOR<TransferRecordUpdateToOneWithWhereWithoutAuthorisationInput, TransferRecordUpdateWithoutAuthorisationInput>, TransferRecordUncheckedUpdateWithoutAuthorisationInput>
+  }
+
+  export type TransferRecordUncheckedUpdateOneWithoutAuthorisationNestedInput = {
+    create?: XOR<TransferRecordCreateWithoutAuthorisationInput, TransferRecordUncheckedCreateWithoutAuthorisationInput>
+    connectOrCreate?: TransferRecordCreateOrConnectWithoutAuthorisationInput
+    upsert?: TransferRecordUpsertWithoutAuthorisationInput
+    disconnect?: TransferRecordWhereInput | boolean
+    delete?: TransferRecordWhereInput | boolean
+    connect?: TransferRecordWhereUniqueInput
+    update?: XOR<XOR<TransferRecordUpdateToOneWithWhereWithoutAuthorisationInput, TransferRecordUpdateWithoutAuthorisationInput>, TransferRecordUncheckedUpdateWithoutAuthorisationInput>
+  }
+
+  export type TransferAuthorisationCreateNestedOneWithoutTransferInput = {
+    create?: XOR<TransferAuthorisationCreateWithoutTransferInput, TransferAuthorisationUncheckedCreateWithoutTransferInput>
+    connectOrCreate?: TransferAuthorisationCreateOrConnectWithoutTransferInput
+    connect?: TransferAuthorisationWhereUniqueInput
+  }
+
+  export type IntFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type NullableDateTimeFieldUpdateOperationsInput = {
+    set?: Date | string | null
+  }
+
+  export type TransferAuthorisationUpdateOneRequiredWithoutTransferNestedInput = {
+    create?: XOR<TransferAuthorisationCreateWithoutTransferInput, TransferAuthorisationUncheckedCreateWithoutTransferInput>
+    connectOrCreate?: TransferAuthorisationCreateOrConnectWithoutTransferInput
+    upsert?: TransferAuthorisationUpsertWithoutTransferInput
+    connect?: TransferAuthorisationWhereUniqueInput
+    update?: XOR<XOR<TransferAuthorisationUpdateToOneWithWhereWithoutTransferInput, TransferAuthorisationUpdateWithoutTransferInput>, TransferAuthorisationUncheckedUpdateWithoutTransferInput>
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -18280,6 +23673,58 @@ export namespace Prisma {
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
+  export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type NestedFloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
+  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
   export type WebsiteCreateWithoutOrganisationInput = {
     id?: string
     name: string
@@ -18291,6 +23736,7 @@ export namespace Prisma {
     events?: EventCreateNestedManyWithoutWebsiteInput
     principals?: PrincipalCreateNestedManyWithoutWebsiteInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutWebsiteInput
+    transferAuthorisations?: TransferAuthorisationCreateNestedManyWithoutWebsiteInput
   }
 
   export type WebsiteUncheckedCreateWithoutOrganisationInput = {
@@ -18304,6 +23750,7 @@ export namespace Prisma {
     events?: EventUncheckedCreateNestedManyWithoutWebsiteInput
     principals?: PrincipalUncheckedCreateNestedManyWithoutWebsiteInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutWebsiteInput
+    transferAuthorisations?: TransferAuthorisationUncheckedCreateNestedManyWithoutWebsiteInput
   }
 
   export type WebsiteCreateOrConnectWithoutOrganisationInput = {
@@ -18325,6 +23772,7 @@ export namespace Prisma {
     createdAt?: Date | string
     noticePurposes?: NoticePurposeCreateNestedManyWithoutPurposeInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutPurposeInput
+    transferAuthorisations?: TransferAuthorisationCreateNestedManyWithoutPurposeInput
   }
 
   export type PurposeUncheckedCreateWithoutOrganisationInput = {
@@ -18336,6 +23784,7 @@ export namespace Prisma {
     createdAt?: Date | string
     noticePurposes?: NoticePurposeUncheckedCreateNestedManyWithoutPurposeInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutPurposeInput
+    transferAuthorisations?: TransferAuthorisationUncheckedCreateNestedManyWithoutPurposeInput
   }
 
   export type PurposeCreateOrConnectWithoutOrganisationInput = {
@@ -18401,6 +23850,40 @@ export namespace Prisma {
 
   export type NoticeCreateManyOrganisationInputEnvelope = {
     data: NoticeCreateManyOrganisationInput | NoticeCreateManyOrganisationInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type DataRecipientCreateWithoutOrganisationInput = {
+    id?: string
+    code: string
+    name: string
+    publicKey: string
+    algorithm: string
+    deliveryKeyHash: string
+    isActive?: boolean
+    createdAt?: Date | string
+    authorisations?: TransferAuthorisationCreateNestedManyWithoutRecipientInput
+  }
+
+  export type DataRecipientUncheckedCreateWithoutOrganisationInput = {
+    id?: string
+    code: string
+    name: string
+    publicKey: string
+    algorithm: string
+    deliveryKeyHash: string
+    isActive?: boolean
+    createdAt?: Date | string
+    authorisations?: TransferAuthorisationUncheckedCreateNestedManyWithoutRecipientInput
+  }
+
+  export type DataRecipientCreateOrConnectWithoutOrganisationInput = {
+    where: DataRecipientWhereUniqueInput
+    create: XOR<DataRecipientCreateWithoutOrganisationInput, DataRecipientUncheckedCreateWithoutOrganisationInput>
+  }
+
+  export type DataRecipientCreateManyOrganisationInputEnvelope = {
+    data: DataRecipientCreateManyOrganisationInput | DataRecipientCreateManyOrganisationInput[]
     skipDuplicates?: boolean
   }
 
@@ -18517,6 +24000,37 @@ export namespace Prisma {
     publishedAt?: DateTimeFilter<"Notice"> | Date | string
   }
 
+  export type DataRecipientUpsertWithWhereUniqueWithoutOrganisationInput = {
+    where: DataRecipientWhereUniqueInput
+    update: XOR<DataRecipientUpdateWithoutOrganisationInput, DataRecipientUncheckedUpdateWithoutOrganisationInput>
+    create: XOR<DataRecipientCreateWithoutOrganisationInput, DataRecipientUncheckedCreateWithoutOrganisationInput>
+  }
+
+  export type DataRecipientUpdateWithWhereUniqueWithoutOrganisationInput = {
+    where: DataRecipientWhereUniqueInput
+    data: XOR<DataRecipientUpdateWithoutOrganisationInput, DataRecipientUncheckedUpdateWithoutOrganisationInput>
+  }
+
+  export type DataRecipientUpdateManyWithWhereWithoutOrganisationInput = {
+    where: DataRecipientScalarWhereInput
+    data: XOR<DataRecipientUpdateManyMutationInput, DataRecipientUncheckedUpdateManyWithoutOrganisationInput>
+  }
+
+  export type DataRecipientScalarWhereInput = {
+    AND?: DataRecipientScalarWhereInput | DataRecipientScalarWhereInput[]
+    OR?: DataRecipientScalarWhereInput[]
+    NOT?: DataRecipientScalarWhereInput | DataRecipientScalarWhereInput[]
+    id?: StringFilter<"DataRecipient"> | string
+    organisationId?: StringFilter<"DataRecipient"> | string
+    code?: StringFilter<"DataRecipient"> | string
+    name?: StringFilter<"DataRecipient"> | string
+    publicKey?: StringFilter<"DataRecipient"> | string
+    algorithm?: StringFilter<"DataRecipient"> | string
+    deliveryKeyHash?: StringFilter<"DataRecipient"> | string
+    isActive?: BoolFilter<"DataRecipient"> | boolean
+    createdAt?: DateTimeFilter<"DataRecipient"> | Date | string
+  }
+
   export type OrganisationCreateWithoutWebsitesInput = {
     id?: string
     name: string
@@ -18526,6 +24040,7 @@ export namespace Prisma {
     purposes?: PurposeCreateNestedManyWithoutOrganisationInput
     policies?: PolicyCreateNestedManyWithoutOrganisationInput
     notices?: NoticeCreateNestedManyWithoutOrganisationInput
+    recipients?: DataRecipientCreateNestedManyWithoutOrganisationInput
   }
 
   export type OrganisationUncheckedCreateWithoutWebsitesInput = {
@@ -18537,6 +24052,7 @@ export namespace Prisma {
     purposes?: PurposeUncheckedCreateNestedManyWithoutOrganisationInput
     policies?: PolicyUncheckedCreateNestedManyWithoutOrganisationInput
     notices?: NoticeUncheckedCreateNestedManyWithoutOrganisationInput
+    recipients?: DataRecipientUncheckedCreateNestedManyWithoutOrganisationInput
   }
 
   export type OrganisationCreateOrConnectWithoutWebsitesInput = {
@@ -18618,6 +24134,7 @@ export namespace Prisma {
     kind?: string
     createdAt?: Date | string
     consentRecords?: ConsentRecordCreateNestedManyWithoutPrincipalInput
+    transferAuthorisations?: TransferAuthorisationCreateNestedManyWithoutPrincipalInput
   }
 
   export type PrincipalUncheckedCreateWithoutWebsiteInput = {
@@ -18626,6 +24143,7 @@ export namespace Prisma {
     kind?: string
     createdAt?: Date | string
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutPrincipalInput
+    transferAuthorisations?: TransferAuthorisationUncheckedCreateNestedManyWithoutPrincipalInput
   }
 
   export type PrincipalCreateOrConnectWithoutWebsiteInput = {
@@ -18649,6 +24167,7 @@ export namespace Prisma {
     purpose: PurposeCreateNestedOneWithoutConsentRecordsInput
     notice?: NoticeCreateNestedOneWithoutConsentRecordsInput
     policyVersion?: PolicyVersionCreateNestedOneWithoutConsentRecordsInput
+    transferAuthorisations?: TransferAuthorisationCreateNestedManyWithoutConsentRecordInput
   }
 
   export type ConsentRecordUncheckedCreateWithoutWebsiteInput = {
@@ -18662,6 +24181,7 @@ export namespace Prisma {
     decidedAt: Date | string
     recordedAt?: Date | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
+    transferAuthorisations?: TransferAuthorisationUncheckedCreateNestedManyWithoutConsentRecordInput
   }
 
   export type ConsentRecordCreateOrConnectWithoutWebsiteInput = {
@@ -18671,6 +24191,42 @@ export namespace Prisma {
 
   export type ConsentRecordCreateManyWebsiteInputEnvelope = {
     data: ConsentRecordCreateManyWebsiteInput | ConsentRecordCreateManyWebsiteInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type TransferAuthorisationCreateWithoutWebsiteInput = {
+    id?: string
+    nonce: string
+    status?: string
+    expiresAt: Date | string
+    createdAt?: Date | string
+    principal: PrincipalCreateNestedOneWithoutTransferAuthorisationsInput
+    purpose: PurposeCreateNestedOneWithoutTransferAuthorisationsInput
+    recipient: DataRecipientCreateNestedOneWithoutAuthorisationsInput
+    consentRecord: ConsentRecordCreateNestedOneWithoutTransferAuthorisationsInput
+    transfer?: TransferRecordCreateNestedOneWithoutAuthorisationInput
+  }
+
+  export type TransferAuthorisationUncheckedCreateWithoutWebsiteInput = {
+    id?: string
+    principalId: string
+    purposeId: string
+    recipientId: string
+    consentRecordId: string
+    nonce: string
+    status?: string
+    expiresAt: Date | string
+    createdAt?: Date | string
+    transfer?: TransferRecordUncheckedCreateNestedOneWithoutAuthorisationInput
+  }
+
+  export type TransferAuthorisationCreateOrConnectWithoutWebsiteInput = {
+    where: TransferAuthorisationWhereUniqueInput
+    create: XOR<TransferAuthorisationCreateWithoutWebsiteInput, TransferAuthorisationUncheckedCreateWithoutWebsiteInput>
+  }
+
+  export type TransferAuthorisationCreateManyWebsiteInputEnvelope = {
+    data: TransferAuthorisationCreateManyWebsiteInput | TransferAuthorisationCreateManyWebsiteInput[]
     skipDuplicates?: boolean
   }
 
@@ -18694,6 +24250,7 @@ export namespace Prisma {
     purposes?: PurposeUpdateManyWithoutOrganisationNestedInput
     policies?: PolicyUpdateManyWithoutOrganisationNestedInput
     notices?: NoticeUpdateManyWithoutOrganisationNestedInput
+    recipients?: DataRecipientUpdateManyWithoutOrganisationNestedInput
   }
 
   export type OrganisationUncheckedUpdateWithoutWebsitesInput = {
@@ -18705,6 +24262,7 @@ export namespace Prisma {
     purposes?: PurposeUncheckedUpdateManyWithoutOrganisationNestedInput
     policies?: PolicyUncheckedUpdateManyWithoutOrganisationNestedInput
     notices?: NoticeUncheckedUpdateManyWithoutOrganisationNestedInput
+    recipients?: DataRecipientUncheckedUpdateManyWithoutOrganisationNestedInput
   }
 
   export type SessionUpsertWithWhereUniqueWithoutWebsiteInput = {
@@ -18831,6 +24389,39 @@ export namespace Prisma {
     metadata?: JsonNullableFilter<"ConsentRecord">
   }
 
+  export type TransferAuthorisationUpsertWithWhereUniqueWithoutWebsiteInput = {
+    where: TransferAuthorisationWhereUniqueInput
+    update: XOR<TransferAuthorisationUpdateWithoutWebsiteInput, TransferAuthorisationUncheckedUpdateWithoutWebsiteInput>
+    create: XOR<TransferAuthorisationCreateWithoutWebsiteInput, TransferAuthorisationUncheckedCreateWithoutWebsiteInput>
+  }
+
+  export type TransferAuthorisationUpdateWithWhereUniqueWithoutWebsiteInput = {
+    where: TransferAuthorisationWhereUniqueInput
+    data: XOR<TransferAuthorisationUpdateWithoutWebsiteInput, TransferAuthorisationUncheckedUpdateWithoutWebsiteInput>
+  }
+
+  export type TransferAuthorisationUpdateManyWithWhereWithoutWebsiteInput = {
+    where: TransferAuthorisationScalarWhereInput
+    data: XOR<TransferAuthorisationUpdateManyMutationInput, TransferAuthorisationUncheckedUpdateManyWithoutWebsiteInput>
+  }
+
+  export type TransferAuthorisationScalarWhereInput = {
+    AND?: TransferAuthorisationScalarWhereInput | TransferAuthorisationScalarWhereInput[]
+    OR?: TransferAuthorisationScalarWhereInput[]
+    NOT?: TransferAuthorisationScalarWhereInput | TransferAuthorisationScalarWhereInput[]
+    id?: StringFilter<"TransferAuthorisation"> | string
+    organisationId?: StringFilter<"TransferAuthorisation"> | string
+    siteId?: StringFilter<"TransferAuthorisation"> | string
+    principalId?: StringFilter<"TransferAuthorisation"> | string
+    purposeId?: StringFilter<"TransferAuthorisation"> | string
+    recipientId?: StringFilter<"TransferAuthorisation"> | string
+    consentRecordId?: StringFilter<"TransferAuthorisation"> | string
+    nonce?: StringFilter<"TransferAuthorisation"> | string
+    status?: StringFilter<"TransferAuthorisation"> | string
+    expiresAt?: DateTimeFilter<"TransferAuthorisation"> | Date | string
+    createdAt?: DateTimeFilter<"TransferAuthorisation"> | Date | string
+  }
+
   export type WebsiteCreateWithoutSessionsInput = {
     id?: string
     name: string
@@ -18842,6 +24433,7 @@ export namespace Prisma {
     events?: EventCreateNestedManyWithoutWebsiteInput
     principals?: PrincipalCreateNestedManyWithoutWebsiteInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutWebsiteInput
+    transferAuthorisations?: TransferAuthorisationCreateNestedManyWithoutWebsiteInput
   }
 
   export type WebsiteUncheckedCreateWithoutSessionsInput = {
@@ -18855,6 +24447,7 @@ export namespace Prisma {
     events?: EventUncheckedCreateNestedManyWithoutWebsiteInput
     principals?: PrincipalUncheckedCreateNestedManyWithoutWebsiteInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutWebsiteInput
+    transferAuthorisations?: TransferAuthorisationUncheckedCreateNestedManyWithoutWebsiteInput
   }
 
   export type WebsiteCreateOrConnectWithoutSessionsInput = {
@@ -18927,6 +24520,7 @@ export namespace Prisma {
     events?: EventUpdateManyWithoutWebsiteNestedInput
     principals?: PrincipalUpdateManyWithoutWebsiteNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutWebsiteNestedInput
+    transferAuthorisations?: TransferAuthorisationUpdateManyWithoutWebsiteNestedInput
   }
 
   export type WebsiteUncheckedUpdateWithoutSessionsInput = {
@@ -18940,6 +24534,7 @@ export namespace Prisma {
     events?: EventUncheckedUpdateManyWithoutWebsiteNestedInput
     principals?: PrincipalUncheckedUpdateManyWithoutWebsiteNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutWebsiteNestedInput
+    transferAuthorisations?: TransferAuthorisationUncheckedUpdateManyWithoutWebsiteNestedInput
   }
 
   export type EventUpsertWithWhereUniqueWithoutSessionInput = {
@@ -18969,6 +24564,7 @@ export namespace Prisma {
     sessions?: SessionCreateNestedManyWithoutWebsiteInput
     principals?: PrincipalCreateNestedManyWithoutWebsiteInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutWebsiteInput
+    transferAuthorisations?: TransferAuthorisationCreateNestedManyWithoutWebsiteInput
   }
 
   export type WebsiteUncheckedCreateWithoutEventsInput = {
@@ -18982,6 +24578,7 @@ export namespace Prisma {
     sessions?: SessionUncheckedCreateNestedManyWithoutWebsiteInput
     principals?: PrincipalUncheckedCreateNestedManyWithoutWebsiteInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutWebsiteInput
+    transferAuthorisations?: TransferAuthorisationUncheckedCreateNestedManyWithoutWebsiteInput
   }
 
   export type WebsiteCreateOrConnectWithoutEventsInput = {
@@ -19030,6 +24627,7 @@ export namespace Prisma {
     sessions?: SessionUpdateManyWithoutWebsiteNestedInput
     principals?: PrincipalUpdateManyWithoutWebsiteNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutWebsiteNestedInput
+    transferAuthorisations?: TransferAuthorisationUpdateManyWithoutWebsiteNestedInput
   }
 
   export type WebsiteUncheckedUpdateWithoutEventsInput = {
@@ -19043,6 +24641,7 @@ export namespace Prisma {
     sessions?: SessionUncheckedUpdateManyWithoutWebsiteNestedInput
     principals?: PrincipalUncheckedUpdateManyWithoutWebsiteNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutWebsiteNestedInput
+    transferAuthorisations?: TransferAuthorisationUncheckedUpdateManyWithoutWebsiteNestedInput
   }
 
   export type SessionUpsertWithoutEventsInput = {
@@ -19081,6 +24680,7 @@ export namespace Prisma {
     sessions?: SessionCreateNestedManyWithoutWebsiteInput
     events?: EventCreateNestedManyWithoutWebsiteInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutWebsiteInput
+    transferAuthorisations?: TransferAuthorisationCreateNestedManyWithoutWebsiteInput
   }
 
   export type WebsiteUncheckedCreateWithoutPrincipalsInput = {
@@ -19094,6 +24694,7 @@ export namespace Prisma {
     sessions?: SessionUncheckedCreateNestedManyWithoutWebsiteInput
     events?: EventUncheckedCreateNestedManyWithoutWebsiteInput
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutWebsiteInput
+    transferAuthorisations?: TransferAuthorisationUncheckedCreateNestedManyWithoutWebsiteInput
   }
 
   export type WebsiteCreateOrConnectWithoutPrincipalsInput = {
@@ -19112,6 +24713,7 @@ export namespace Prisma {
     purpose: PurposeCreateNestedOneWithoutConsentRecordsInput
     notice?: NoticeCreateNestedOneWithoutConsentRecordsInput
     policyVersion?: PolicyVersionCreateNestedOneWithoutConsentRecordsInput
+    transferAuthorisations?: TransferAuthorisationCreateNestedManyWithoutConsentRecordInput
   }
 
   export type ConsentRecordUncheckedCreateWithoutPrincipalInput = {
@@ -19125,6 +24727,7 @@ export namespace Prisma {
     decidedAt: Date | string
     recordedAt?: Date | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
+    transferAuthorisations?: TransferAuthorisationUncheckedCreateNestedManyWithoutConsentRecordInput
   }
 
   export type ConsentRecordCreateOrConnectWithoutPrincipalInput = {
@@ -19134,6 +24737,42 @@ export namespace Prisma {
 
   export type ConsentRecordCreateManyPrincipalInputEnvelope = {
     data: ConsentRecordCreateManyPrincipalInput | ConsentRecordCreateManyPrincipalInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type TransferAuthorisationCreateWithoutPrincipalInput = {
+    id?: string
+    nonce: string
+    status?: string
+    expiresAt: Date | string
+    createdAt?: Date | string
+    website: WebsiteCreateNestedOneWithoutTransferAuthorisationsInput
+    purpose: PurposeCreateNestedOneWithoutTransferAuthorisationsInput
+    recipient: DataRecipientCreateNestedOneWithoutAuthorisationsInput
+    consentRecord: ConsentRecordCreateNestedOneWithoutTransferAuthorisationsInput
+    transfer?: TransferRecordCreateNestedOneWithoutAuthorisationInput
+  }
+
+  export type TransferAuthorisationUncheckedCreateWithoutPrincipalInput = {
+    id?: string
+    organisationId: string
+    purposeId: string
+    recipientId: string
+    consentRecordId: string
+    nonce: string
+    status?: string
+    expiresAt: Date | string
+    createdAt?: Date | string
+    transfer?: TransferRecordUncheckedCreateNestedOneWithoutAuthorisationInput
+  }
+
+  export type TransferAuthorisationCreateOrConnectWithoutPrincipalInput = {
+    where: TransferAuthorisationWhereUniqueInput
+    create: XOR<TransferAuthorisationCreateWithoutPrincipalInput, TransferAuthorisationUncheckedCreateWithoutPrincipalInput>
+  }
+
+  export type TransferAuthorisationCreateManyPrincipalInputEnvelope = {
+    data: TransferAuthorisationCreateManyPrincipalInput | TransferAuthorisationCreateManyPrincipalInput[]
     skipDuplicates?: boolean
   }
 
@@ -19159,6 +24798,7 @@ export namespace Prisma {
     sessions?: SessionUpdateManyWithoutWebsiteNestedInput
     events?: EventUpdateManyWithoutWebsiteNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutWebsiteNestedInput
+    transferAuthorisations?: TransferAuthorisationUpdateManyWithoutWebsiteNestedInput
   }
 
   export type WebsiteUncheckedUpdateWithoutPrincipalsInput = {
@@ -19172,6 +24812,7 @@ export namespace Prisma {
     sessions?: SessionUncheckedUpdateManyWithoutWebsiteNestedInput
     events?: EventUncheckedUpdateManyWithoutWebsiteNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutWebsiteNestedInput
+    transferAuthorisations?: TransferAuthorisationUncheckedUpdateManyWithoutWebsiteNestedInput
   }
 
   export type ConsentRecordUpsertWithWhereUniqueWithoutPrincipalInput = {
@@ -19190,6 +24831,22 @@ export namespace Prisma {
     data: XOR<ConsentRecordUpdateManyMutationInput, ConsentRecordUncheckedUpdateManyWithoutPrincipalInput>
   }
 
+  export type TransferAuthorisationUpsertWithWhereUniqueWithoutPrincipalInput = {
+    where: TransferAuthorisationWhereUniqueInput
+    update: XOR<TransferAuthorisationUpdateWithoutPrincipalInput, TransferAuthorisationUncheckedUpdateWithoutPrincipalInput>
+    create: XOR<TransferAuthorisationCreateWithoutPrincipalInput, TransferAuthorisationUncheckedCreateWithoutPrincipalInput>
+  }
+
+  export type TransferAuthorisationUpdateWithWhereUniqueWithoutPrincipalInput = {
+    where: TransferAuthorisationWhereUniqueInput
+    data: XOR<TransferAuthorisationUpdateWithoutPrincipalInput, TransferAuthorisationUncheckedUpdateWithoutPrincipalInput>
+  }
+
+  export type TransferAuthorisationUpdateManyWithWhereWithoutPrincipalInput = {
+    where: TransferAuthorisationScalarWhereInput
+    data: XOR<TransferAuthorisationUpdateManyMutationInput, TransferAuthorisationUncheckedUpdateManyWithoutPrincipalInput>
+  }
+
   export type OrganisationCreateWithoutPurposesInput = {
     id?: string
     name: string
@@ -19199,6 +24856,7 @@ export namespace Prisma {
     websites?: WebsiteCreateNestedManyWithoutOrganisationInput
     policies?: PolicyCreateNestedManyWithoutOrganisationInput
     notices?: NoticeCreateNestedManyWithoutOrganisationInput
+    recipients?: DataRecipientCreateNestedManyWithoutOrganisationInput
   }
 
   export type OrganisationUncheckedCreateWithoutPurposesInput = {
@@ -19210,6 +24868,7 @@ export namespace Prisma {
     websites?: WebsiteUncheckedCreateNestedManyWithoutOrganisationInput
     policies?: PolicyUncheckedCreateNestedManyWithoutOrganisationInput
     notices?: NoticeUncheckedCreateNestedManyWithoutOrganisationInput
+    recipients?: DataRecipientUncheckedCreateNestedManyWithoutOrganisationInput
   }
 
   export type OrganisationCreateOrConnectWithoutPurposesInput = {
@@ -19246,6 +24905,7 @@ export namespace Prisma {
     principal: PrincipalCreateNestedOneWithoutConsentRecordsInput
     notice?: NoticeCreateNestedOneWithoutConsentRecordsInput
     policyVersion?: PolicyVersionCreateNestedOneWithoutConsentRecordsInput
+    transferAuthorisations?: TransferAuthorisationCreateNestedManyWithoutConsentRecordInput
   }
 
   export type ConsentRecordUncheckedCreateWithoutPurposeInput = {
@@ -19259,6 +24919,7 @@ export namespace Prisma {
     decidedAt: Date | string
     recordedAt?: Date | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
+    transferAuthorisations?: TransferAuthorisationUncheckedCreateNestedManyWithoutConsentRecordInput
   }
 
   export type ConsentRecordCreateOrConnectWithoutPurposeInput = {
@@ -19268,6 +24929,42 @@ export namespace Prisma {
 
   export type ConsentRecordCreateManyPurposeInputEnvelope = {
     data: ConsentRecordCreateManyPurposeInput | ConsentRecordCreateManyPurposeInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type TransferAuthorisationCreateWithoutPurposeInput = {
+    id?: string
+    nonce: string
+    status?: string
+    expiresAt: Date | string
+    createdAt?: Date | string
+    website: WebsiteCreateNestedOneWithoutTransferAuthorisationsInput
+    principal: PrincipalCreateNestedOneWithoutTransferAuthorisationsInput
+    recipient: DataRecipientCreateNestedOneWithoutAuthorisationsInput
+    consentRecord: ConsentRecordCreateNestedOneWithoutTransferAuthorisationsInput
+    transfer?: TransferRecordCreateNestedOneWithoutAuthorisationInput
+  }
+
+  export type TransferAuthorisationUncheckedCreateWithoutPurposeInput = {
+    id?: string
+    siteId: string
+    principalId: string
+    recipientId: string
+    consentRecordId: string
+    nonce: string
+    status?: string
+    expiresAt: Date | string
+    createdAt?: Date | string
+    transfer?: TransferRecordUncheckedCreateNestedOneWithoutAuthorisationInput
+  }
+
+  export type TransferAuthorisationCreateOrConnectWithoutPurposeInput = {
+    where: TransferAuthorisationWhereUniqueInput
+    create: XOR<TransferAuthorisationCreateWithoutPurposeInput, TransferAuthorisationUncheckedCreateWithoutPurposeInput>
+  }
+
+  export type TransferAuthorisationCreateManyPurposeInputEnvelope = {
+    data: TransferAuthorisationCreateManyPurposeInput | TransferAuthorisationCreateManyPurposeInput[]
     skipDuplicates?: boolean
   }
 
@@ -19291,6 +24988,7 @@ export namespace Prisma {
     websites?: WebsiteUpdateManyWithoutOrganisationNestedInput
     policies?: PolicyUpdateManyWithoutOrganisationNestedInput
     notices?: NoticeUpdateManyWithoutOrganisationNestedInput
+    recipients?: DataRecipientUpdateManyWithoutOrganisationNestedInput
   }
 
   export type OrganisationUncheckedUpdateWithoutPurposesInput = {
@@ -19302,6 +25000,7 @@ export namespace Prisma {
     websites?: WebsiteUncheckedUpdateManyWithoutOrganisationNestedInput
     policies?: PolicyUncheckedUpdateManyWithoutOrganisationNestedInput
     notices?: NoticeUncheckedUpdateManyWithoutOrganisationNestedInput
+    recipients?: DataRecipientUncheckedUpdateManyWithoutOrganisationNestedInput
   }
 
   export type NoticePurposeUpsertWithWhereUniqueWithoutPurposeInput = {
@@ -19344,6 +25043,22 @@ export namespace Prisma {
     data: XOR<ConsentRecordUpdateManyMutationInput, ConsentRecordUncheckedUpdateManyWithoutPurposeInput>
   }
 
+  export type TransferAuthorisationUpsertWithWhereUniqueWithoutPurposeInput = {
+    where: TransferAuthorisationWhereUniqueInput
+    update: XOR<TransferAuthorisationUpdateWithoutPurposeInput, TransferAuthorisationUncheckedUpdateWithoutPurposeInput>
+    create: XOR<TransferAuthorisationCreateWithoutPurposeInput, TransferAuthorisationUncheckedCreateWithoutPurposeInput>
+  }
+
+  export type TransferAuthorisationUpdateWithWhereUniqueWithoutPurposeInput = {
+    where: TransferAuthorisationWhereUniqueInput
+    data: XOR<TransferAuthorisationUpdateWithoutPurposeInput, TransferAuthorisationUncheckedUpdateWithoutPurposeInput>
+  }
+
+  export type TransferAuthorisationUpdateManyWithWhereWithoutPurposeInput = {
+    where: TransferAuthorisationScalarWhereInput
+    data: XOR<TransferAuthorisationUpdateManyMutationInput, TransferAuthorisationUncheckedUpdateManyWithoutPurposeInput>
+  }
+
   export type OrganisationCreateWithoutPoliciesInput = {
     id?: string
     name: string
@@ -19353,6 +25068,7 @@ export namespace Prisma {
     websites?: WebsiteCreateNestedManyWithoutOrganisationInput
     purposes?: PurposeCreateNestedManyWithoutOrganisationInput
     notices?: NoticeCreateNestedManyWithoutOrganisationInput
+    recipients?: DataRecipientCreateNestedManyWithoutOrganisationInput
   }
 
   export type OrganisationUncheckedCreateWithoutPoliciesInput = {
@@ -19364,6 +25080,7 @@ export namespace Prisma {
     websites?: WebsiteUncheckedCreateNestedManyWithoutOrganisationInput
     purposes?: PurposeUncheckedCreateNestedManyWithoutOrganisationInput
     notices?: NoticeUncheckedCreateNestedManyWithoutOrganisationInput
+    recipients?: DataRecipientUncheckedCreateNestedManyWithoutOrganisationInput
   }
 
   export type OrganisationCreateOrConnectWithoutPoliciesInput = {
@@ -19421,6 +25138,7 @@ export namespace Prisma {
     websites?: WebsiteUpdateManyWithoutOrganisationNestedInput
     purposes?: PurposeUpdateManyWithoutOrganisationNestedInput
     notices?: NoticeUpdateManyWithoutOrganisationNestedInput
+    recipients?: DataRecipientUpdateManyWithoutOrganisationNestedInput
   }
 
   export type OrganisationUncheckedUpdateWithoutPoliciesInput = {
@@ -19432,6 +25150,7 @@ export namespace Prisma {
     websites?: WebsiteUncheckedUpdateManyWithoutOrganisationNestedInput
     purposes?: PurposeUncheckedUpdateManyWithoutOrganisationNestedInput
     notices?: NoticeUncheckedUpdateManyWithoutOrganisationNestedInput
+    recipients?: DataRecipientUncheckedUpdateManyWithoutOrganisationNestedInput
   }
 
   export type PolicyVersionUpsertWithWhereUniqueWithoutPolicyInput = {
@@ -19524,6 +25243,7 @@ export namespace Prisma {
     principal: PrincipalCreateNestedOneWithoutConsentRecordsInput
     purpose: PurposeCreateNestedOneWithoutConsentRecordsInput
     notice?: NoticeCreateNestedOneWithoutConsentRecordsInput
+    transferAuthorisations?: TransferAuthorisationCreateNestedManyWithoutConsentRecordInput
   }
 
   export type ConsentRecordUncheckedCreateWithoutPolicyVersionInput = {
@@ -19537,6 +25257,7 @@ export namespace Prisma {
     decidedAt: Date | string
     recordedAt?: Date | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
+    transferAuthorisations?: TransferAuthorisationUncheckedCreateNestedManyWithoutConsentRecordInput
   }
 
   export type ConsentRecordCreateOrConnectWithoutPolicyVersionInput = {
@@ -19617,6 +25338,7 @@ export namespace Prisma {
     websites?: WebsiteCreateNestedManyWithoutOrganisationInput
     purposes?: PurposeCreateNestedManyWithoutOrganisationInput
     policies?: PolicyCreateNestedManyWithoutOrganisationInput
+    recipients?: DataRecipientCreateNestedManyWithoutOrganisationInput
   }
 
   export type OrganisationUncheckedCreateWithoutNoticesInput = {
@@ -19628,6 +25350,7 @@ export namespace Prisma {
     websites?: WebsiteUncheckedCreateNestedManyWithoutOrganisationInput
     purposes?: PurposeUncheckedCreateNestedManyWithoutOrganisationInput
     policies?: PolicyUncheckedCreateNestedManyWithoutOrganisationInput
+    recipients?: DataRecipientUncheckedCreateNestedManyWithoutOrganisationInput
   }
 
   export type OrganisationCreateOrConnectWithoutNoticesInput = {
@@ -19690,6 +25413,7 @@ export namespace Prisma {
     principal: PrincipalCreateNestedOneWithoutConsentRecordsInput
     purpose: PurposeCreateNestedOneWithoutConsentRecordsInput
     policyVersion?: PolicyVersionCreateNestedOneWithoutConsentRecordsInput
+    transferAuthorisations?: TransferAuthorisationCreateNestedManyWithoutConsentRecordInput
   }
 
   export type ConsentRecordUncheckedCreateWithoutNoticeInput = {
@@ -19703,6 +25427,7 @@ export namespace Prisma {
     decidedAt: Date | string
     recordedAt?: Date | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
+    transferAuthorisations?: TransferAuthorisationUncheckedCreateNestedManyWithoutConsentRecordInput
   }
 
   export type ConsentRecordCreateOrConnectWithoutNoticeInput = {
@@ -19735,6 +25460,7 @@ export namespace Prisma {
     websites?: WebsiteUpdateManyWithoutOrganisationNestedInput
     purposes?: PurposeUpdateManyWithoutOrganisationNestedInput
     policies?: PolicyUpdateManyWithoutOrganisationNestedInput
+    recipients?: DataRecipientUpdateManyWithoutOrganisationNestedInput
   }
 
   export type OrganisationUncheckedUpdateWithoutNoticesInput = {
@@ -19746,6 +25472,7 @@ export namespace Prisma {
     websites?: WebsiteUncheckedUpdateManyWithoutOrganisationNestedInput
     purposes?: PurposeUncheckedUpdateManyWithoutOrganisationNestedInput
     policies?: PolicyUncheckedUpdateManyWithoutOrganisationNestedInput
+    recipients?: DataRecipientUncheckedUpdateManyWithoutOrganisationNestedInput
   }
 
   export type PolicyVersionUpsertWithoutNoticesInput = {
@@ -19846,6 +25573,7 @@ export namespace Prisma {
     createdAt?: Date | string
     organisation: OrganisationCreateNestedOneWithoutPurposesInput
     consentRecords?: ConsentRecordCreateNestedManyWithoutPurposeInput
+    transferAuthorisations?: TransferAuthorisationCreateNestedManyWithoutPurposeInput
   }
 
   export type PurposeUncheckedCreateWithoutNoticePurposesInput = {
@@ -19857,6 +25585,7 @@ export namespace Prisma {
     isActive?: boolean
     createdAt?: Date | string
     consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutPurposeInput
+    transferAuthorisations?: TransferAuthorisationUncheckedCreateNestedManyWithoutPurposeInput
   }
 
   export type PurposeCreateOrConnectWithoutNoticePurposesInput = {
@@ -19915,6 +25644,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organisation?: OrganisationUpdateOneRequiredWithoutPurposesNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutPurposeNestedInput
+    transferAuthorisations?: TransferAuthorisationUpdateManyWithoutPurposeNestedInput
   }
 
   export type PurposeUncheckedUpdateWithoutNoticePurposesInput = {
@@ -19926,6 +25656,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutPurposeNestedInput
+    transferAuthorisations?: TransferAuthorisationUncheckedUpdateManyWithoutPurposeNestedInput
   }
 
   export type WebsiteCreateWithoutConsentRecordsInput = {
@@ -19939,6 +25670,7 @@ export namespace Prisma {
     sessions?: SessionCreateNestedManyWithoutWebsiteInput
     events?: EventCreateNestedManyWithoutWebsiteInput
     principals?: PrincipalCreateNestedManyWithoutWebsiteInput
+    transferAuthorisations?: TransferAuthorisationCreateNestedManyWithoutWebsiteInput
   }
 
   export type WebsiteUncheckedCreateWithoutConsentRecordsInput = {
@@ -19952,6 +25684,7 @@ export namespace Prisma {
     sessions?: SessionUncheckedCreateNestedManyWithoutWebsiteInput
     events?: EventUncheckedCreateNestedManyWithoutWebsiteInput
     principals?: PrincipalUncheckedCreateNestedManyWithoutWebsiteInput
+    transferAuthorisations?: TransferAuthorisationUncheckedCreateNestedManyWithoutWebsiteInput
   }
 
   export type WebsiteCreateOrConnectWithoutConsentRecordsInput = {
@@ -19965,6 +25698,7 @@ export namespace Prisma {
     kind?: string
     createdAt?: Date | string
     website: WebsiteCreateNestedOneWithoutPrincipalsInput
+    transferAuthorisations?: TransferAuthorisationCreateNestedManyWithoutPrincipalInput
   }
 
   export type PrincipalUncheckedCreateWithoutConsentRecordsInput = {
@@ -19973,6 +25707,7 @@ export namespace Prisma {
     externalId: string
     kind?: string
     createdAt?: Date | string
+    transferAuthorisations?: TransferAuthorisationUncheckedCreateNestedManyWithoutPrincipalInput
   }
 
   export type PrincipalCreateOrConnectWithoutConsentRecordsInput = {
@@ -19989,6 +25724,7 @@ export namespace Prisma {
     createdAt?: Date | string
     organisation: OrganisationCreateNestedOneWithoutPurposesInput
     noticePurposes?: NoticePurposeCreateNestedManyWithoutPurposeInput
+    transferAuthorisations?: TransferAuthorisationCreateNestedManyWithoutPurposeInput
   }
 
   export type PurposeUncheckedCreateWithoutConsentRecordsInput = {
@@ -20000,6 +25736,7 @@ export namespace Prisma {
     isActive?: boolean
     createdAt?: Date | string
     noticePurposes?: NoticePurposeUncheckedCreateNestedManyWithoutPurposeInput
+    transferAuthorisations?: TransferAuthorisationUncheckedCreateNestedManyWithoutPurposeInput
   }
 
   export type PurposeCreateOrConnectWithoutConsentRecordsInput = {
@@ -20058,6 +25795,42 @@ export namespace Prisma {
     create: XOR<PolicyVersionCreateWithoutConsentRecordsInput, PolicyVersionUncheckedCreateWithoutConsentRecordsInput>
   }
 
+  export type TransferAuthorisationCreateWithoutConsentRecordInput = {
+    id?: string
+    nonce: string
+    status?: string
+    expiresAt: Date | string
+    createdAt?: Date | string
+    website: WebsiteCreateNestedOneWithoutTransferAuthorisationsInput
+    principal: PrincipalCreateNestedOneWithoutTransferAuthorisationsInput
+    purpose: PurposeCreateNestedOneWithoutTransferAuthorisationsInput
+    recipient: DataRecipientCreateNestedOneWithoutAuthorisationsInput
+    transfer?: TransferRecordCreateNestedOneWithoutAuthorisationInput
+  }
+
+  export type TransferAuthorisationUncheckedCreateWithoutConsentRecordInput = {
+    id?: string
+    siteId: string
+    principalId: string
+    purposeId: string
+    recipientId: string
+    nonce: string
+    status?: string
+    expiresAt: Date | string
+    createdAt?: Date | string
+    transfer?: TransferRecordUncheckedCreateNestedOneWithoutAuthorisationInput
+  }
+
+  export type TransferAuthorisationCreateOrConnectWithoutConsentRecordInput = {
+    where: TransferAuthorisationWhereUniqueInput
+    create: XOR<TransferAuthorisationCreateWithoutConsentRecordInput, TransferAuthorisationUncheckedCreateWithoutConsentRecordInput>
+  }
+
+  export type TransferAuthorisationCreateManyConsentRecordInputEnvelope = {
+    data: TransferAuthorisationCreateManyConsentRecordInput | TransferAuthorisationCreateManyConsentRecordInput[]
+    skipDuplicates?: boolean
+  }
+
   export type WebsiteUpsertWithoutConsentRecordsInput = {
     update: XOR<WebsiteUpdateWithoutConsentRecordsInput, WebsiteUncheckedUpdateWithoutConsentRecordsInput>
     create: XOR<WebsiteCreateWithoutConsentRecordsInput, WebsiteUncheckedCreateWithoutConsentRecordsInput>
@@ -20080,6 +25853,7 @@ export namespace Prisma {
     sessions?: SessionUpdateManyWithoutWebsiteNestedInput
     events?: EventUpdateManyWithoutWebsiteNestedInput
     principals?: PrincipalUpdateManyWithoutWebsiteNestedInput
+    transferAuthorisations?: TransferAuthorisationUpdateManyWithoutWebsiteNestedInput
   }
 
   export type WebsiteUncheckedUpdateWithoutConsentRecordsInput = {
@@ -20093,6 +25867,7 @@ export namespace Prisma {
     sessions?: SessionUncheckedUpdateManyWithoutWebsiteNestedInput
     events?: EventUncheckedUpdateManyWithoutWebsiteNestedInput
     principals?: PrincipalUncheckedUpdateManyWithoutWebsiteNestedInput
+    transferAuthorisations?: TransferAuthorisationUncheckedUpdateManyWithoutWebsiteNestedInput
   }
 
   export type PrincipalUpsertWithoutConsentRecordsInput = {
@@ -20112,6 +25887,7 @@ export namespace Prisma {
     kind?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     website?: WebsiteUpdateOneRequiredWithoutPrincipalsNestedInput
+    transferAuthorisations?: TransferAuthorisationUpdateManyWithoutPrincipalNestedInput
   }
 
   export type PrincipalUncheckedUpdateWithoutConsentRecordsInput = {
@@ -20120,6 +25896,7 @@ export namespace Prisma {
     externalId?: StringFieldUpdateOperationsInput | string
     kind?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    transferAuthorisations?: TransferAuthorisationUncheckedUpdateManyWithoutPrincipalNestedInput
   }
 
   export type PurposeUpsertWithoutConsentRecordsInput = {
@@ -20142,6 +25919,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organisation?: OrganisationUpdateOneRequiredWithoutPurposesNestedInput
     noticePurposes?: NoticePurposeUpdateManyWithoutPurposeNestedInput
+    transferAuthorisations?: TransferAuthorisationUpdateManyWithoutPurposeNestedInput
   }
 
   export type PurposeUncheckedUpdateWithoutConsentRecordsInput = {
@@ -20153,6 +25931,7 @@ export namespace Prisma {
     isActive?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     noticePurposes?: NoticePurposeUncheckedUpdateManyWithoutPurposeNestedInput
+    transferAuthorisations?: TransferAuthorisationUncheckedUpdateManyWithoutPurposeNestedInput
   }
 
   export type NoticeUpsertWithoutConsentRecordsInput = {
@@ -20218,6 +25997,606 @@ export namespace Prisma {
     notices?: NoticeUncheckedUpdateManyWithoutPolicyVersionNestedInput
   }
 
+  export type TransferAuthorisationUpsertWithWhereUniqueWithoutConsentRecordInput = {
+    where: TransferAuthorisationWhereUniqueInput
+    update: XOR<TransferAuthorisationUpdateWithoutConsentRecordInput, TransferAuthorisationUncheckedUpdateWithoutConsentRecordInput>
+    create: XOR<TransferAuthorisationCreateWithoutConsentRecordInput, TransferAuthorisationUncheckedCreateWithoutConsentRecordInput>
+  }
+
+  export type TransferAuthorisationUpdateWithWhereUniqueWithoutConsentRecordInput = {
+    where: TransferAuthorisationWhereUniqueInput
+    data: XOR<TransferAuthorisationUpdateWithoutConsentRecordInput, TransferAuthorisationUncheckedUpdateWithoutConsentRecordInput>
+  }
+
+  export type TransferAuthorisationUpdateManyWithWhereWithoutConsentRecordInput = {
+    where: TransferAuthorisationScalarWhereInput
+    data: XOR<TransferAuthorisationUpdateManyMutationInput, TransferAuthorisationUncheckedUpdateManyWithoutConsentRecordInput>
+  }
+
+  export type OrganisationCreateWithoutRecipientsInput = {
+    id?: string
+    name: string
+    slug: string
+    secretKeyHash: string
+    createdAt?: Date | string
+    websites?: WebsiteCreateNestedManyWithoutOrganisationInput
+    purposes?: PurposeCreateNestedManyWithoutOrganisationInput
+    policies?: PolicyCreateNestedManyWithoutOrganisationInput
+    notices?: NoticeCreateNestedManyWithoutOrganisationInput
+  }
+
+  export type OrganisationUncheckedCreateWithoutRecipientsInput = {
+    id?: string
+    name: string
+    slug: string
+    secretKeyHash: string
+    createdAt?: Date | string
+    websites?: WebsiteUncheckedCreateNestedManyWithoutOrganisationInput
+    purposes?: PurposeUncheckedCreateNestedManyWithoutOrganisationInput
+    policies?: PolicyUncheckedCreateNestedManyWithoutOrganisationInput
+    notices?: NoticeUncheckedCreateNestedManyWithoutOrganisationInput
+  }
+
+  export type OrganisationCreateOrConnectWithoutRecipientsInput = {
+    where: OrganisationWhereUniqueInput
+    create: XOR<OrganisationCreateWithoutRecipientsInput, OrganisationUncheckedCreateWithoutRecipientsInput>
+  }
+
+  export type TransferAuthorisationCreateWithoutRecipientInput = {
+    id?: string
+    nonce: string
+    status?: string
+    expiresAt: Date | string
+    createdAt?: Date | string
+    website: WebsiteCreateNestedOneWithoutTransferAuthorisationsInput
+    principal: PrincipalCreateNestedOneWithoutTransferAuthorisationsInput
+    purpose: PurposeCreateNestedOneWithoutTransferAuthorisationsInput
+    consentRecord: ConsentRecordCreateNestedOneWithoutTransferAuthorisationsInput
+    transfer?: TransferRecordCreateNestedOneWithoutAuthorisationInput
+  }
+
+  export type TransferAuthorisationUncheckedCreateWithoutRecipientInput = {
+    id?: string
+    siteId: string
+    principalId: string
+    purposeId: string
+    consentRecordId: string
+    nonce: string
+    status?: string
+    expiresAt: Date | string
+    createdAt?: Date | string
+    transfer?: TransferRecordUncheckedCreateNestedOneWithoutAuthorisationInput
+  }
+
+  export type TransferAuthorisationCreateOrConnectWithoutRecipientInput = {
+    where: TransferAuthorisationWhereUniqueInput
+    create: XOR<TransferAuthorisationCreateWithoutRecipientInput, TransferAuthorisationUncheckedCreateWithoutRecipientInput>
+  }
+
+  export type TransferAuthorisationCreateManyRecipientInputEnvelope = {
+    data: TransferAuthorisationCreateManyRecipientInput | TransferAuthorisationCreateManyRecipientInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type OrganisationUpsertWithoutRecipientsInput = {
+    update: XOR<OrganisationUpdateWithoutRecipientsInput, OrganisationUncheckedUpdateWithoutRecipientsInput>
+    create: XOR<OrganisationCreateWithoutRecipientsInput, OrganisationUncheckedCreateWithoutRecipientsInput>
+    where?: OrganisationWhereInput
+  }
+
+  export type OrganisationUpdateToOneWithWhereWithoutRecipientsInput = {
+    where?: OrganisationWhereInput
+    data: XOR<OrganisationUpdateWithoutRecipientsInput, OrganisationUncheckedUpdateWithoutRecipientsInput>
+  }
+
+  export type OrganisationUpdateWithoutRecipientsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    secretKeyHash?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    websites?: WebsiteUpdateManyWithoutOrganisationNestedInput
+    purposes?: PurposeUpdateManyWithoutOrganisationNestedInput
+    policies?: PolicyUpdateManyWithoutOrganisationNestedInput
+    notices?: NoticeUpdateManyWithoutOrganisationNestedInput
+  }
+
+  export type OrganisationUncheckedUpdateWithoutRecipientsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    secretKeyHash?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    websites?: WebsiteUncheckedUpdateManyWithoutOrganisationNestedInput
+    purposes?: PurposeUncheckedUpdateManyWithoutOrganisationNestedInput
+    policies?: PolicyUncheckedUpdateManyWithoutOrganisationNestedInput
+    notices?: NoticeUncheckedUpdateManyWithoutOrganisationNestedInput
+  }
+
+  export type TransferAuthorisationUpsertWithWhereUniqueWithoutRecipientInput = {
+    where: TransferAuthorisationWhereUniqueInput
+    update: XOR<TransferAuthorisationUpdateWithoutRecipientInput, TransferAuthorisationUncheckedUpdateWithoutRecipientInput>
+    create: XOR<TransferAuthorisationCreateWithoutRecipientInput, TransferAuthorisationUncheckedCreateWithoutRecipientInput>
+  }
+
+  export type TransferAuthorisationUpdateWithWhereUniqueWithoutRecipientInput = {
+    where: TransferAuthorisationWhereUniqueInput
+    data: XOR<TransferAuthorisationUpdateWithoutRecipientInput, TransferAuthorisationUncheckedUpdateWithoutRecipientInput>
+  }
+
+  export type TransferAuthorisationUpdateManyWithWhereWithoutRecipientInput = {
+    where: TransferAuthorisationScalarWhereInput
+    data: XOR<TransferAuthorisationUpdateManyMutationInput, TransferAuthorisationUncheckedUpdateManyWithoutRecipientInput>
+  }
+
+  export type WebsiteCreateWithoutTransferAuthorisationsInput = {
+    id?: string
+    name: string
+    domain: string
+    publicKey: string
+    isActive?: boolean
+    createdAt?: Date | string
+    organisation: OrganisationCreateNestedOneWithoutWebsitesInput
+    sessions?: SessionCreateNestedManyWithoutWebsiteInput
+    events?: EventCreateNestedManyWithoutWebsiteInput
+    principals?: PrincipalCreateNestedManyWithoutWebsiteInput
+    consentRecords?: ConsentRecordCreateNestedManyWithoutWebsiteInput
+  }
+
+  export type WebsiteUncheckedCreateWithoutTransferAuthorisationsInput = {
+    id?: string
+    organisationId: string
+    name: string
+    domain: string
+    publicKey: string
+    isActive?: boolean
+    createdAt?: Date | string
+    sessions?: SessionUncheckedCreateNestedManyWithoutWebsiteInput
+    events?: EventUncheckedCreateNestedManyWithoutWebsiteInput
+    principals?: PrincipalUncheckedCreateNestedManyWithoutWebsiteInput
+    consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutWebsiteInput
+  }
+
+  export type WebsiteCreateOrConnectWithoutTransferAuthorisationsInput = {
+    where: WebsiteWhereUniqueInput
+    create: XOR<WebsiteCreateWithoutTransferAuthorisationsInput, WebsiteUncheckedCreateWithoutTransferAuthorisationsInput>
+  }
+
+  export type PrincipalCreateWithoutTransferAuthorisationsInput = {
+    id?: string
+    externalId: string
+    kind?: string
+    createdAt?: Date | string
+    website: WebsiteCreateNestedOneWithoutPrincipalsInput
+    consentRecords?: ConsentRecordCreateNestedManyWithoutPrincipalInput
+  }
+
+  export type PrincipalUncheckedCreateWithoutTransferAuthorisationsInput = {
+    id?: string
+    siteId: string
+    externalId: string
+    kind?: string
+    createdAt?: Date | string
+    consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutPrincipalInput
+  }
+
+  export type PrincipalCreateOrConnectWithoutTransferAuthorisationsInput = {
+    where: PrincipalWhereUniqueInput
+    create: XOR<PrincipalCreateWithoutTransferAuthorisationsInput, PrincipalUncheckedCreateWithoutTransferAuthorisationsInput>
+  }
+
+  export type PurposeCreateWithoutTransferAuthorisationsInput = {
+    id?: string
+    code: string
+    name: string
+    description: string
+    isActive?: boolean
+    createdAt?: Date | string
+    organisation: OrganisationCreateNestedOneWithoutPurposesInput
+    noticePurposes?: NoticePurposeCreateNestedManyWithoutPurposeInput
+    consentRecords?: ConsentRecordCreateNestedManyWithoutPurposeInput
+  }
+
+  export type PurposeUncheckedCreateWithoutTransferAuthorisationsInput = {
+    id?: string
+    organisationId: string
+    code: string
+    name: string
+    description: string
+    isActive?: boolean
+    createdAt?: Date | string
+    noticePurposes?: NoticePurposeUncheckedCreateNestedManyWithoutPurposeInput
+    consentRecords?: ConsentRecordUncheckedCreateNestedManyWithoutPurposeInput
+  }
+
+  export type PurposeCreateOrConnectWithoutTransferAuthorisationsInput = {
+    where: PurposeWhereUniqueInput
+    create: XOR<PurposeCreateWithoutTransferAuthorisationsInput, PurposeUncheckedCreateWithoutTransferAuthorisationsInput>
+  }
+
+  export type DataRecipientCreateWithoutAuthorisationsInput = {
+    id?: string
+    code: string
+    name: string
+    publicKey: string
+    algorithm: string
+    deliveryKeyHash: string
+    isActive?: boolean
+    createdAt?: Date | string
+    organisation: OrganisationCreateNestedOneWithoutRecipientsInput
+  }
+
+  export type DataRecipientUncheckedCreateWithoutAuthorisationsInput = {
+    id?: string
+    organisationId: string
+    code: string
+    name: string
+    publicKey: string
+    algorithm: string
+    deliveryKeyHash: string
+    isActive?: boolean
+    createdAt?: Date | string
+  }
+
+  export type DataRecipientCreateOrConnectWithoutAuthorisationsInput = {
+    where: DataRecipientWhereUniqueInput
+    create: XOR<DataRecipientCreateWithoutAuthorisationsInput, DataRecipientUncheckedCreateWithoutAuthorisationsInput>
+  }
+
+  export type ConsentRecordCreateWithoutTransferAuthorisationsInput = {
+    id?: string
+    status: string
+    source?: string
+    decidedAt: Date | string
+    recordedAt?: Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    website: WebsiteCreateNestedOneWithoutConsentRecordsInput
+    principal: PrincipalCreateNestedOneWithoutConsentRecordsInput
+    purpose: PurposeCreateNestedOneWithoutConsentRecordsInput
+    notice?: NoticeCreateNestedOneWithoutConsentRecordsInput
+    policyVersion?: PolicyVersionCreateNestedOneWithoutConsentRecordsInput
+  }
+
+  export type ConsentRecordUncheckedCreateWithoutTransferAuthorisationsInput = {
+    id?: string
+    organisationId: string
+    siteId: string
+    principalId: string
+    purposeId: string
+    noticeId?: string | null
+    policyVersionId?: string | null
+    status: string
+    source?: string
+    decidedAt: Date | string
+    recordedAt?: Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type ConsentRecordCreateOrConnectWithoutTransferAuthorisationsInput = {
+    where: ConsentRecordWhereUniqueInput
+    create: XOR<ConsentRecordCreateWithoutTransferAuthorisationsInput, ConsentRecordUncheckedCreateWithoutTransferAuthorisationsInput>
+  }
+
+  export type TransferRecordCreateWithoutAuthorisationInput = {
+    id?: string
+    ciphertext: string
+    iv: string
+    authTag: string
+    ephemeralPublicKey: string
+    ciphertextSha256: string
+    payloadBytes: number
+    status?: string
+    failureReason?: string | null
+    recordedAt?: Date | string
+    deliveredAt?: Date | string | null
+  }
+
+  export type TransferRecordUncheckedCreateWithoutAuthorisationInput = {
+    id?: string
+    ciphertext: string
+    iv: string
+    authTag: string
+    ephemeralPublicKey: string
+    ciphertextSha256: string
+    payloadBytes: number
+    status?: string
+    failureReason?: string | null
+    recordedAt?: Date | string
+    deliveredAt?: Date | string | null
+  }
+
+  export type TransferRecordCreateOrConnectWithoutAuthorisationInput = {
+    where: TransferRecordWhereUniqueInput
+    create: XOR<TransferRecordCreateWithoutAuthorisationInput, TransferRecordUncheckedCreateWithoutAuthorisationInput>
+  }
+
+  export type WebsiteUpsertWithoutTransferAuthorisationsInput = {
+    update: XOR<WebsiteUpdateWithoutTransferAuthorisationsInput, WebsiteUncheckedUpdateWithoutTransferAuthorisationsInput>
+    create: XOR<WebsiteCreateWithoutTransferAuthorisationsInput, WebsiteUncheckedCreateWithoutTransferAuthorisationsInput>
+    where?: WebsiteWhereInput
+  }
+
+  export type WebsiteUpdateToOneWithWhereWithoutTransferAuthorisationsInput = {
+    where?: WebsiteWhereInput
+    data: XOR<WebsiteUpdateWithoutTransferAuthorisationsInput, WebsiteUncheckedUpdateWithoutTransferAuthorisationsInput>
+  }
+
+  export type WebsiteUpdateWithoutTransferAuthorisationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    domain?: StringFieldUpdateOperationsInput | string
+    publicKey?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organisation?: OrganisationUpdateOneRequiredWithoutWebsitesNestedInput
+    sessions?: SessionUpdateManyWithoutWebsiteNestedInput
+    events?: EventUpdateManyWithoutWebsiteNestedInput
+    principals?: PrincipalUpdateManyWithoutWebsiteNestedInput
+    consentRecords?: ConsentRecordUpdateManyWithoutWebsiteNestedInput
+  }
+
+  export type WebsiteUncheckedUpdateWithoutTransferAuthorisationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organisationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    domain?: StringFieldUpdateOperationsInput | string
+    publicKey?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: SessionUncheckedUpdateManyWithoutWebsiteNestedInput
+    events?: EventUncheckedUpdateManyWithoutWebsiteNestedInput
+    principals?: PrincipalUncheckedUpdateManyWithoutWebsiteNestedInput
+    consentRecords?: ConsentRecordUncheckedUpdateManyWithoutWebsiteNestedInput
+  }
+
+  export type PrincipalUpsertWithoutTransferAuthorisationsInput = {
+    update: XOR<PrincipalUpdateWithoutTransferAuthorisationsInput, PrincipalUncheckedUpdateWithoutTransferAuthorisationsInput>
+    create: XOR<PrincipalCreateWithoutTransferAuthorisationsInput, PrincipalUncheckedCreateWithoutTransferAuthorisationsInput>
+    where?: PrincipalWhereInput
+  }
+
+  export type PrincipalUpdateToOneWithWhereWithoutTransferAuthorisationsInput = {
+    where?: PrincipalWhereInput
+    data: XOR<PrincipalUpdateWithoutTransferAuthorisationsInput, PrincipalUncheckedUpdateWithoutTransferAuthorisationsInput>
+  }
+
+  export type PrincipalUpdateWithoutTransferAuthorisationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    externalId?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    website?: WebsiteUpdateOneRequiredWithoutPrincipalsNestedInput
+    consentRecords?: ConsentRecordUpdateManyWithoutPrincipalNestedInput
+  }
+
+  export type PrincipalUncheckedUpdateWithoutTransferAuthorisationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    siteId?: StringFieldUpdateOperationsInput | string
+    externalId?: StringFieldUpdateOperationsInput | string
+    kind?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    consentRecords?: ConsentRecordUncheckedUpdateManyWithoutPrincipalNestedInput
+  }
+
+  export type PurposeUpsertWithoutTransferAuthorisationsInput = {
+    update: XOR<PurposeUpdateWithoutTransferAuthorisationsInput, PurposeUncheckedUpdateWithoutTransferAuthorisationsInput>
+    create: XOR<PurposeCreateWithoutTransferAuthorisationsInput, PurposeUncheckedCreateWithoutTransferAuthorisationsInput>
+    where?: PurposeWhereInput
+  }
+
+  export type PurposeUpdateToOneWithWhereWithoutTransferAuthorisationsInput = {
+    where?: PurposeWhereInput
+    data: XOR<PurposeUpdateWithoutTransferAuthorisationsInput, PurposeUncheckedUpdateWithoutTransferAuthorisationsInput>
+  }
+
+  export type PurposeUpdateWithoutTransferAuthorisationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    code?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organisation?: OrganisationUpdateOneRequiredWithoutPurposesNestedInput
+    noticePurposes?: NoticePurposeUpdateManyWithoutPurposeNestedInput
+    consentRecords?: ConsentRecordUpdateManyWithoutPurposeNestedInput
+  }
+
+  export type PurposeUncheckedUpdateWithoutTransferAuthorisationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organisationId?: StringFieldUpdateOperationsInput | string
+    code?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    noticePurposes?: NoticePurposeUncheckedUpdateManyWithoutPurposeNestedInput
+    consentRecords?: ConsentRecordUncheckedUpdateManyWithoutPurposeNestedInput
+  }
+
+  export type DataRecipientUpsertWithoutAuthorisationsInput = {
+    update: XOR<DataRecipientUpdateWithoutAuthorisationsInput, DataRecipientUncheckedUpdateWithoutAuthorisationsInput>
+    create: XOR<DataRecipientCreateWithoutAuthorisationsInput, DataRecipientUncheckedCreateWithoutAuthorisationsInput>
+    where?: DataRecipientWhereInput
+  }
+
+  export type DataRecipientUpdateToOneWithWhereWithoutAuthorisationsInput = {
+    where?: DataRecipientWhereInput
+    data: XOR<DataRecipientUpdateWithoutAuthorisationsInput, DataRecipientUncheckedUpdateWithoutAuthorisationsInput>
+  }
+
+  export type DataRecipientUpdateWithoutAuthorisationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    code?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    publicKey?: StringFieldUpdateOperationsInput | string
+    algorithm?: StringFieldUpdateOperationsInput | string
+    deliveryKeyHash?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organisation?: OrganisationUpdateOneRequiredWithoutRecipientsNestedInput
+  }
+
+  export type DataRecipientUncheckedUpdateWithoutAuthorisationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organisationId?: StringFieldUpdateOperationsInput | string
+    code?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    publicKey?: StringFieldUpdateOperationsInput | string
+    algorithm?: StringFieldUpdateOperationsInput | string
+    deliveryKeyHash?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ConsentRecordUpsertWithoutTransferAuthorisationsInput = {
+    update: XOR<ConsentRecordUpdateWithoutTransferAuthorisationsInput, ConsentRecordUncheckedUpdateWithoutTransferAuthorisationsInput>
+    create: XOR<ConsentRecordCreateWithoutTransferAuthorisationsInput, ConsentRecordUncheckedCreateWithoutTransferAuthorisationsInput>
+    where?: ConsentRecordWhereInput
+  }
+
+  export type ConsentRecordUpdateToOneWithWhereWithoutTransferAuthorisationsInput = {
+    where?: ConsentRecordWhereInput
+    data: XOR<ConsentRecordUpdateWithoutTransferAuthorisationsInput, ConsentRecordUncheckedUpdateWithoutTransferAuthorisationsInput>
+  }
+
+  export type ConsentRecordUpdateWithoutTransferAuthorisationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    decidedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    website?: WebsiteUpdateOneRequiredWithoutConsentRecordsNestedInput
+    principal?: PrincipalUpdateOneRequiredWithoutConsentRecordsNestedInput
+    purpose?: PurposeUpdateOneRequiredWithoutConsentRecordsNestedInput
+    notice?: NoticeUpdateOneWithoutConsentRecordsNestedInput
+    policyVersion?: PolicyVersionUpdateOneWithoutConsentRecordsNestedInput
+  }
+
+  export type ConsentRecordUncheckedUpdateWithoutTransferAuthorisationsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organisationId?: StringFieldUpdateOperationsInput | string
+    siteId?: StringFieldUpdateOperationsInput | string
+    principalId?: StringFieldUpdateOperationsInput | string
+    purposeId?: StringFieldUpdateOperationsInput | string
+    noticeId?: NullableStringFieldUpdateOperationsInput | string | null
+    policyVersionId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
+    decidedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type TransferRecordUpsertWithoutAuthorisationInput = {
+    update: XOR<TransferRecordUpdateWithoutAuthorisationInput, TransferRecordUncheckedUpdateWithoutAuthorisationInput>
+    create: XOR<TransferRecordCreateWithoutAuthorisationInput, TransferRecordUncheckedCreateWithoutAuthorisationInput>
+    where?: TransferRecordWhereInput
+  }
+
+  export type TransferRecordUpdateToOneWithWhereWithoutAuthorisationInput = {
+    where?: TransferRecordWhereInput
+    data: XOR<TransferRecordUpdateWithoutAuthorisationInput, TransferRecordUncheckedUpdateWithoutAuthorisationInput>
+  }
+
+  export type TransferRecordUpdateWithoutAuthorisationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ciphertext?: StringFieldUpdateOperationsInput | string
+    iv?: StringFieldUpdateOperationsInput | string
+    authTag?: StringFieldUpdateOperationsInput | string
+    ephemeralPublicKey?: StringFieldUpdateOperationsInput | string
+    ciphertextSha256?: StringFieldUpdateOperationsInput | string
+    payloadBytes?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    failureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    deliveredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type TransferRecordUncheckedUpdateWithoutAuthorisationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ciphertext?: StringFieldUpdateOperationsInput | string
+    iv?: StringFieldUpdateOperationsInput | string
+    authTag?: StringFieldUpdateOperationsInput | string
+    ephemeralPublicKey?: StringFieldUpdateOperationsInput | string
+    ciphertextSha256?: StringFieldUpdateOperationsInput | string
+    payloadBytes?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    failureReason?: NullableStringFieldUpdateOperationsInput | string | null
+    recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    deliveredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type TransferAuthorisationCreateWithoutTransferInput = {
+    id?: string
+    nonce: string
+    status?: string
+    expiresAt: Date | string
+    createdAt?: Date | string
+    website: WebsiteCreateNestedOneWithoutTransferAuthorisationsInput
+    principal: PrincipalCreateNestedOneWithoutTransferAuthorisationsInput
+    purpose: PurposeCreateNestedOneWithoutTransferAuthorisationsInput
+    recipient: DataRecipientCreateNestedOneWithoutAuthorisationsInput
+    consentRecord: ConsentRecordCreateNestedOneWithoutTransferAuthorisationsInput
+  }
+
+  export type TransferAuthorisationUncheckedCreateWithoutTransferInput = {
+    id?: string
+    organisationId: string
+    siteId: string
+    principalId: string
+    purposeId: string
+    recipientId: string
+    consentRecordId: string
+    nonce: string
+    status?: string
+    expiresAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type TransferAuthorisationCreateOrConnectWithoutTransferInput = {
+    where: TransferAuthorisationWhereUniqueInput
+    create: XOR<TransferAuthorisationCreateWithoutTransferInput, TransferAuthorisationUncheckedCreateWithoutTransferInput>
+  }
+
+  export type TransferAuthorisationUpsertWithoutTransferInput = {
+    update: XOR<TransferAuthorisationUpdateWithoutTransferInput, TransferAuthorisationUncheckedUpdateWithoutTransferInput>
+    create: XOR<TransferAuthorisationCreateWithoutTransferInput, TransferAuthorisationUncheckedCreateWithoutTransferInput>
+    where?: TransferAuthorisationWhereInput
+  }
+
+  export type TransferAuthorisationUpdateToOneWithWhereWithoutTransferInput = {
+    where?: TransferAuthorisationWhereInput
+    data: XOR<TransferAuthorisationUpdateWithoutTransferInput, TransferAuthorisationUncheckedUpdateWithoutTransferInput>
+  }
+
+  export type TransferAuthorisationUpdateWithoutTransferInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    website?: WebsiteUpdateOneRequiredWithoutTransferAuthorisationsNestedInput
+    principal?: PrincipalUpdateOneRequiredWithoutTransferAuthorisationsNestedInput
+    purpose?: PurposeUpdateOneRequiredWithoutTransferAuthorisationsNestedInput
+    recipient?: DataRecipientUpdateOneRequiredWithoutAuthorisationsNestedInput
+    consentRecord?: ConsentRecordUpdateOneRequiredWithoutTransferAuthorisationsNestedInput
+  }
+
+  export type TransferAuthorisationUncheckedUpdateWithoutTransferInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organisationId?: StringFieldUpdateOperationsInput | string
+    siteId?: StringFieldUpdateOperationsInput | string
+    principalId?: StringFieldUpdateOperationsInput | string
+    purposeId?: StringFieldUpdateOperationsInput | string
+    recipientId?: StringFieldUpdateOperationsInput | string
+    consentRecordId?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type WebsiteCreateManyOrganisationInput = {
     id?: string
     name: string
@@ -20251,6 +26630,17 @@ export namespace Prisma {
     publishedAt?: Date | string
   }
 
+  export type DataRecipientCreateManyOrganisationInput = {
+    id?: string
+    code: string
+    name: string
+    publicKey: string
+    algorithm: string
+    deliveryKeyHash: string
+    isActive?: boolean
+    createdAt?: Date | string
+  }
+
   export type WebsiteUpdateWithoutOrganisationInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
@@ -20262,6 +26652,7 @@ export namespace Prisma {
     events?: EventUpdateManyWithoutWebsiteNestedInput
     principals?: PrincipalUpdateManyWithoutWebsiteNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutWebsiteNestedInput
+    transferAuthorisations?: TransferAuthorisationUpdateManyWithoutWebsiteNestedInput
   }
 
   export type WebsiteUncheckedUpdateWithoutOrganisationInput = {
@@ -20275,6 +26666,7 @@ export namespace Prisma {
     events?: EventUncheckedUpdateManyWithoutWebsiteNestedInput
     principals?: PrincipalUncheckedUpdateManyWithoutWebsiteNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutWebsiteNestedInput
+    transferAuthorisations?: TransferAuthorisationUncheckedUpdateManyWithoutWebsiteNestedInput
   }
 
   export type WebsiteUncheckedUpdateManyWithoutOrganisationInput = {
@@ -20295,6 +26687,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     noticePurposes?: NoticePurposeUpdateManyWithoutPurposeNestedInput
     consentRecords?: ConsentRecordUpdateManyWithoutPurposeNestedInput
+    transferAuthorisations?: TransferAuthorisationUpdateManyWithoutPurposeNestedInput
   }
 
   export type PurposeUncheckedUpdateWithoutOrganisationInput = {
@@ -20306,6 +26699,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     noticePurposes?: NoticePurposeUncheckedUpdateManyWithoutPurposeNestedInput
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutPurposeNestedInput
+    transferAuthorisations?: TransferAuthorisationUncheckedUpdateManyWithoutPurposeNestedInput
   }
 
   export type PurposeUncheckedUpdateManyWithoutOrganisationInput = {
@@ -20368,6 +26762,41 @@ export namespace Prisma {
     publishedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type DataRecipientUpdateWithoutOrganisationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    code?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    publicKey?: StringFieldUpdateOperationsInput | string
+    algorithm?: StringFieldUpdateOperationsInput | string
+    deliveryKeyHash?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    authorisations?: TransferAuthorisationUpdateManyWithoutRecipientNestedInput
+  }
+
+  export type DataRecipientUncheckedUpdateWithoutOrganisationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    code?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    publicKey?: StringFieldUpdateOperationsInput | string
+    algorithm?: StringFieldUpdateOperationsInput | string
+    deliveryKeyHash?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    authorisations?: TransferAuthorisationUncheckedUpdateManyWithoutRecipientNestedInput
+  }
+
+  export type DataRecipientUncheckedUpdateManyWithoutOrganisationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    code?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    publicKey?: StringFieldUpdateOperationsInput | string
+    algorithm?: StringFieldUpdateOperationsInput | string
+    deliveryKeyHash?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type SessionCreateManyWebsiteInput = {
     id?: string
     startedAt?: Date | string
@@ -20409,6 +26838,18 @@ export namespace Prisma {
     decidedAt: Date | string
     recordedAt?: Date | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type TransferAuthorisationCreateManyWebsiteInput = {
+    id?: string
+    principalId: string
+    purposeId: string
+    recipientId: string
+    consentRecordId: string
+    nonce: string
+    status?: string
+    expiresAt: Date | string
+    createdAt?: Date | string
   }
 
   export type SessionUpdateWithoutWebsiteInput = {
@@ -20488,6 +26929,7 @@ export namespace Prisma {
     kind?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     consentRecords?: ConsentRecordUpdateManyWithoutPrincipalNestedInput
+    transferAuthorisations?: TransferAuthorisationUpdateManyWithoutPrincipalNestedInput
   }
 
   export type PrincipalUncheckedUpdateWithoutWebsiteInput = {
@@ -20496,6 +26938,7 @@ export namespace Prisma {
     kind?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     consentRecords?: ConsentRecordUncheckedUpdateManyWithoutPrincipalNestedInput
+    transferAuthorisations?: TransferAuthorisationUncheckedUpdateManyWithoutPrincipalNestedInput
   }
 
   export type PrincipalUncheckedUpdateManyWithoutWebsiteInput = {
@@ -20516,6 +26959,7 @@ export namespace Prisma {
     purpose?: PurposeUpdateOneRequiredWithoutConsentRecordsNestedInput
     notice?: NoticeUpdateOneWithoutConsentRecordsNestedInput
     policyVersion?: PolicyVersionUpdateOneWithoutConsentRecordsNestedInput
+    transferAuthorisations?: TransferAuthorisationUpdateManyWithoutConsentRecordNestedInput
   }
 
   export type ConsentRecordUncheckedUpdateWithoutWebsiteInput = {
@@ -20529,6 +26973,7 @@ export namespace Prisma {
     decidedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
+    transferAuthorisations?: TransferAuthorisationUncheckedUpdateManyWithoutConsentRecordNestedInput
   }
 
   export type ConsentRecordUncheckedUpdateManyWithoutWebsiteInput = {
@@ -20542,6 +26987,44 @@ export namespace Prisma {
     decidedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type TransferAuthorisationUpdateWithoutWebsiteInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    principal?: PrincipalUpdateOneRequiredWithoutTransferAuthorisationsNestedInput
+    purpose?: PurposeUpdateOneRequiredWithoutTransferAuthorisationsNestedInput
+    recipient?: DataRecipientUpdateOneRequiredWithoutAuthorisationsNestedInput
+    consentRecord?: ConsentRecordUpdateOneRequiredWithoutTransferAuthorisationsNestedInput
+    transfer?: TransferRecordUpdateOneWithoutAuthorisationNestedInput
+  }
+
+  export type TransferAuthorisationUncheckedUpdateWithoutWebsiteInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    principalId?: StringFieldUpdateOperationsInput | string
+    purposeId?: StringFieldUpdateOperationsInput | string
+    recipientId?: StringFieldUpdateOperationsInput | string
+    consentRecordId?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    transfer?: TransferRecordUncheckedUpdateOneWithoutAuthorisationNestedInput
+  }
+
+  export type TransferAuthorisationUncheckedUpdateManyWithoutWebsiteInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    principalId?: StringFieldUpdateOperationsInput | string
+    purposeId?: StringFieldUpdateOperationsInput | string
+    recipientId?: StringFieldUpdateOperationsInput | string
+    consentRecordId?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type EventCreateManySessionInput = {
@@ -20622,6 +27105,18 @@ export namespace Prisma {
     metadata?: NullableJsonNullValueInput | InputJsonValue
   }
 
+  export type TransferAuthorisationCreateManyPrincipalInput = {
+    id?: string
+    organisationId: string
+    purposeId: string
+    recipientId: string
+    consentRecordId: string
+    nonce: string
+    status?: string
+    expiresAt: Date | string
+    createdAt?: Date | string
+  }
+
   export type ConsentRecordUpdateWithoutPrincipalInput = {
     id?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
@@ -20633,6 +27128,7 @@ export namespace Prisma {
     purpose?: PurposeUpdateOneRequiredWithoutConsentRecordsNestedInput
     notice?: NoticeUpdateOneWithoutConsentRecordsNestedInput
     policyVersion?: PolicyVersionUpdateOneWithoutConsentRecordsNestedInput
+    transferAuthorisations?: TransferAuthorisationUpdateManyWithoutConsentRecordNestedInput
   }
 
   export type ConsentRecordUncheckedUpdateWithoutPrincipalInput = {
@@ -20646,6 +27142,7 @@ export namespace Prisma {
     decidedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
+    transferAuthorisations?: TransferAuthorisationUncheckedUpdateManyWithoutConsentRecordNestedInput
   }
 
   export type ConsentRecordUncheckedUpdateManyWithoutPrincipalInput = {
@@ -20659,6 +27156,44 @@ export namespace Prisma {
     decidedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type TransferAuthorisationUpdateWithoutPrincipalInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    website?: WebsiteUpdateOneRequiredWithoutTransferAuthorisationsNestedInput
+    purpose?: PurposeUpdateOneRequiredWithoutTransferAuthorisationsNestedInput
+    recipient?: DataRecipientUpdateOneRequiredWithoutAuthorisationsNestedInput
+    consentRecord?: ConsentRecordUpdateOneRequiredWithoutTransferAuthorisationsNestedInput
+    transfer?: TransferRecordUpdateOneWithoutAuthorisationNestedInput
+  }
+
+  export type TransferAuthorisationUncheckedUpdateWithoutPrincipalInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organisationId?: StringFieldUpdateOperationsInput | string
+    purposeId?: StringFieldUpdateOperationsInput | string
+    recipientId?: StringFieldUpdateOperationsInput | string
+    consentRecordId?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    transfer?: TransferRecordUncheckedUpdateOneWithoutAuthorisationNestedInput
+  }
+
+  export type TransferAuthorisationUncheckedUpdateManyWithoutPrincipalInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organisationId?: StringFieldUpdateOperationsInput | string
+    purposeId?: StringFieldUpdateOperationsInput | string
+    recipientId?: StringFieldUpdateOperationsInput | string
+    consentRecordId?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type NoticePurposeCreateManyPurposeInput = {
@@ -20676,6 +27211,18 @@ export namespace Prisma {
     decidedAt: Date | string
     recordedAt?: Date | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type TransferAuthorisationCreateManyPurposeInput = {
+    id?: string
+    siteId: string
+    principalId: string
+    recipientId: string
+    consentRecordId: string
+    nonce: string
+    status?: string
+    expiresAt: Date | string
+    createdAt?: Date | string
   }
 
   export type NoticePurposeUpdateWithoutPurposeInput = {
@@ -20701,6 +27248,7 @@ export namespace Prisma {
     principal?: PrincipalUpdateOneRequiredWithoutConsentRecordsNestedInput
     notice?: NoticeUpdateOneWithoutConsentRecordsNestedInput
     policyVersion?: PolicyVersionUpdateOneWithoutConsentRecordsNestedInput
+    transferAuthorisations?: TransferAuthorisationUpdateManyWithoutConsentRecordNestedInput
   }
 
   export type ConsentRecordUncheckedUpdateWithoutPurposeInput = {
@@ -20714,6 +27262,7 @@ export namespace Prisma {
     decidedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
+    transferAuthorisations?: TransferAuthorisationUncheckedUpdateManyWithoutConsentRecordNestedInput
   }
 
   export type ConsentRecordUncheckedUpdateManyWithoutPurposeInput = {
@@ -20727,6 +27276,44 @@ export namespace Prisma {
     decidedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type TransferAuthorisationUpdateWithoutPurposeInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    website?: WebsiteUpdateOneRequiredWithoutTransferAuthorisationsNestedInput
+    principal?: PrincipalUpdateOneRequiredWithoutTransferAuthorisationsNestedInput
+    recipient?: DataRecipientUpdateOneRequiredWithoutAuthorisationsNestedInput
+    consentRecord?: ConsentRecordUpdateOneRequiredWithoutTransferAuthorisationsNestedInput
+    transfer?: TransferRecordUpdateOneWithoutAuthorisationNestedInput
+  }
+
+  export type TransferAuthorisationUncheckedUpdateWithoutPurposeInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    siteId?: StringFieldUpdateOperationsInput | string
+    principalId?: StringFieldUpdateOperationsInput | string
+    recipientId?: StringFieldUpdateOperationsInput | string
+    consentRecordId?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    transfer?: TransferRecordUncheckedUpdateOneWithoutAuthorisationNestedInput
+  }
+
+  export type TransferAuthorisationUncheckedUpdateManyWithoutPurposeInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    siteId?: StringFieldUpdateOperationsInput | string
+    principalId?: StringFieldUpdateOperationsInput | string
+    recipientId?: StringFieldUpdateOperationsInput | string
+    consentRecordId?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type PolicyVersionCreateManyPolicyInput = {
@@ -20822,6 +27409,7 @@ export namespace Prisma {
     principal?: PrincipalUpdateOneRequiredWithoutConsentRecordsNestedInput
     purpose?: PurposeUpdateOneRequiredWithoutConsentRecordsNestedInput
     notice?: NoticeUpdateOneWithoutConsentRecordsNestedInput
+    transferAuthorisations?: TransferAuthorisationUpdateManyWithoutConsentRecordNestedInput
   }
 
   export type ConsentRecordUncheckedUpdateWithoutPolicyVersionInput = {
@@ -20835,6 +27423,7 @@ export namespace Prisma {
     decidedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
+    transferAuthorisations?: TransferAuthorisationUncheckedUpdateManyWithoutConsentRecordNestedInput
   }
 
   export type ConsentRecordUncheckedUpdateManyWithoutPolicyVersionInput = {
@@ -20890,6 +27479,7 @@ export namespace Prisma {
     principal?: PrincipalUpdateOneRequiredWithoutConsentRecordsNestedInput
     purpose?: PurposeUpdateOneRequiredWithoutConsentRecordsNestedInput
     policyVersion?: PolicyVersionUpdateOneWithoutConsentRecordsNestedInput
+    transferAuthorisations?: TransferAuthorisationUpdateManyWithoutConsentRecordNestedInput
   }
 
   export type ConsentRecordUncheckedUpdateWithoutNoticeInput = {
@@ -20903,6 +27493,7 @@ export namespace Prisma {
     decidedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
+    transferAuthorisations?: TransferAuthorisationUncheckedUpdateManyWithoutConsentRecordNestedInput
   }
 
   export type ConsentRecordUncheckedUpdateManyWithoutNoticeInput = {
@@ -20916,6 +27507,106 @@ export namespace Prisma {
     decidedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     recordedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type TransferAuthorisationCreateManyConsentRecordInput = {
+    id?: string
+    siteId: string
+    principalId: string
+    purposeId: string
+    recipientId: string
+    nonce: string
+    status?: string
+    expiresAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type TransferAuthorisationUpdateWithoutConsentRecordInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    website?: WebsiteUpdateOneRequiredWithoutTransferAuthorisationsNestedInput
+    principal?: PrincipalUpdateOneRequiredWithoutTransferAuthorisationsNestedInput
+    purpose?: PurposeUpdateOneRequiredWithoutTransferAuthorisationsNestedInput
+    recipient?: DataRecipientUpdateOneRequiredWithoutAuthorisationsNestedInput
+    transfer?: TransferRecordUpdateOneWithoutAuthorisationNestedInput
+  }
+
+  export type TransferAuthorisationUncheckedUpdateWithoutConsentRecordInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    siteId?: StringFieldUpdateOperationsInput | string
+    principalId?: StringFieldUpdateOperationsInput | string
+    purposeId?: StringFieldUpdateOperationsInput | string
+    recipientId?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    transfer?: TransferRecordUncheckedUpdateOneWithoutAuthorisationNestedInput
+  }
+
+  export type TransferAuthorisationUncheckedUpdateManyWithoutConsentRecordInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    siteId?: StringFieldUpdateOperationsInput | string
+    principalId?: StringFieldUpdateOperationsInput | string
+    purposeId?: StringFieldUpdateOperationsInput | string
+    recipientId?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TransferAuthorisationCreateManyRecipientInput = {
+    id?: string
+    siteId: string
+    principalId: string
+    purposeId: string
+    consentRecordId: string
+    nonce: string
+    status?: string
+    expiresAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type TransferAuthorisationUpdateWithoutRecipientInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    website?: WebsiteUpdateOneRequiredWithoutTransferAuthorisationsNestedInput
+    principal?: PrincipalUpdateOneRequiredWithoutTransferAuthorisationsNestedInput
+    purpose?: PurposeUpdateOneRequiredWithoutTransferAuthorisationsNestedInput
+    consentRecord?: ConsentRecordUpdateOneRequiredWithoutTransferAuthorisationsNestedInput
+    transfer?: TransferRecordUpdateOneWithoutAuthorisationNestedInput
+  }
+
+  export type TransferAuthorisationUncheckedUpdateWithoutRecipientInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    siteId?: StringFieldUpdateOperationsInput | string
+    principalId?: StringFieldUpdateOperationsInput | string
+    purposeId?: StringFieldUpdateOperationsInput | string
+    consentRecordId?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    transfer?: TransferRecordUncheckedUpdateOneWithoutAuthorisationNestedInput
+  }
+
+  export type TransferAuthorisationUncheckedUpdateManyWithoutRecipientInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    siteId?: StringFieldUpdateOperationsInput | string
+    principalId?: StringFieldUpdateOperationsInput | string
+    purposeId?: StringFieldUpdateOperationsInput | string
+    consentRecordId?: StringFieldUpdateOperationsInput | string
+    nonce?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
 

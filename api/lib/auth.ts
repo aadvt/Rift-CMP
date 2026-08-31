@@ -1,9 +1,19 @@
 import type { NextRequest } from "next/server";
-import { prisma, hashSecretKey, isPublicKeyFormat, isSecretKeyFormat } from "database";
+import {
+  prisma,
+  findRecipientByDeliveryKey,
+  hashSecretKey,
+  isDeliveryKeyFormat,
+  isPublicKeyFormat,
+  isSecretKeyFormat,
+} from "database";
 import { jsonError, managementError } from "./cors";
 
 /**
- * Request authentication for both planes.
+ * Request authentication for all three planes: ingestion (site public key),
+ * management (organisation secret key) and delivery (recipient delivery key).
+ * Each is prefix-checked before any database lookup, so no plane can be probed
+ * with another plane's credential.
  *
  * Note on naming: the authenticated *caller* here is a security subject - a site
  * or an organisation. It is deliberately not called a "principal", because this
@@ -26,6 +36,13 @@ export interface OrganisationCaller {
   organisationId: string;
   name: string;
   slug: string;
+}
+
+/** A target fiduciary collecting sealed envelopes addressed to it. */
+export interface RecipientCaller {
+  recipientId: string;
+  recipientCode: string;
+  organisationId: string;
 }
 
 export type AuthResult<T> = { ok: true; caller: T } | { ok: false; response: Response };
@@ -132,6 +149,40 @@ export async function authenticateManagement(
   return {
     ok: true,
     caller: { organisationId: organisation.id, name: organisation.name, slug: organisation.slug },
+  };
+}
+
+/**
+ * Authenticates a delivery request against a recipient delivery key.
+ *
+ * This is the narrowest plane: it authorises collecting ciphertext addressed to
+ * one recipient and nothing else. Critically, it grants no ability to *read*
+ * that ciphertext - decryption needs the recipient's X25519 private key, which
+ * Rift has never held.
+ */
+export async function authenticateDelivery(
+  request: NextRequest,
+): Promise<AuthResult<RecipientCaller>> {
+  const unauthorized = () =>
+    managementError("unauthorized", "A valid recipient delivery key is required.", [], 401);
+
+  const token = readBearerToken(request, false);
+  if (!token || !isDeliveryKeyFormat(token)) {
+    return { ok: false, response: unauthorized() };
+  }
+
+  const recipient = await findRecipientByDeliveryKey(prisma, token);
+  if (!recipient || !recipient.isActive) {
+    return { ok: false, response: unauthorized() };
+  }
+
+  return {
+    ok: true,
+    caller: {
+      recipientId: recipient.id,
+      recipientCode: recipient.code,
+      organisationId: recipient.organisationId,
+    },
   };
 }
 

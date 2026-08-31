@@ -8,7 +8,8 @@
     ".": "./index.ts",
     "./keys": "./keys.ts",
     "./tenancy": "./tenancy.ts",
-    "./consent": "./consent.ts"
+    "./consent": "./consent.ts",
+    "./transfers": "./transfers.ts"
   },
   "types": "./index.ts",
   "scripts": {
@@ -20,7 +21,8 @@
   },
   "dependencies": {
     "@prisma/client": "^6.15.0",
-    "@rift-cmp/shared": "*"
+    "@rift-cmp/shared": "*",
+    "@rift-cmp/secure-transfer": "*"
   },
   "devDependencies": {
     "dotenv": "^16.6.1",

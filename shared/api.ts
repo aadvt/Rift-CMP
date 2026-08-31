@@ -17,7 +17,12 @@ export type ApiErrorCode =
   | "unknown_purpose"
   | "unknown_notice"
   | "unknown_policy"
-  | "conflict";
+  | "conflict"
+  | "unknown_recipient"
+  | "consent_not_granted"
+  | "authorisation_expired"
+  | "authorisation_consumed"
+  | "invalid_envelope";
 
 export interface ApiErrorDetail {
   code: ApiErrorCode;

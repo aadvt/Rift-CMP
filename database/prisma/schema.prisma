@@ -19,10 +19,11 @@ model Organisation {
   secretKeyHash String   @unique @map("secret_key_hash")
   createdAt     DateTime @default(now()) @map("created_at")
 
-  websites Website[]
-  purposes Purpose[]
-  policies Policy[]
-  notices  Notice[]
+  websites   Website[]
+  purposes   Purpose[]
+  policies   Policy[]
+  notices    Notice[]
+  recipients DataRecipient[]
 
   @@map("organisations")
 }
@@ -39,10 +40,11 @@ model Website {
   createdAt      DateTime @default(now()) @map("created_at")
 
   organisation   Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  sessions       Session[]
-  events         Event[]
-  principals     Principal[]
-  consentRecords ConsentRecord[]
+  sessions            Session[]
+  events              Event[]
+  principals          Principal[]
+  consentRecords      ConsentRecord[]
+  transferAuthorisations TransferAuthorisation[]
 
   @@unique([id, organisationId])
   @@index([organisationId])
@@ -118,6 +120,7 @@ model Principal {
 
   website        Website         @relation(fields: [siteId], references: [id], onDelete: Cascade)
   consentRecords ConsentRecord[]
+  transferAuthorisations TransferAuthorisation[]
 
   @@unique([siteId, externalId])
   @@unique([id, siteId])
@@ -138,6 +141,7 @@ model Purpose {
   organisation   Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   noticePurposes NoticePurpose[]
   consentRecords ConsentRecord[]
+  transferAuthorisations TransferAuthorisation[]
 
   @@unique([organisationId, code])
   @@unique([id, organisationId])
@@ -251,10 +255,116 @@ model ConsentRecord {
   purpose       Purpose        @relation(fields: [purposeId, organisationId], references: [id, organisationId], onDelete: NoAction)
   notice        Notice?        @relation(fields: [noticeId, organisationId], references: [id, organisationId], onDelete: NoAction)
   policyVersion PolicyVersion? @relation(fields: [policyVersionId, organisationId], references: [id, organisationId], onDelete: NoAction)
+  transferAuthorisations TransferAuthorisation[]
 
+  @@unique([id, organisationId])
   @@index([principalId, purposeId, decidedAt])
   @@index([siteId, decidedAt])
   @@index([organisationId, decidedAt])
   @@index([purposeId])
   @@map("consent_records")
+}
+
+// --- Secure data routing (Phase 3 prototype) --------------------------------
+//
+// Rift relays sealed payloads between fiduciaries. It stores ciphertext and
+// routing metadata and nothing else: no plaintext, and no key material capable
+// of decrypting anything. See docs/secure-transfer.md for the trust model.
+
+/// A target fiduciary a source organisation is permitted to send data to.
+model DataRecipient {
+  id             String   @id @default(uuid())
+  organisationId String   @map("organisation_id")
+  code           String
+  name           String
+  /// The target's X25519 public key, base64 SPKI. Public by definition - the
+  /// matching private key exists only inside the target fiduciary.
+  publicKey      String   @map("public_key")
+  /// Recorded per recipient so the construction can change without guessing how
+  /// existing envelopes were sealed.
+  algorithm      String
+  /// SHA-256 of the `rk_...` delivery credential the target presents to collect
+  /// envelopes. The plaintext credential is shown once and never stored.
+  deliveryKeyHash String  @unique @map("delivery_key_hash")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organisation   Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  authorisations TransferAuthorisation[]
+
+  @@unique([organisationId, code])
+  @@unique([id, organisationId])
+  @@map("data_recipients")
+}
+
+/// Permission to make one specific transfer. Single use, time bounded, and tied
+/// to the exact consent decision it relied on.
+model TransferAuthorisation {
+  id              String   @id @default(uuid())
+  organisationId  String   @map("organisation_id")
+  siteId          String   @map("site_id")
+  principalId     String   @map("principal_id")
+  purposeId       String   @map("purpose_id")
+  recipientId     String   @map("recipient_id")
+  /// The specific decision relied upon, not a boolean. Phase 2's log is
+  /// append-only, so an auditor can always see what justified the transfer.
+  consentRecordId String   @map("consent_record_id")
+  /// High entropy, single use, and part of the envelope's authenticated data.
+  nonce           String   @unique
+  /// AUTHORISED | CONSUMED | EXPIRED
+  status          String   @default("AUTHORISED")
+  expiresAt       DateTime @map("expires_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  website       Website       @relation(fields: [siteId, organisationId], references: [id, organisationId], onDelete: Cascade)
+  principal     Principal     @relation(fields: [principalId, siteId], references: [id, siteId], onDelete: Cascade)
+  purpose       Purpose       @relation(fields: [purposeId, organisationId], references: [id, organisationId], onDelete: NoAction)
+  recipient     DataRecipient @relation(fields: [recipientId, organisationId], references: [id, organisationId], onDelete: NoAction)
+  consentRecord ConsentRecord @relation(fields: [consentRecordId, organisationId], references: [id, organisationId], onDelete: NoAction)
+  transfer      TransferRecord?
+
+  @@unique([id, organisationId])
+  @@index([organisationId, createdAt])
+  @@index([siteId, status])
+  @@map("transfer_authorisations")
+}
+
+/// What actually happened, plus the sealed payload while it is in transit.
+///
+/// Every payload column here is opaque to Rift. There is deliberately no column
+/// for plaintext and none for a decryption key.
+model TransferRecord {
+  id              String   @id @default(uuid())
+  organisationId  String   @map("organisation_id")
+  /// Unique: one transfer per authorisation. This is the database-level half of
+  /// replay prevention - a second submission cannot race past the status check.
+  authorisationId String   @unique @map("authorisation_id")
+
+  /// The sealed envelope. base64, unreadable without the recipient private key.
+  ciphertext         String @map("ciphertext")
+  iv                 String
+  authTag            String @map("auth_tag")
+  ephemeralPublicKey String @map("ephemeral_public_key")
+
+  /// Integrity and accounting, computed without inspecting the content.
+  ciphertextSha256 String @map("ciphertext_sha256")
+  payloadBytes     Int    @map("payload_bytes")
+
+  /// RECORDED | DELIVERED | FAILED
+  status        String    @default("RECORDED")
+  failureReason String?   @map("failure_reason")
+  recordedAt    DateTime  @default(now()) @map("recorded_at")
+  deliveredAt   DateTime? @map("delivered_at")
+
+  // Composite, so a transfer's tenant must match its authorisation's tenant.
+  // `authorisationId` stays unique on its own, which is what enforces one
+  // transfer per authorisation.
+  authorisation TransferAuthorisation @relation(fields: [authorisationId, organisationId], references: [id, organisationId], onDelete: Cascade)
+
+  // Required by Prisma for the composite one-to-one above. The standalone
+  // `@unique` on `authorisationId` is what actually guarantees one transfer per
+  // authorisation; this pair additionally ties the transfer to its tenant.
+  @@unique([authorisationId, organisationId])
+  @@index([organisationId, recordedAt])
+  @@map("transfer_records")
 }

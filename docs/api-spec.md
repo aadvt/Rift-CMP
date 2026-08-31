@@ -3,18 +3,31 @@
 The public HTTP surface exposed by the Rift-CMP API service. In this repo the app
 lives under `app/api/` because it is a Next.js App Router project.
 
-The API has **two planes**, with separate credentials that are never
+The API has **three planes**, with separate credentials that are never
 interchangeable. See [tenancy.md](tenancy.md) for the full ownership model.
 
 | Plane | Base path | Credential | Purpose |
 | --- | --- | --- | --- |
 | Ingestion | `/api/v1/events`, `/api/v1/consent` | site public key `pk_...` | append events, record consent decisions, read one principal's state |
-| Management | `/api/v1/organisation`, `/api/v1/sites`, `/api/v1/consent/history`, `/api/v1/purposes`, `/api/v1/policies`, `/api/v1/notices` | organisation secret key `sk_...` | read/modify that org's sites, consent reference data, and the audit trail |
+| Management | `/api/v1/organisation`, `/api/v1/sites`, `/api/v1/consent/history`, `/api/v1/purposes`, `/api/v1/policies`, `/api/v1/notices`, `/api/v1/recipients`, `/api/v1/transfers` | organisation secret key `sk_...` | read/modify that org's sites, consent reference data and the audit trail; register recipients; authorise and submit transfers; read its own transfer metadata |
+| Delivery | `/api/v1/transfers/{transferId}/envelope` | recipient delivery key `rk_...` | collect sealed envelopes addressed to one recipient, and nothing else |
 
-The consent domain is split across the same two planes, for the reason set out in
-[consent.md](consent.md): a public key is visible to anyone viewing page source,
-so it may record a decision and read the state of one principal whose id it
-already knows, but it may never enumerate principals or read history.
+Each credential is **prefix-checked before any database lookup**, so no plane can
+be probed with another plane's credential. Presenting the wrong prefix is a `401`
+that looks identical to an unknown key.
+
+The consent domain is split across the ingestion and management planes, for the
+reason set out in [consent.md](consent.md): a public key is visible to anyone
+viewing page source, so it may record a decision and read the state of one
+principal whose id it already knows, but it may never enumerate principals or
+read history.
+
+The delivery plane is the narrowest of the three, and it is worth being precise
+about what it does and does not confer. It authorises *collecting ciphertext*
+addressed to one recipient. It grants no ability to read that ciphertext:
+decryption needs the recipient's X25519 private key, which Rift has never held.
+See [secure-transfer.md](secure-transfer.md) — that surface is a proof of
+concept and has had no cryptographic review.
 
 ## Conventions
 
@@ -38,15 +51,25 @@ on status codes or messages. The consent domain added these:
 | `unknown_policy` | No such policy version in the caller's organisation |
 | `conflict` | A code or version that must be unique already exists |
 
+Secure data routing added these:
+
+| `code` | Meaning |
+| --- | --- |
+| `unknown_recipient` | No **active** recipient with that code in the caller's organisation |
+| `consent_not_granted` | The consent decision in force for that principal and purpose is not `GRANTED`, or there is none |
+| `authorisation_expired` | The authorisation's `expires_at` has passed |
+| `authorisation_consumed` | A transfer has already been recorded against that authorisation |
+| `invalid_envelope` | The sealed envelope is malformed, empty, or over the size limit |
+
 ## CORS
 
 The ingestion endpoints — `/api/v1/events` and `/api/v1/consent` — are called by
 browsers on arbitrary customer domains, so they return permissive CORS headers
 and handle `OPTIONS` preflight.
 
-The management plane deliberately returns **no** CORS headers: it is a
-server-to-server API authenticated with a secret that must never be present in a
-browser.
+The management and delivery planes deliberately return **no** CORS headers: they
+are server-to-server APIs authenticated with secrets that must never be present
+in a browser.
 
 ---
 
@@ -585,6 +608,356 @@ that cites this notice for a purpose it never disclosed.
 | `400` | `unknown_policy` | `policy_version_id` is not the caller's |
 | `400` | `unknown_purpose` | one or more `purpose_codes` are not the caller's |
 
+### `GET /api/v1/recipients`
+
+Lists the target fiduciaries the authenticated organisation may send data to,
+ordered by `code`.
+
+```json
+{
+  "recipients": [
+    {
+      "recipient_id": "2d51...",
+      "code": "partner-bank",
+      "name": "Partner Bank Ltd",
+      "public_key": "MCowBQYDK2VuAyEA...",
+      "algorithm": "X25519-HKDF-SHA256-AES256GCM",
+      "is_active": true,
+      "created_at": "2026-09-01T09:00:00.000Z"
+    }
+  ]
+}
+```
+
+`public_key` is returned in plaintext because it *is* public — it is what a
+source encrypts to. `delivery_key` is **not** in this response: only its digest
+is stored, so it cannot be re-read after registration.
+
+### `POST /api/v1/recipients`
+
+Registers a target fiduciary and mints its delivery credential.
+
+Request body (strict — unknown fields are a `400`):
+
+```json
+{
+  "code": "partner-bank",
+  "name": "Partner Bank Ltd",
+  "public_key": "MCowBQYDK2VuAyEA..."
+}
+```
+
+| Field | Notes |
+| --- | --- |
+| `code` | 1–100 chars, `^[a-z0-9_-]+$`. Unique within the organisation. |
+| `name` | 1–200 chars. |
+| `public_key` | 1–256 chars. The target's base64 SPKI X25519 public key, supplied out of band by the target. |
+
+There is no field for a private key, and there is no request that would accept
+one. `algorithm` is server-assigned to `X25519-HKDF-SHA256-AES256GCM`; a caller
+does not choose the construction.
+
+`201 Created` returns the recipient object above **plus** one extra field:
+
+```json
+{
+  "recipient_id": "2d51...",
+  "code": "partner-bank",
+  "name": "Partner Bank Ltd",
+  "public_key": "MCowBQYDK2VuAyEA...",
+  "algorithm": "X25519-HKDF-SHA256-AES256GCM",
+  "is_active": true,
+  "created_at": "2026-09-01T09:00:00.000Z",
+  "delivery_key": "rk_9f2c..."
+}
+```
+
+`delivery_key` appears **only here**, exactly once, in the same way an
+organisation secret does at provisioning. Rift stores its SHA-256 digest and
+nothing else, so a lost delivery key cannot be recovered — only a new recipient
+can be registered. Hand it to the target fiduciary out of band.
+
+| Status | `code` | Cause |
+| --- | --- | --- |
+| `401` | `unauthorized` | missing, malformed, unknown, or wrong-plane key |
+| `400` | `invalid_json` | body is not valid JSON |
+| `400` | `invalid_request` | schema failure or unknown field |
+| `409` | `conflict` | a recipient with that `code` already exists in this organisation |
+
+### `POST /api/v1/transfers/authorisations`
+
+Mints a single-use, time-bounded permission to transfer one principal's data to
+one recipient for one purpose.
+
+This request is **payload-free by construction**. Rift decides whether a transfer
+may happen before any ciphertext exists, so the ciphertext can never influence
+the decision. The schema is strict: sending `plaintext`, `data` or an envelope
+here is a `400`, not something quietly ignored.
+
+Request body:
+
+```json
+{
+  "site_id": "site_demo",
+  "principal_external_id": "p_3f9c",
+  "purpose_code": "analytics",
+  "recipient_code": "partner-bank",
+  "ttl_seconds": 900
+}
+```
+
+| Field | Notes |
+| --- | --- |
+| `site_id` | Must be a site the caller owns, else `404`. |
+| `principal_external_id` | 1–200 chars. Must already exist on that site. |
+| `purpose_code` | 1–100 chars. Must be a purpose of the caller's organisation. |
+| `recipient_code` | 1–100 chars. Must be an **active** recipient of the caller's organisation. |
+| `ttl_seconds` | Optional integer, 30–3600. Defaults to 900 (15 minutes). |
+
+Consent is checked here, using the same `getEffectiveConsent` derivation the
+consent API uses, so a transfer can never be authorised against a rule the
+consent API would disagree with. The newest decision for `(principal, purpose)`
+must resolve to `GRANTED`: `DENIED`, `WITHDRAWN` and *no decision at all* are all
+refusals.
+
+`201 Created`:
+
+```json
+{
+  "authorisation_id": "8ad1f0c2-...",
+  "site_id": "site_demo",
+  "principal_external_id": "p_3f9c",
+  "purpose_code": "analytics",
+  "recipient_code": "partner-bank",
+  "recipient_public_key": "MCowBQYDK2VuAyEA...",
+  "algorithm": "X25519-HKDF-SHA256-AES256GCM",
+  "consent_record_id": "6b1c0f2a-...",
+  "nonce": "Zk8sT1x2...",
+  "status": "AUTHORISED",
+  "expires_at": "2026-09-01T09:15:00.000Z",
+  "created_at": "2026-09-01T09:00:00.000Z"
+}
+```
+
+The response carries everything a source needs to seal a payload and nothing
+more: the public key to encrypt to, and the five fields that make up the
+authenticated data — `authorisation_id`, `nonce`, `purpose_code`,
+`recipient_code`, `principal_external_id`. `consent_record_id` names the exact
+decision relied upon, not a boolean, so the authorisation stays auditable after
+the fact.
+
+| Status | `code` | Cause |
+| --- | --- | --- |
+| `401` | `unauthorized` | missing, malformed, unknown, or wrong-plane key |
+| `400` | `invalid_json` | body is not valid JSON |
+| `400` | `invalid_request` | schema failure, unknown field, or `ttl_seconds` out of range |
+| `404` | `not_found` | `site_id` is not the caller's, or no such principal on that site |
+| `404` | `unknown_purpose` | no such purpose in this organisation |
+| `404` | `unknown_recipient` | no such recipient, or it is deactivated |
+| `409` | `consent_not_granted` | consent is `DENIED`, `WITHDRAWN`, or was never recorded |
+
+Note the split. Anything the caller *does not own* is `404`, matching the rest of
+the API so ids cannot be probed across tenants — which is why `unknown_purpose`
+is a `404` here while the same code is a `400` on `POST /api/v1/consent`. `409`
+is used only for the one case where every identifier resolved and the answer is
+simply "the principal has not permitted this".
+
+### `POST /api/v1/transfers`
+
+Submits a sealed envelope, consuming its authorisation.
+
+Request body (strict, and strict on the nested envelope too):
+
+```json
+{
+  "authorisation_id": "8ad1f0c2-...",
+  "nonce": "Zk8sT1x2...",
+  "envelope": {
+    "ciphertext": "0mJ4v...",
+    "iv": "aWQxMjM0NTY3ODkw",
+    "auth_tag": "9wUyR1p0bWFjdGFn",
+    "ephemeral_public_key": "MCowBQYDK2VuAyEA..."
+  }
+}
+```
+
+`.strict()` on both objects is doing real work: a client that attached
+`plaintext` — by mistake or otherwise — gets a validation error rather than
+having Rift quietly store it.
+
+Rift validates the envelope for **shape and size only**: base64 that decodes to a
+12-byte `iv` and a 16-byte `auth_tag`, a non-empty ciphertext of 1–262144 bytes,
+and an `ephemeral_public_key` of at most 256 characters. It cannot check that the
+envelope decrypts, because it cannot decrypt it. Authenticity is established by
+the recipient when the GCM tag is verified.
+
+`201 Created` returns routing metadata only — never the envelope:
+
+```json
+{
+  "transfer_id": "c07e4b9a-...",
+  "authorisation_id": "8ad1f0c2-...",
+  "site_id": "site_demo",
+  "purpose_code": "analytics",
+  "recipient_code": "partner-bank",
+  "principal_external_id": "p_3f9c",
+  "consent_record_id": "6b1c0f2a-...",
+  "status": "RECORDED",
+  "ciphertext_sha256": "3f2a91...",
+  "payload_bytes": 148,
+  "recorded_at": "2026-09-01T09:00:04.117Z",
+  "delivered_at": null
+}
+```
+
+| Status | `code` | Cause |
+| --- | --- | --- |
+| `401` | `unauthorized` | missing, malformed, unknown, or wrong-plane key |
+| `400` | `invalid_json` | body is not valid JSON |
+| `400` | `invalid_request` | schema failure or unknown field |
+| `400` | `invalid_envelope` | envelope is malformed, empty, or over 256 KiB |
+| `404` | `not_found` | no such authorisation for this organisation, **or** the `nonce` does not match the one issued |
+| `409` | `authorisation_expired` | `expires_at` has passed; the row is moved to `EXPIRED` |
+| `409` | `authorisation_consumed` | a transfer was already recorded against it |
+| `409` | `conflict` | the unique constraint on `authorisation_id` refused a second row — the same protection, one layer down |
+
+A mismatched nonce reports `not_found` rather than a distinct code, because from
+the caller's position an authorisation it cannot name correctly is one it does
+not hold. Such an envelope would fail to decrypt in any case: the nonce is inside
+the authenticated data.
+
+### `GET /api/v1/transfers`
+
+The authenticated organisation's own transfer records, newest first, capped at
+200. Routing metadata and integrity digests only — **the envelope is never
+returned here**. It is collected by the recipient, on the delivery plane.
+
+| Parameter | Notes |
+| --- | --- |
+| `site_id` | Optional. Must be a site the caller owns, else `404` |
+
+```http
+GET /api/v1/transfers?site_id=site_demo
+Authorization: Bearer sk_2f8c...
+```
+
+`200 OK` with `{ "transfers": [ ... ] }`, each entry the object shown under
+`POST /api/v1/transfers`.
+
+| Status | `code` | Cause |
+| --- | --- | --- |
+| `401` | `unauthorized` | missing, malformed, unknown, or wrong-plane key |
+| `404` | `not_found` | `site_id` names a site the caller does not own |
+
+---
+
+## Delivery
+
+One endpoint, authenticated by a recipient delivery key:
+
+```http
+Authorization: Bearer rk_9f2c...
+```
+
+A site public key and an organisation secret are both rejected with `401`, on the
+prefix, before any lookup. No CORS headers are returned.
+
+### `GET /api/v1/transfers/pending`
+
+Lists the envelopes waiting for the authenticated recipient, newest last. Routing
+metadata only — the envelope itself is fetched one transfer at a time below.
+
+Without this a target could only fetch a transfer whose id it had been told out
+of band, which would make the delivery plane unusable on its own.
+
+`200 OK`:
+
+```json
+{
+  "transfers": [
+    {
+      "transfer_id": "c07e4b9a-...",
+      "authorisation_id": "8ad1f0c2-...",
+      "site_id": "site_demo",
+      "purpose_code": "analytics",
+      "recipient_code": "partner-bank",
+      "principal_external_id": "p_3f9c",
+      "consent_record_id": "3eda117f-...",
+      "status": "RECORDED",
+      "ciphertext_sha256": "3f2a91...",
+      "payload_bytes": 57,
+      "recorded_at": "2026-09-01T09:00:04.117Z",
+      "delivered_at": null
+    }
+  ]
+}
+```
+
+Only transfers still in `RECORDED` state appear; collecting one moves it to
+`DELIVERED`.
+
+### `GET /api/v1/transfers/{transferId}/envelope`
+
+Hands a sealed envelope to the recipient it was addressed to.
+
+The lookup is scoped to the authenticated recipient, so a delivery credential
+cannot collect envelopes sealed for anyone else — and could not read them if it
+did, since the private key those envelopes were sealed to lives only in the
+target fiduciary.
+
+`200 OK`:
+
+```json
+{
+  "transfer_id": "c07e4b9a-...",
+  "envelope": {
+    "ciphertext": "0mJ4v...",
+    "iv": "aWQxMjM0NTY3ODkw",
+    "auth_tag": "9wUyR1p0bWFjdGFn",
+    "ephemeral_public_key": "MCowBQYDK2VuAyEA..."
+  },
+  "binding": {
+    "authorisation_id": "8ad1f0c2-...",
+    "nonce": "Zk8sT1x2...",
+    "purpose_code": "analytics",
+    "recipient_code": "partner-bank",
+    "principal_external_id": "p_3f9c"
+  },
+  "ciphertext_sha256": "3f2a91...",
+  "recorded_at": "2026-09-01T09:00:04.117Z"
+}
+```
+
+The envelope is snake_case here and on submission, like every other field in this
+API. The crypto package's `SealedEnvelope` and `TransferBinding` are camelCase
+because they are TypeScript values rather than a wire format; `toWireEnvelope` /
+`fromWireEnvelope` and `toWireBinding` / `fromWireBinding` in `shared/transfer.ts`
+convert at the boundary so neither convention leaks into the other.
+
+`binding` is exactly the input to `buildTransferAad`. The recipient rebuilds the
+additional authenticated data from it and opens the envelope; if Rift altered the
+ciphertext *or* the metadata, the GCM tag check fails and decryption throws
+rather than returning something plausible. That is what makes Rift a relay it is
+safe to distrust for confidentiality.
+
+Collection is not a pure read: the first successful collection stamps the record
+`DELIVERED` with a `delivered_at`. Re-collecting the same transfer returns the
+same envelope and leaves the timestamp alone — there is no ack step, so a
+recipient that crashed mid-processing can simply ask again.
+
+| Status | `code` | Cause |
+| --- | --- | --- |
+| `401` | `unauthorized` | missing, malformed, unknown, wrong-plane, or inactive-recipient key |
+| `404` | `not_found` | no transfer with that id addressed to this recipient |
+
+A transfer sealed for another recipient is reported exactly like one that does
+not exist, following the same existence non-disclosure rule as the rest of the
+API.
+
+There is no "list my pending envelopes" endpoint. `listPendingForRecipient` exists
+in `database/transfers.ts` but is not exposed over HTTP in this prototype; a
+target learns its transfer ids out of band.
+
 ---
 
 ## `GET /api/healthz`
@@ -604,6 +977,11 @@ Unauthenticated liveness check.
   processing lawful". See [consent.md](consent.md).
 - Consent reference data has no update or delete routes. Purposes, policies,
   versions and notices can be created and listed only.
+- The secure routing surface is a **proof of concept**. It has had no
+  cryptographic review and must not be described as production-secure. There is
+  no recipient update or delete route, no key rotation, no PKI to authenticate a
+  registered public key, and no retention policy for delivered envelopes. See the
+  known limitations in [secure-transfer.md](secure-transfer.md).
 - Organisations are provisioned out of band (seed script or the
   `createOrganisation()` helper), not over HTTP — there is no credential that
   could authenticate creating a tenant.

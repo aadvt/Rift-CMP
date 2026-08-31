@@ -2,12 +2,14 @@
 
 This is the database model used by the MVP. It supports tenant (organisation)
 ownership, website registration, browser sessions, the raw event stream emitted
-by the SDK, and the consent domain. Prisma is the schema authoring tool, and it
-maps camelCase model fields onto snake_case PostgreSQL columns with `@map`.
+by the SDK, the consent domain, and the secure data routing prototype. Prisma is
+the schema authoring tool, and it maps camelCase model fields onto snake_case
+PostgreSQL columns with `@map`.
 
 The ownership rules these tables encode are explained in [tenancy.md](tenancy.md);
 the consent vocabulary and its append-only guarantee are in
-[consent.md](consent.md).
+[consent.md](consent.md); the trust model behind the transfer tables, including
+what they deliberately cannot hold, is in [secure-transfer.md](secure-transfer.md).
 
 ## Engine
 
@@ -259,9 +261,14 @@ One immutable consent decision. **Append-only** — see the trigger below.
 | `recordedAt` | `recorded_at` | `DateTime` | not null, default `now()` |
 | `metadata` | `metadata` | `Json?` | nullable |
 
-Indexes: `@@index([principalId, purposeId, decidedAt])`,
+Indexes and keys: `@@index([principalId, purposeId, decidedAt])`,
 `@@index([siteId, decidedAt])`, `@@index([organisationId, decidedAt])`,
-`@@index([purposeId])`.
+`@@index([purposeId])`, `@@unique([id, organisationId])`.
+
+`@@unique([id, organisationId])` was added in the secure-transfer migration. It
+is the target of the composite foreign key on `transfer_authorisations`, which is
+what lets an authorisation cite the exact consent decision it relied on without
+that decision being allowed to belong to another tenant.
 
 **Composite foreign keys** — each one keeps a reference inside a single tenant:
 
@@ -308,6 +315,166 @@ convention in application code: changing your mind means appending a new record.
 concern from immutability. The guarantee made here is precisely that a decision
 is never *rewritten*.
 
+## Secure data routing models
+
+Three models added by the Phase 3 prototype. Rift acts as a relay: it stores the
+sealed payload and the routing metadata around it, and nothing that could open
+that payload. See [secure-transfer.md](secure-transfer.md) for the trust model
+and its limitations — this is a proof of concept and has had no cryptographic
+review.
+
+**There is deliberately no plaintext column and no private-key column anywhere in
+this section.** That is not an oversight to be corrected later by an "encrypted
+payload plus key" convenience column; it is the property the whole design exists
+to demonstrate. Encrypting data and then storing the decryption key in the same
+database would make the exercise theatre.
+
+| Held in these tables | Not held, anywhere |
+| --- | --- |
+| Ciphertext, IV, GCM tag, ephemeral public key | The plaintext payload |
+| The recipient's X25519 **public** key | The recipient's X25519 **private** key |
+| SHA-256 of the `rk_...` delivery credential | The delivery credential itself |
+| SHA-256 and byte length of the ciphertext | The derived per-transfer AES key |
+
+### `DataRecipient`
+
+A target fiduciary a source organisation is permitted to send data to.
+
+| Prisma field | DB column | Type | Constraints |
+| --- | --- | --- | --- |
+| `id` | `id` | `String` | PK, generated UUID |
+| `organisationId` | `organisation_id` | `String` | not null, FK → `organisations.id` (cascade) |
+| `code` | `code` | `String` | not null |
+| `name` | `name` | `String` | not null |
+| `publicKey` | `public_key` | `String` | not null |
+| `algorithm` | `algorithm` | `String` | not null |
+| `deliveryKeyHash` | `delivery_key_hash` | `String` | not null, **unique** |
+| `isActive` | `is_active` | `Boolean` | not null, default `true` |
+| `createdAt` | `created_at` | `DateTime` | not null, default `now()` |
+
+Indexes and keys: `@@unique([organisationId, code])`, `@@unique([id, organisationId])`,
+unique index on `delivery_key_hash`.
+
+Notes:
+- `public_key` is a base64 SPKI X25519 key, stored in plaintext because it *is*
+  public. The matching private key exists only inside the target fiduciary and
+  is never sent to, requested by, or stored by Rift.
+- `algorithm` is recorded per recipient rather than assumed globally, so the
+  construction can change without guessing how existing envelopes were sealed.
+  Today every row is `X25519-HKDF-SHA256-AES256GCM`, the value of
+  `TRANSFER_ALGORITHM` in `secure-transfer/envelope.ts`.
+- `delivery_key_hash` is the SHA-256 digest of the `rk_...` credential, following
+  the same hashed-token pattern as `organisations.secret_key_hash`. The plaintext
+  credential is returned once at registration and never stored. Its uniqueness is
+  what makes delivery authentication a single indexed equality match.
+- `is_active` switches a recipient off without deleting transfer history. It does
+  not re-key or revoke envelopes already sealed for that recipient.
+- The source organisation owns the row: it registers who it may send to.
+
+### `TransferAuthorisation`
+
+Permission to make one specific transfer. Single use, time bounded, and tied to
+the exact consent decision it relied on.
+
+| Prisma field | DB column | Type | Constraints |
+| --- | --- | --- | --- |
+| `id` | `id` | `String` | PK, generated UUID |
+| `organisationId` | `organisation_id` | `String` | not null, part of composite FKs below |
+| `siteId` | `site_id` | `String` | not null, part of composite FKs below |
+| `principalId` | `principal_id` | `String` | not null, part of composite FK below |
+| `purposeId` | `purpose_id` | `String` | not null, part of composite FK below |
+| `recipientId` | `recipient_id` | `String` | not null, part of composite FK below |
+| `consentRecordId` | `consent_record_id` | `String` | not null, part of composite FK below |
+| `nonce` | `nonce` | `String` | not null, **unique** |
+| `status` | `status` | `String` | not null, default `'AUTHORISED'` |
+| `expiresAt` | `expires_at` | `DateTime` | not null |
+| `createdAt` | `created_at` | `DateTime` | not null, default `now()` |
+
+Indexes and keys: `@@index([organisationId, createdAt])`, `@@index([siteId, status])`,
+unique index on `nonce`.
+
+**Composite foreign keys** — each one keeps a reference inside a single tenant,
+the same technique used on `consent_records`:
+
+| Foreign key | References | On delete |
+| --- | --- | --- |
+| `(site_id, organisation_id)` | `websites (id, organisation_id)` | cascade |
+| `(principal_id, site_id)` | `principals (id, site_id)` | cascade |
+| `(purpose_id, organisation_id)` | `purposes (id, organisation_id)` | no action |
+| `(recipient_id, organisation_id)` | `data_recipients (id, organisation_id)` | no action |
+| `(consent_record_id, organisation_id)` | `consent_records (id, organisation_id)` | no action |
+
+Notes:
+- `consent_record_id` points at **the decision relied upon, not a boolean**. An
+  auditor can therefore see precisely which decision justified a transfer, and
+  because `consent_records` is append-only that decision can never be rewritten
+  underneath the authorisation. A `consent_granted` flag would have been a copy
+  that could drift from the log meant to justify it.
+- `nonce` is a high-entropy single-use value (24 random bytes, base64url). It is
+  also part of the envelope's authenticated data, so an envelope sealed under one
+  authorisation cannot be reused under another.
+- `status` is `AUTHORISED`, `CONSUMED` or `EXPIRED`. A string rather than a DB
+  enum, following the `event_type` and consent `status` convention; the API
+  validates against `TRANSFER_AUTHORISATION_STATUSES` in `shared/transfer.ts`.
+- `expires_at` is set from a TTL at creation — 15 minutes by default, overridable
+  per request between 30 and 3600 seconds. Expiry is checked on submission, and a
+  lapsed row is moved to `EXPIRED` when it is next touched; there is no sweeper
+  job.
+- Reference-data edges use `NO ACTION` for the reason given under
+  `ConsentRecord`: it is checked at the end of the statement, so a cascading
+  tenant delete succeeds while deleting a purpose or recipient that still has
+  transfer history on its own still fails.
+
+### `TransferRecord`
+
+What actually happened, plus the sealed payload while it is in transit.
+
+| Prisma field | DB column | Type | Constraints |
+| --- | --- | --- | --- |
+| `id` | `id` | `String` | PK, generated UUID |
+| `organisationId` | `organisation_id` | `String` | not null, no FK (see note) |
+| `authorisationId` | `authorisation_id` | `String` | not null, **unique**, FK → `transfer_authorisations.id` (cascade) |
+| `ciphertext` | `ciphertext` | `String` | not null |
+| `iv` | `iv` | `String` | not null |
+| `authTag` | `auth_tag` | `String` | not null |
+| `ephemeralPublicKey` | `ephemeral_public_key` | `String` | not null |
+| `ciphertextSha256` | `ciphertext_sha256` | `String` | not null |
+| `payloadBytes` | `payload_bytes` | `Int` | not null |
+| `status` | `status` | `String` | not null, default `'RECORDED'` |
+| `failureReason` | `failure_reason` | `String?` | nullable |
+| `recordedAt` | `recorded_at` | `DateTime` | not null, default `now()` |
+| `deliveredAt` | `delivered_at` | `DateTime?` | nullable |
+
+Indexes and keys: `@@index([organisationId, recordedAt])`, unique index on
+`authorisation_id`.
+
+Notes:
+- **`authorisation_id` is unique.** This is the database-level half of replay
+  prevention: two concurrent submissions cannot both succeed even if both passed
+  the application's status check, because PostgreSQL refuses the second row. The
+  service layer writes the record and flips the authorisation to `CONSUMED` in
+  one transaction.
+- `ciphertext`, `iv`, `auth_tag` and `ephemeral_public_key` are the sealed
+  envelope, base64 and opaque to Rift. The ephemeral public key is one half of a
+  Diffie-Hellman pair; the other half was discarded by the source after sealing,
+  and the recipient's private half was never here.
+- `ciphertext_sha256` and `payload_bytes` give integrity and accounting without
+  inspecting content. Ciphertext is capped at 256 KiB
+  (`MAX_CIPHERTEXT_BYTES`), because a relay with an unbounded body is a trivial
+  denial of service.
+- `status` is `RECORDED`, `DELIVERED` or `FAILED`; `delivered_at` is stamped when
+  the recipient collects the envelope on the delivery plane.
+- `organisation_id` is denormalised and carries **no** foreign key of its own. It
+  is copied from the authenticated caller so a source organisation's own
+  transfers can be listed without joining through the authorisation. Tenancy is
+  still constrained: the row cascades from `transfer_authorisations`, whose
+  composite keys are tenant-bound.
+- There is no `plaintext` column, no `private_key` column, and no column that
+  could hold either. `api/tests/transfer-boundary.test.ts` dumps every row of
+  every table after a completed transfer and asserts the payload does not appear
+  in it, then tries every string Rift stores as a decryption key and asserts that
+  none of them works.
+
 ## Indexing rationale
 
 The event table supports the access patterns the analytics side needs, all of
@@ -331,12 +498,34 @@ The consent indexes follow the same principle, one per access pattern:
 - "does this purpose have history" before deletion → `consent_records_purpose_id_idx`
 - listing the notices that disclosed a purpose → `notice_purposes_purpose_id_idx`
 
+The transfer indexes are the same shape again — leading with the tenant, or with
+the unique credential/identifier the lookup actually keys on:
+
+- authenticating a delivery credential →
+  `data_recipients_delivery_key_hash_key` (a single indexed equality match on the
+  digest, exactly as for an organisation secret)
+- resolving a recipient by code within a tenant →
+  `data_recipients_organisation_id_code_key`
+- a tenant's authorisation history →
+  `transfer_authorisations_organisation_id_created_at_idx`
+- outstanding authorisations for a site →
+  `transfer_authorisations_site_id_status_idx`
+- one transfer per authorisation, enforced not merely indexed →
+  `transfer_records_authorisation_id_key`
+- a source organisation's own transfer log →
+  `transfer_records_organisation_id_recorded_at_idx`
+
 ## Retention
 
 The MVP does not yet specify a retention policy. This will be added when the first
 production storage strategy is defined. Note that the append-only trigger on
 `consent_records` blocks `UPDATE` only, so a future retention job can still
 delete rows; immutability and retention are separate concerns.
+
+The same gap applies to `transfer_records`: a collected envelope stays in the
+table after delivery. It is unreadable to Rift either way, but "unreadable" is
+not "deleted", and a retention policy for delivered envelopes is outstanding
+work — see the known limitations in [secure-transfer.md](secure-transfer.md).
 
 ## Migrations
 
@@ -353,4 +542,12 @@ delete rows; immutability and retention are separate concerns.
   tenant-scoped unique keys and indexes, the composite foreign keys listed above,
   and the `consent_records_append_only` trigger. It adds nothing to the analytics
   tables — no consent column is written onto `sessions` or `events`.
+- `20260901090000_add_secure_transfer` adds `data_recipients`,
+  `transfer_authorisations` and `transfer_records`, their unique keys and
+  indexes, the five composite foreign keys on `transfer_authorisations`, and the
+  unique index on `transfer_records.authorisation_id`. It also adds
+  `consent_records_id_organisation_id_key`, which the authorisation's
+  consent-record FK needs as a target. It changes no existing column, writes no
+  transfer state onto consent or analytics rows, and adds no column capable of
+  holding plaintext or a private key.
 - Never edit a migration that has been applied — add a new one.

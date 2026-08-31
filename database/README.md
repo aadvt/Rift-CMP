@@ -12,6 +12,10 @@ backing the API.
 - Provision tenants and sites (`tenancy.ts`), and map rows onto shared API types.
 - Own consent-domain data access (`consent.ts`) and the append-only guarantee on
   `consent_records`, per [`../docs/consent.md`](../docs/consent.md).
+- Own secure-routing data access (`transfers.ts`): recipient registration, the
+  consent-gated transfer authorisation, recording a sealed envelope, and handing
+  it to the recipient it was addressed to, per
+  [`../docs/secure-transfer.md`](../docs/secure-transfer.md).
 - Provide seed data for local development.
 
 ## Structure
@@ -19,14 +23,16 @@ backing the API.
 ```
 database/
 ├── prisma/
-│   ├── schema.prisma      # analytics + consent models
+│   ├── schema.prisma      # analytics + consent + secure routing models
 │   ├── migrations/        # ordered, forward-only
 │   └── seed.ts            # local organisations, sites, and consent reference data
 ├── generated/client/      # generated Prisma client
-├── keys.ts                # public/secret key generation and hashing
+├── keys.ts                # public/secret/delivery key generation and hashing
 ├── tenancy.ts             # createOrganisation / createWebsite, row -> API mapping
 ├── consent.ts             # purposes/policies/notices, recordConsentDecision,
 │                          # getConsentHistory, getEffectiveConsent
+├── transfers.ts           # createRecipient, authoriseTransfer, recordTransfer,
+│                          # collectTransfer, listTransfers
 └── index.ts               # PrismaClient singleton + re-exports
 ```
 
@@ -35,6 +41,15 @@ argument (`organisationId` and/or `siteId`, both derived by the caller from an
 authenticated credential) and scopes its queries to it. Nothing in that module
 can be asked to "just look up a purpose by id" without saying whose it is. It
 never touches `Session` or `Event`: the two domains are kept apart.
+
+`transfers.ts` follows the same rule and adds one of its own. It imports only
+`@rift-cmp/secure-transfer` — the Rift-safe half — and never
+`@rift-cmp/secure-transfer/fiduciary`. It can hash an envelope, measure it and
+validate its shape; it cannot open one, and a test in `api/tests/` asserts that
+the import is absent rather than trusting the comment saying so. It reuses
+`getEffectiveConsent` from `consent.ts` rather than reimplementing the rule, so a
+transfer can never be authorised against a definition of "current consent" the
+consent API would disagree with.
 
 ## Commands
 
@@ -60,7 +75,14 @@ npm run validate          # validate schema.prisma
   concern from immutability.
 - The seed's consent reference data is idempotent: existing purposes, policies and
   notices are left alone, so re-seeding never duplicates them or invalidates
-  recorded consent.
+  recorded consent. The seed provisions no recipients: a delivery key is shown
+  once and a target's public key comes from that target, so both are supplied per
+  environment rather than committed.
+- No table in the secure routing domain has a column for plaintext or for a
+  private key, and none should be added. `transfer_records.authorisation_id` is
+  unique on purpose — it is the database-level half of replay prevention, so
+  dropping it to "allow retries" would silently remove a guarantee the
+  integration contract makes.
 
 ## Notes
 

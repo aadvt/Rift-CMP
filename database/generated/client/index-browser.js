@@ -229,6 +229,48 @@ exports.Prisma.ConsentRecordScalarFieldEnum = {
   metadata: 'metadata'
 };
 
+exports.Prisma.DataRecipientScalarFieldEnum = {
+  id: 'id',
+  organisationId: 'organisationId',
+  code: 'code',
+  name: 'name',
+  publicKey: 'publicKey',
+  algorithm: 'algorithm',
+  deliveryKeyHash: 'deliveryKeyHash',
+  isActive: 'isActive',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.TransferAuthorisationScalarFieldEnum = {
+  id: 'id',
+  organisationId: 'organisationId',
+  siteId: 'siteId',
+  principalId: 'principalId',
+  purposeId: 'purposeId',
+  recipientId: 'recipientId',
+  consentRecordId: 'consentRecordId',
+  nonce: 'nonce',
+  status: 'status',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.TransferRecordScalarFieldEnum = {
+  id: 'id',
+  organisationId: 'organisationId',
+  authorisationId: 'authorisationId',
+  ciphertext: 'ciphertext',
+  iv: 'iv',
+  authTag: 'authTag',
+  ephemeralPublicKey: 'ephemeralPublicKey',
+  ciphertextSha256: 'ciphertextSha256',
+  payloadBytes: 'payloadBytes',
+  status: 'status',
+  failureReason: 'failureReason',
+  recordedAt: 'recordedAt',
+  deliveredAt: 'deliveredAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -267,7 +309,10 @@ exports.Prisma.ModelName = {
   PolicyVersion: 'PolicyVersion',
   Notice: 'Notice',
   NoticePurpose: 'NoticePurpose',
-  ConsentRecord: 'ConsentRecord'
+  ConsentRecord: 'ConsentRecord',
+  DataRecipient: 'DataRecipient',
+  TransferAuthorisation: 'TransferAuthorisation',
+  TransferRecord: 'TransferRecord'
 };
 
 /**

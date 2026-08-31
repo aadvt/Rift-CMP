@@ -1,8 +1,16 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest } from "next/server";
-import { generatePublicKey, generateSecretKey, hashSecretKey, prisma } from "database";
+import {
+  createRecipient,
+  generatePublicKey,
+  generateSecretKey,
+  hashSecretKey,
+  prisma,
+  recordConsentDecision,
+} from "database";
 import type { AnalyticsEvent } from "@rift-cmp/shared";
 import { TEST_SCHEMA } from "../setup/database-url";
+import { MockTargetFiduciary } from "./fiduciaries";
 
 const BASE_URL = "http://localhost:3000";
 
@@ -24,6 +32,9 @@ export async function resetDatabase() {
     "notices",
     "notice_purposes",
     "consent_records",
+    "data_recipients",
+    "transfer_authorisations",
+    "transfer_records",
   ]
     .map((table) => `"${TEST_SCHEMA}"."${table}"`)
     .join(", ");
@@ -261,4 +272,63 @@ export function siteRequest(
 /** Route context for a dynamic `[policyId]` segment. */
 export function policyParams(policyId: string) {
   return { params: Promise.resolve({ policyId }) };
+}
+
+// --- Secure transfer fixtures ------------------------------------------------
+
+export interface TransferScenario {
+  orgA: Tenant;
+  orgB: Tenant;
+  siteA1: Site;
+  siteA2: Site;
+  siteB1: Site;
+  consent: ConsentFixture;
+  /** The mock target. Its private key exists only inside this object. */
+  target: MockTargetFiduciary;
+  recipientCode: string;
+  /** Shown once at registration; Rift stores only its digest. */
+  deliveryKey: string;
+  principalExternalId: string;
+}
+
+/**
+ * A tenant that is ready to transfer: consent granted, recipient registered.
+ *
+ * Consent is recorded through the real service so the transfer is authorised
+ * against a genuine append-only decision, not a fabricated row.
+ */
+export async function createTransferScenario(
+  options: { grant?: boolean } = {},
+): Promise<TransferScenario> {
+  const tree = await createOwnershipTree();
+  const consent = await createConsentFixture(tree.orgA.organisationId);
+  const principalExternalId = "principal-transfer-1";
+
+  const decision = await recordConsentDecision(prisma, {
+    organisationId: tree.orgA.organisationId,
+    siteId: tree.siteA1.siteId,
+    principalExternalId,
+    purposeCode: consent.purposeCode,
+    status: options.grant === false ? "DENIED" : "GRANTED",
+    noticeId: consent.noticeId,
+    source: "test",
+  });
+  if (!decision.ok) throw new Error(`transfer fixture failed: ${decision.message}`);
+
+  const target = new MockTargetFiduciary();
+  const recipient = await createRecipient(prisma, {
+    organisationId: tree.orgA.organisationId,
+    code: "partner-bank",
+    name: "Partner Bank",
+    publicKey: target.publicKey,
+  });
+
+  return {
+    ...tree,
+    consent,
+    target,
+    recipientCode: recipient.code,
+    deliveryKey: recipient.delivery_key,
+    principalExternalId,
+  };
 }
