@@ -1,9 +1,9 @@
 import type { AnalyticsEvent } from "@rift-cmp/shared";
+import { DEFAULT_API_URL } from "./constants";
 import { getDeviceInfo } from "./device";
 import { getPageContext } from "./page";
 import type { ConsentCheck, SDKOptions, SessionState } from "./types";
 
-const DEFAULT_API_URL = "http://127.0.0.1:3000";
 const SESSION_TTL_MS = 30 * 60 * 1000;
 const FLUSH_INTERVAL_MS = 2000;
 const MAX_BATCH_SIZE = 10;
@@ -94,6 +94,16 @@ export class AnalyticsClient {
       console.warn("[rift-cmp] canSend() failed", error);
       return false;
     }
+  }
+
+  /** The site this client sends events for. */
+  getSiteId(): string | null {
+    return this.siteId;
+  }
+
+  /** The public key this client authenticates with. Not a secret. */
+  getPublicKey(): string | null {
+    return this.publicKey;
   }
 
   getSessionId(): string | null {
@@ -301,8 +311,16 @@ export class AnalyticsClient {
       return;
     }
 
+    // `sendBeacon` cannot set request headers, so the site's public key travels
+    // as a query parameter here. That is safe precisely because it is a public
+    // identifier; the organisation secret key is never used by the SDK.
+    if (!this.publicKey) {
+      return;
+    }
+
     const body = JSON.stringify({ events: payload });
-    const successful = navigator.sendBeacon(`${this.apiUrl}/api/v1/events`, body);
+    const url = `${this.apiUrl}/api/v1/events?pk=${encodeURIComponent(this.publicKey)}`;
+    const successful = navigator.sendBeacon(url, body);
 
     if (successful) {
       this.eventQueue = [];

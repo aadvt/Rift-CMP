@@ -8,16 +8,44 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Website {
-  id        String    @id @default(uuid())
-  name      String
-  domain    String
-  publicKey String    @map("public_key")
-  isActive  Boolean   @default(true) @map("is_active")
-  createdAt DateTime  @default(now()) @map("created_at")
-  sessions  Session[]
-  events    Event[]
+/// A tenant. Every website belongs to exactly one organisation, and the
+/// organisation is the boundary that isolation is enforced against.
+model Organisation {
+  id            String   @id @default(uuid())
+  name          String
+  slug          String   @unique
+  /// SHA-256 of the server-side secret key (`sk_...`). The plaintext secret is
+  /// shown once at creation and never stored.
+  secretKeyHash String   @unique @map("secret_key_hash")
+  createdAt     DateTime @default(now()) @map("created_at")
 
+  websites Website[]
+  purposes Purpose[]
+  policies Policy[]
+  notices  Notice[]
+
+  @@map("organisations")
+}
+
+model Website {
+  id             String   @id @default(uuid())
+  organisationId String   @map("organisation_id")
+  name           String
+  domain         String
+  /// Public client identifier (`pk_...`). Safe to embed in browser code; it
+  /// authorises ingestion for this one site and nothing else.
+  publicKey      String   @unique @map("public_key")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organisation   Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  sessions       Session[]
+  events         Event[]
+  principals     Principal[]
+  consentRecords ConsentRecord[]
+
+  @@unique([id, organisationId])
+  @@index([organisationId])
   @@map("websites")
 }
 
@@ -25,10 +53,13 @@ model Session {
   id           String   @id @default(uuid())
   siteId       String   @map("site_id")
   startedAt    DateTime @default(now()) @map("started_at")
-  lastActivity DateTime @updatedAt @map("last_activity")
-  website      Website  @relation(fields: [siteId], references: [id])
-  events       Event[]
+  lastActivity DateTime @map("last_activity")
 
+  website Website @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  events  Event[]
+
+  @@unique([id, siteId])
+  @@index([siteId, lastActivity])
   @@map("sessions")
 }
 
@@ -49,8 +80,181 @@ model Event {
   properties Json?
   receivedAt DateTime @default(now()) @map("received_at")
 
-  website Website @relation(fields: [siteId], references: [id])
-  session Session @relation(fields: [sessionId], references: [id])
+  website Website @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  /// Composite FK: an event can only reference a session that belongs to the
+  /// same site. This makes cross-tenant session reuse impossible at the DB level.
+  session Session @relation(fields: [sessionId, siteId], references: [id, siteId], onDelete: Cascade)
 
+  @@index([siteId, eventTime])
+  @@index([siteId, eventType])
+  @@index([sessionId])
   @@map("events")
+}
+
+// ─── Consent domain ──────────────────────────────────────────────────────────
+//
+// Deliberately generic. These models encode *structure* (who decided what, about
+// which purpose, under which notice, when) and no legal rules. A compliance
+// engine for any particular regulation sits above these concepts later.
+//
+// The consent domain is kept separate from the analytics domain: nothing here
+// references `Session` or `Event`, and no consent state is copied onto analytics
+// rows. The link, when one is needed, is made through `Principal`.
+
+/// A data principal - the person a consent decision belongs to.
+///
+/// Scoped to a site, because that is the grain the SDK authenticates at. For the
+/// MVP a principal is anonymous: `externalId` is an opaque, high-entropy id the
+/// SDK stores in the browser. `kind` allows later promotion to an identified
+/// principal without a schema change.
+model Principal {
+  id         String   @id @default(uuid())
+  siteId     String   @map("site_id")
+  /// The site's own identifier for this person. Opaque to us.
+  externalId String   @map("external_id")
+  /// "anonymous" | "identified" - open-ended by design.
+  kind       String   @default("anonymous")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  website        Website         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  consentRecords ConsentRecord[]
+
+  @@unique([siteId, externalId])
+  @@unique([id, siteId])
+  @@map("principals")
+}
+
+/// Something a fiduciary uses data for. Referenced by stable `code`, so the SDK
+/// and notices can name a purpose without knowing its UUID.
+model Purpose {
+  id             String   @id @default(uuid())
+  organisationId String   @map("organisation_id")
+  code           String
+  name           String
+  description    String
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organisation   Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  noticePurposes NoticePurpose[]
+  consentRecords ConsentRecord[]
+
+  @@unique([organisationId, code])
+  @@unique([id, organisationId])
+  @@map("purposes")
+}
+
+/// A policy document owned by a fiduciary. The text itself lives in versions.
+model Policy {
+  id             String   @id @default(uuid())
+  organisationId String   @map("organisation_id")
+  code           String
+  name           String
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organisation Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  versions     PolicyVersion[]
+
+  @@unique([organisationId, code])
+  @@unique([id, organisationId])
+  @@map("policies")
+}
+
+/// An immutable version of a policy. Consent is always recorded against the
+/// version that was in force, so the audit trail stays meaningful after the
+/// policy text changes.
+model PolicyVersion {
+  id             String   @id @default(uuid())
+  organisationId String   @map("organisation_id")
+  policyId       String   @map("policy_id")
+  version        String
+  documentUrl    String?  @map("document_url")
+  /// Digest of the published text, so a stored version can be proven unchanged.
+  contentHash    String?  @map("content_hash")
+  publishedAt    DateTime @default(now()) @map("published_at")
+
+  policy         Policy          @relation(fields: [policyId, organisationId], references: [id, organisationId], onDelete: Cascade)
+  notices        Notice[]
+  consentRecords ConsentRecord[]
+
+  @@unique([policyId, version])
+  @@unique([id, organisationId])
+  @@index([organisationId])
+  @@map("policy_versions")
+}
+
+/// What was actually shown to a principal at collection time: a policy version,
+/// in a locale, disclosing a specific set of purposes.
+model Notice {
+  id              String   @id @default(uuid())
+  organisationId  String   @map("organisation_id")
+  policyVersionId String   @map("policy_version_id")
+  version         String
+  locale          String   @default("en")
+  publishedAt     DateTime @default(now()) @map("published_at")
+
+  organisation   Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  policyVersion  PolicyVersion   @relation(fields: [policyVersionId, organisationId], references: [id, organisationId], onDelete: NoAction)
+  purposes       NoticePurpose[]
+  consentRecords ConsentRecord[]
+
+  @@unique([organisationId, version, locale])
+  @@unique([id, organisationId])
+  @@map("notices")
+}
+
+/// Which purposes a notice disclosed.
+model NoticePurpose {
+  noticeId  String @map("notice_id")
+  purposeId String @map("purpose_id")
+
+  notice  Notice  @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  purpose Purpose @relation(fields: [purposeId], references: [id], onDelete: Cascade)
+
+  @@id([noticeId, purposeId])
+  @@index([purposeId])
+  @@map("notice_purposes")
+}
+
+/// One immutable consent decision. This table is append-only: a database trigger
+/// rejects UPDATE, so a recorded decision can never be rewritten or silently
+/// overwritten. DELETE is not blocked, because tenant offboarding cascades from
+/// `organisations`; retention and erasure are a separate concern from
+/// immutability. "Current consent" is derived as the newest record per
+/// (principal, purpose) - it is never stored as a mutable flag.
+model ConsentRecord {
+  id              String   @id @default(uuid())
+  organisationId  String   @map("organisation_id")
+  siteId          String   @map("site_id")
+  principalId     String   @map("principal_id")
+  purposeId       String   @map("purpose_id")
+  noticeId        String?  @map("notice_id")
+  /// Snapshot of the policy version in force, so the record stands alone even if
+  /// the notice is later superseded.
+  policyVersionId String?  @map("policy_version_id")
+  /// GRANTED | DENIED | WITHDRAWN. A string rather than an enum so new decision
+  /// types can be added without a type migration; the API validates the set.
+  status          String
+  /// Where the decision came from, e.g. "sdk", "api", "import".
+  source          String   @default("api")
+  /// When the principal decided.
+  decidedAt       DateTime @map("decided_at")
+  /// When we durably stored it. Never equal to decidedAt for imported records.
+  recordedAt      DateTime @default(now()) @map("recorded_at")
+  /// Free-form context (UI surface, SDK version...). Never legal rules.
+  metadata        Json?
+
+  // Composite foreign keys keep every reference inside one tenant, in the same
+  // way Phase 1 ties an event's session to its site.
+  website       Website        @relation(fields: [siteId, organisationId], references: [id, organisationId], onDelete: Cascade)
+  principal     Principal      @relation(fields: [principalId, siteId], references: [id, siteId], onDelete: Cascade)
+  purpose       Purpose        @relation(fields: [purposeId, organisationId], references: [id, organisationId], onDelete: NoAction)
+  notice        Notice?        @relation(fields: [noticeId, organisationId], references: [id, organisationId], onDelete: NoAction)
+  policyVersion PolicyVersion? @relation(fields: [policyVersionId, organisationId], references: [id, organisationId], onDelete: NoAction)
+
+  @@index([principalId, purposeId, decidedAt])
+  @@index([siteId, decidedAt])
+  @@index([organisationId, decidedAt])
+  @@index([purposeId])
+  @@map("consent_records")
 }

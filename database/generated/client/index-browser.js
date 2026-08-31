@@ -121,8 +121,17 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
   Serializable: 'Serializable'
 });
 
+exports.Prisma.OrganisationScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  slug: 'slug',
+  secretKeyHash: 'secretKeyHash',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.WebsiteScalarFieldEnum = {
   id: 'id',
+  organisationId: 'organisationId',
   name: 'name',
   domain: 'domain',
   publicKey: 'publicKey',
@@ -155,6 +164,71 @@ exports.Prisma.EventScalarFieldEnum = {
   receivedAt: 'receivedAt'
 };
 
+exports.Prisma.PrincipalScalarFieldEnum = {
+  id: 'id',
+  siteId: 'siteId',
+  externalId: 'externalId',
+  kind: 'kind',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PurposeScalarFieldEnum = {
+  id: 'id',
+  organisationId: 'organisationId',
+  code: 'code',
+  name: 'name',
+  description: 'description',
+  isActive: 'isActive',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PolicyScalarFieldEnum = {
+  id: 'id',
+  organisationId: 'organisationId',
+  code: 'code',
+  name: 'name',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PolicyVersionScalarFieldEnum = {
+  id: 'id',
+  organisationId: 'organisationId',
+  policyId: 'policyId',
+  version: 'version',
+  documentUrl: 'documentUrl',
+  contentHash: 'contentHash',
+  publishedAt: 'publishedAt'
+};
+
+exports.Prisma.NoticeScalarFieldEnum = {
+  id: 'id',
+  organisationId: 'organisationId',
+  policyVersionId: 'policyVersionId',
+  version: 'version',
+  locale: 'locale',
+  publishedAt: 'publishedAt'
+};
+
+exports.Prisma.NoticePurposeScalarFieldEnum = {
+  noticeId: 'noticeId',
+  purposeId: 'purposeId'
+};
+
+exports.Prisma.ConsentRecordScalarFieldEnum = {
+  id: 'id',
+  organisationId: 'organisationId',
+  siteId: 'siteId',
+  principalId: 'principalId',
+  purposeId: 'purposeId',
+  noticeId: 'noticeId',
+  policyVersionId: 'policyVersionId',
+  status: 'status',
+  source: 'source',
+  decidedAt: 'decidedAt',
+  recordedAt: 'recordedAt',
+  metadata: 'metadata'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -183,9 +257,17 @@ exports.Prisma.NullsOrder = {
 
 
 exports.Prisma.ModelName = {
+  Organisation: 'Organisation',
   Website: 'Website',
   Session: 'Session',
-  Event: 'Event'
+  Event: 'Event',
+  Principal: 'Principal',
+  Purpose: 'Purpose',
+  Policy: 'Policy',
+  PolicyVersion: 'PolicyVersion',
+  Notice: 'Notice',
+  NoticePurpose: 'NoticePurpose',
+  ConsentRecord: 'ConsentRecord'
 };
 
 /**

@@ -9,9 +9,15 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClientType({
-    log: ["error", "warn"],
+    // Tests deliberately trigger constraint violations; logging them would make
+    // a passing run look like a failing one.
+    log: process.env.NODE_ENV === "test" ? [] : ["error", "warn"],
   });
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
+
+export * from "./keys";
+export * from "./tenancy";
+export * from "./consent";

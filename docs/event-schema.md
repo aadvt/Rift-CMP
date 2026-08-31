@@ -12,6 +12,7 @@ This is the canonical event contract for the Rift-CMP SDK and ingestion API. Eve
 - `name` is optional and populated for custom events; automatic events usually omit it.
 - `payload.properties` is optional, but it is always included as an object in the SDK event builder even when empty.
 - The public key is not part of the event envelope. It is sent in the HTTP `Authorization` header as `Bearer <public_key>`.
+- `site_id` is **validated, not trusted**. The API resolves the site from the public key and rejects any event whose `site_id` differs, with the code `site_mismatch`. The field stays in the envelope so the contract is unchanged and so misconfiguration fails loudly instead of being silently reassigned. See [tenancy.md](tenancy.md).
 
 ## Envelope
 

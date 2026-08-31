@@ -4,7 +4,11 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./event.ts"
+    ".": "./index.ts",
+    "./event": "./event.ts",
+    "./tenancy": "./tenancy.ts",
+    "./api": "./api.ts",
+    "./consent": "./consent.ts"
   },
-  "types": "./event.ts"
+  "types": "./index.ts"
 }

@@ -11,6 +11,8 @@
   "scripts": {
     "dev": "npm -w api run dev",
     "build": "npm -w api run build",
-    "lint": "npm -w api run lint"
+    "lint": "npm -w api run lint",
+    "test": "npm -w api run test",
+    "typecheck": "npm -w api run typecheck"
   }
 }

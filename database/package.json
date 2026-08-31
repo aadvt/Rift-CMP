@@ -5,7 +5,10 @@
   "type": "module",
   "main": "./index.ts",
   "exports": {
-    ".": "./index.ts"
+    ".": "./index.ts",
+    "./keys": "./keys.ts",
+    "./tenancy": "./tenancy.ts",
+    "./consent": "./consent.ts"
   },
   "types": "./index.ts",
   "scripts": {
@@ -15,13 +18,12 @@
     "validate": "prisma validate",
     "seed": "prisma db seed"
   },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
   "dependencies": {
-    "@prisma/client": "^6.15.0"
+    "@prisma/client": "^6.15.0",
+    "@rift-cmp/shared": "*"
   },
   "devDependencies": {
+    "dotenv": "^16.6.1",
     "prisma": "^6.15.0",
     "tsx": "^4.20.0"
   }

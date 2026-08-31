@@ -1,8 +1,9 @@
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { Prisma, prisma } from "database";
-import type { AnalyticsEvent } from "@rift-cmp/shared";
+import type { AnalyticsEvent, ApiErrorDetail, IngestResponse } from "@rift-cmp/shared";
 import { jsonError, setCorsHeaders } from "@/lib/cors";
+import { authenticateIngest } from "@/lib/auth";
 
 const eventSchema = z.object({
   event_id: z.string().uuid(),
@@ -30,25 +31,18 @@ const eventSchema = z.object({
   }),
 });
 
-const batchSchema = z.object({
-  events: z.array(eventSchema),
-});
-
 export async function OPTIONS() {
   return setCorsHeaders(new Response(null, { status: 204 }));
 }
 
 export async function POST(request: NextRequest) {
+  // The public key alone determines which site this request may write to.
+  // `site_id` in the body is checked against it, never used to select the site.
+  const auth = await authenticateIngest(request);
+  if (!auth.ok) return auth.response;
+  const { siteId } = auth.caller;
+
   let payload: unknown;
-
-  const authHeader = request.headers.get("authorization") ?? "";
-  const authMatch = /^Bearer\s+(.+)$/i.exec(authHeader);
-  const publicKey = authMatch?.[1]?.trim();
-
-  if (!publicKey) {
-    return jsonError("unauthorized", "Missing Authorization: Bearer <public_key> header.", [], 401);
-  }
-
   try {
     payload = await request.json();
   } catch {
@@ -59,15 +53,15 @@ export async function POST(request: NextRequest) {
     ? (payload as { events: unknown[] }).events
     : [payload];
 
-  const validatedEvents: AnalyticsEvent[] = [];
-  const rejectedEvents: Array<{ code: string; message: string }> = [];
+  const candidates: AnalyticsEvent[] = [];
+  const rejected: ApiErrorDetail[] = [];
   const seenEventIds = new Set<string>();
 
   for (const rawEvent of rawEvents) {
     const parsed = eventSchema.safeParse(rawEvent);
 
     if (!parsed.success) {
-      rejectedEvents.push({
+      rejected.push({
         code: "invalid_event",
         message: parsed.error.issues.map((issue) => issue.message).join(", "),
       });
@@ -75,8 +69,18 @@ export async function POST(request: NextRequest) {
     }
 
     const event = parsed.data as AnalyticsEvent;
+
+    // Tamper check: a batch may only contain events for the authenticated site.
+    if (event.site_id !== siteId) {
+      rejected.push({
+        code: "site_mismatch",
+        message: `Event ${event.event_id} declares site_id "${event.site_id}", which this key does not authorise.`,
+      });
+      continue;
+    }
+
     if (seenEventIds.has(event.event_id)) {
-      rejectedEvents.push({
+      rejected.push({
         code: "duplicate_event",
         message: `Duplicate event_id: ${event.event_id}`,
       });
@@ -84,69 +88,96 @@ export async function POST(request: NextRequest) {
     }
 
     seenEventIds.add(event.event_id);
-    validatedEvents.push(event);
+    candidates.push(event);
   }
 
-  if (validatedEvents.length === 0 && rejectedEvents.length > 0) {
-    return jsonError("invalid_request", "One or more events are invalid.", rejectedEvents);
-  }
+  // A session id belonging to another site must not be written into, or
+  // attached to. The composite foreign key on `events` backs this up in the
+  // database, but rejecting here gives the caller a precise error.
+  const foreignSessionIds = new Set(
+    candidates.length === 0
+      ? []
+      : (
+          await prisma.session.findMany({
+            where: { id: { in: [...new Set(candidates.map((event) => event.session_id))] } },
+            select: { id: true, siteId: true },
+          })
+        )
+          .filter((session) => session.siteId !== siteId)
+          .map((session) => session.id),
+  );
 
-  const siteIds = new Set(validatedEvents.map((event) => event.site_id));
-
-  for (const siteId of siteIds) {
-    const website = await prisma.website.findFirst({
-      where: { id: siteId, publicKey },
-      select: { id: true, isActive: true },
-    });
-
-    if (!website) {
-      return jsonError("unauthorized", `Website not authorized for site_id: ${siteId}.`, [], 401);
+  const accepted = candidates.filter((event) => {
+    if (foreignSessionIds.has(event.session_id)) {
+      rejected.push({
+        code: "session_conflict",
+        message: `Session ${event.session_id} belongs to a different site.`,
+      });
+      return false;
     }
+    return true;
+  });
 
-    if (!website.isActive) {
-      return jsonError("forbidden", `Website is inactive for site_id: ${siteId}.`, [], 403);
-    }
+  if (accepted.length === 0 && rejected.length > 0) {
+    return jsonError("invalid_request", "One or more events are invalid.", rejected);
   }
 
-  const accepted = validatedEvents.length;
+  if (accepted.length > 0) {
+    await persistBatch(siteId, accepted);
+  }
 
-  for (const event of validatedEvents) {
-    const session = await prisma.session.upsert({
-      where: { id: event.session_id },
-      update: { lastActivity: new Date(event.event_time) },
-      create: {
-        id: event.session_id,
-        siteId: event.site_id,
-        startedAt: new Date(event.event_time),
-        lastActivity: new Date(event.event_time),
-      },
-    });
+  const body: IngestResponse = {
+    accepted: accepted.length,
+    rejected: rejected.length,
+    errors: rejected,
+  };
 
-    const properties = event.payload.properties
-      ? (event.payload.properties as Prisma.InputJsonValue)
-      : Prisma.JsonNull;
+  return setCorsHeaders(Response.json(body, { status: 202 }));
+}
 
-    await prisma.event.upsert({
-      where: { eventId: event.event_id },
-      update: {
-        siteId: event.site_id,
-        sessionId: session.id,
-        eventType: event.event_type,
-        name: event.name ?? null,
-        eventTime: new Date(event.event_time),
-        pageUrl: event.payload.page.url,
-        pageTitle: event.payload.page.title,
-        referrer: event.payload.referrer ?? null,
-        deviceType: event.payload.device.type,
-        browser: event.payload.device.browser,
-        os: event.payload.device.os,
-        properties,
-      },
-      create: {
+/**
+ * Writes a validated, single-site batch.
+ *
+ * Both inserts use `skipDuplicates`, which makes ingestion idempotent: replaying
+ * a batch (the SDK retries, and `sendBeacon` can double-fire) is a no-op rather
+ * than a duplicate row. Events are an immutable log, so the first write of an
+ * `event_id` wins and later copies are ignored.
+ */
+async function persistBatch(siteId: string, events: AnalyticsEvent[]) {
+  const sessions = new Map<string, { startedAt: Date; lastActivity: Date }>();
+
+  for (const event of events) {
+    const at = new Date(event.event_time);
+    const existing = sessions.get(event.session_id);
+    if (!existing) {
+      sessions.set(event.session_id, { startedAt: at, lastActivity: at });
+      continue;
+    }
+    if (at < existing.startedAt) existing.startedAt = at;
+    if (at > existing.lastActivity) existing.lastActivity = at;
+  }
+
+  await prisma.$transaction([
+    prisma.session.createMany({
+      data: [...sessions].map(([id, times]) => ({ id, siteId, ...times })),
+      skipDuplicates: true,
+    }),
+
+    // Scoped to `siteId` so a session can never be advanced by another tenant,
+    // and guarded on `lt` so out-of-order events cannot move activity backwards.
+    ...[...sessions].map(([id, times]) =>
+      prisma.session.updateMany({
+        where: { id, siteId, lastActivity: { lt: times.lastActivity } },
+        data: { lastActivity: times.lastActivity },
+      }),
+    ),
+
+    prisma.event.createMany({
+      data: events.map((event) => ({
         id: event.event_id,
         eventId: event.event_id,
-        siteId: event.site_id,
-        sessionId: session.id,
+        siteId,
+        sessionId: event.session_id,
         eventType: event.event_type,
         name: event.name ?? null,
         eventTime: new Date(event.event_time),
@@ -156,19 +187,11 @@ export async function POST(request: NextRequest) {
         deviceType: event.payload.device.type,
         browser: event.payload.device.browser,
         os: event.payload.device.os,
-        properties,
-      },
-    });
-  }
-
-  return setCorsHeaders(
-    Response.json(
-      {
-        accepted,
-        rejected: rejectedEvents.length,
-        errors: rejectedEvents,
-      },
-      { status: 202 },
-    ),
-  );
+        properties: event.payload.properties
+          ? (event.payload.properties as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
+      })),
+      skipDuplicates: true,
+    }),
+  ]);
 }

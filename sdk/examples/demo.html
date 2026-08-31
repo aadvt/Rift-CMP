@@ -4,23 +4,65 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Rift-CMP SDK Demo</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 40rem; }
+      section { margin-bottom: 2rem; }
+      button { margin-right: 0.5rem; }
+      pre { background: #f4f4f5; padding: 0.75rem; overflow-x: auto; }
+    </style>
   </head>
   <body>
     <h1>Rift-CMP Demo</h1>
-    <button id="track-button">Send test_click</button>
+
+    <section>
+      <h2>Analytics</h2>
+      <button id="track-button">Send test_click</button>
+      <p><small>Events are only sent while the consent gate below allows them.</small></p>
+    </section>
+
+    <section>
+      <h2>Consent</h2>
+      <!--
+        Deliberately not a consent banner. These buttons only exercise the SDK's
+        consent API so the pipeline can be driven by hand; building the actual
+        banner UI is out of scope for this phase.
+      -->
+      <button id="grant">Grant analytics</button>
+      <button id="deny">Deny analytics</button>
+      <button id="withdraw">Withdraw analytics</button>
+      <button id="refresh">Refresh from API</button>
+      <h3>Effective state</h3>
+      <pre id="state">(none)</pre>
+    </section>
 
     <script src="../dist/index.global.js"></script>
     <script>
       const analyticsClient = window.analytics?.analytics ?? window.analytics;
 
-      console.log("init demo: creating SDK client");
       analyticsClient.init("site_demo", "pk_demo_12345", { apiUrl: "http://127.0.0.1:3000" });
-      console.log("session after init", analyticsClient.getSessionId ? analyticsClient.getSessionId() : "n/a");
+
+      // The SDK never decides that analytics requires consent - an integrator
+      // wires the gate up explicitly, like this.
+      analyticsClient.setConsentCheck((purpose) => analyticsClient.consent.isGranted(purpose));
+
+      const output = document.getElementById("state");
+
+      // A UI subscribes to state; the SDK knows nothing about the UI.
+      analyticsClient.consent.onChange((state) => {
+        output.textContent = state.length ? JSON.stringify(state, null, 2) : "(no decisions yet)";
+      });
 
       document.getElementById("track-button").addEventListener("click", () => {
-        analyticsClient.track("test_click", { source: "demo_button" });
-        console.log("manual track sent");
+        const sent = analyticsClient.track("test_click", { source: "demo_button" });
+        console.log("track() returned", sent, "- false means the consent gate blocked it");
       });
+
+      document.getElementById("grant").addEventListener("click", () => analyticsClient.consent.grant("analytics"));
+      document.getElementById("deny").addEventListener("click", () => analyticsClient.consent.deny("analytics"));
+      document.getElementById("withdraw").addEventListener("click", () => analyticsClient.consent.withdraw("analytics"));
+      document.getElementById("refresh").addEventListener("click", () => analyticsClient.consent.getState());
+
+      analyticsClient.consent.getState();
     </script>
   </body>
 </html>

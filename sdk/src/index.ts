@@ -1,19 +1,27 @@
 import { AnalyticsClient } from "./client";
+import { ConsentClient } from "./consent";
+import type { ConsentApi } from "./consent";
 import type { ConsentCheck, SDKOptions } from "./types";
 
 const state = {
   client: null as AnalyticsClient | null,
+  consent: null as ConsentClient | null,
   consentCheck: (() => true) as (purpose: string) => boolean,
 };
 
 function getClient(siteId?: string, publicKey?: string, options?: SDKOptions) {
-  const current = state.client as (AnalyticsClient & { siteId?: string | null; publicKey?: string | null }) | null;
+  const current = state.client;
 
+  // Re-initialising with different credentials must not keep sending events
+  // under the previous site's key, so the client is rebuilt from scratch.
   if (current && siteId && publicKey) {
-    const siteChanged = current.siteId !== siteId;
-    const keyChanged = current.publicKey !== publicKey;
+    const siteChanged = current.getSiteId() !== siteId;
+    const keyChanged = current.getPublicKey() !== publicKey;
     if (siteChanged || keyChanged) {
       state.client = null;
+      // The consent client authenticates with the same key against the same
+      // site, so it is only ever as valid as the analytics client beside it.
+      state.consent = null;
     }
   }
 
@@ -25,11 +33,82 @@ function getClient(siteId?: string, publicKey?: string, options?: SDKOptions) {
       throw new Error("analytics.init(siteId, publicKey, options) requires a publicKey.");
     }
     state.client = new AnalyticsClient(siteId, publicKey, options);
+    state.consent = new ConsentClient(siteId, publicKey, options);
   }
   return state.client;
 }
 
+function warnUninitialised(method: string) {
+  console.warn(
+    `[rift-cmp] analytics.consent.${method}() failed`,
+    new Error("analytics.init(siteId, publicKey, options) must be called before use."),
+  );
+}
+
+/**
+ * Stands in for the real client before `init()`.
+ *
+ * `analytics.consent.isGranted(...)` is the sort of call a page makes during
+ * first paint, potentially before the snippet has initialised. It degrades the
+ * same way `analytics.track()` does - warn, deny, carry on - because throwing
+ * out of a consent check would take the host page down with it.
+ */
+const uninitialisedConsent: ConsentApi = {
+  async getState() {
+    warnUninitialised("getState");
+    return [];
+  },
+  getCachedState() {
+    warnUninitialised("getCachedState");
+    return [];
+  },
+  isGranted() {
+    warnUninitialised("isGranted");
+    return false;
+  },
+  async record() {
+    warnUninitialised("record");
+    return false;
+  },
+  async grant() {
+    warnUninitialised("grant");
+    return false;
+  },
+  async deny() {
+    warnUninitialised("deny");
+    return false;
+  },
+  async withdraw() {
+    warnUninitialised("withdraw");
+    return false;
+  },
+  onChange() {
+    warnUninitialised("onChange");
+    return () => {};
+  },
+  getPrincipalId() {
+    warnUninitialised("getPrincipalId");
+    return null;
+  },
+  clear() {
+    warnUninitialised("clear");
+  },
+};
+
 const analytics = {
+  /**
+   * The consent client for this site.
+   *
+   * Deliberately *not* wired into the event consent gate by default - the SDK
+   * does not decide that analytics requires consent, an integrator does:
+   *
+   * ```js
+   * analytics.setConsentCheck((purpose) => analytics.consent.isGranted(purpose));
+   * ```
+   */
+  get consent(): ConsentApi {
+    return state.consent ?? uninitialisedConsent;
+  },
   init(siteId: string, publicKeyOrOptions?: string | SDKOptions, maybeOptions?: SDKOptions) {
     try {
       const publicKey = typeof publicKeyOrOptions === "string" ? publicKeyOrOptions : undefined;
@@ -82,6 +161,9 @@ export { analytics };
 export default analytics;
 
 export type { ConsentCheck, SDKOptions } from "./types";
+export { ConsentClient } from "./consent";
+export type { ConsentApi, ConsentChangeListener, ConsentRecordOptions } from "./consent";
+export type { ConsentStatus, EffectiveConsent } from "@rift-cmp/shared";
 
 if (typeof window !== "undefined") {
   (window as typeof window & { analytics?: typeof analytics }).analytics = analytics;
