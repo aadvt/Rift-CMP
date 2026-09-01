@@ -6,3 +6,7 @@ dist
 npm-debug.log*
 .DS_Store
 coverage
+
+# Prisma client is generated output — run `npm run generate` in database/.
+# It contains a platform-specific native query engine and must not be committed.
+database/generated

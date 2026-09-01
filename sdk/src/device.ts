@@ -25,14 +25,17 @@ export function getDeviceInfo(): DeviceInfo {
             ? "Safari"
             : "Unknown";
 
+  // Order matters: Apple mobile user agents contain the literal string
+  // "like Mac OS X", so iOS must be matched before macOS. Android user agents
+  // contain "Linux", so Android must be matched before Linux.
   const os = /Windows NT/i.test(userAgent)
     ? "Windows"
-    : /Mac OS X/i.test(userAgent)
-      ? "macOS"
+    : /iPhone|iPad|iPod/i.test(userAgent)
+      ? "iOS"
       : /Android/i.test(userAgent)
         ? "Android"
-        : /iPhone|iPad|iPod/i.test(userAgent)
-          ? "iOS"
+        : /Mac OS X|Macintosh/i.test(userAgent)
+          ? "macOS"
           : /Linux/i.test(userAgent)
             ? "Linux"
             : "Unknown";

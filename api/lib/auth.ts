@@ -50,23 +50,17 @@ export type AuthResult<T> = { ok: true; caller: T } | { ok: false; response: Res
 /**
  * Reads the presented credential.
  *
- * `navigator.sendBeacon` cannot set request headers, so ingestion additionally
- * accepts the public key as a `?pk=` query parameter. That is acceptable only
- * because public keys are not secrets — the management plane never does this,
- * so an organisation secret can never end up in a URL, log or Referer header.
+ * Header only, on every plane. An earlier revision accepted the site public key
+ * as a `?pk=` query parameter, because `navigator.sendBeacon` cannot set request
+ * headers. The SDK now flushes with `fetch(..., { keepalive: true })`, which
+ * survives unload *and* supports headers, so that workaround is gone: no
+ * credential of any kind belongs in a URL, where it can reach access logs,
+ * browser history and `Referer`.
  */
-function readBearerToken(request: NextRequest, allowQueryParam = false): string | null {
+function readBearerToken(request: NextRequest): string | null {
   const header = request.headers.get("authorization") ?? "";
   const match = /^Bearer\s+(.+)$/i.exec(header);
-  const token = match?.[1]?.trim();
-  if (token) return token;
-
-  if (allowQueryParam) {
-    const fromQuery = request.nextUrl.searchParams.get("pk")?.trim();
-    if (fromQuery) return fromQuery;
-  }
-
-  return null;
+  return match?.[1]?.trim() ?? null;
 }
 
 /**
@@ -82,7 +76,7 @@ export async function authenticateIngest(
   const unauthorized = () =>
     jsonError("unauthorized", "A valid site public key is required.", [], 401);
 
-  const token = readBearerToken(request, true);
+  const token = readBearerToken(request);
   if (!token) {
     return {
       ok: false,
@@ -100,10 +94,22 @@ export async function authenticateIngest(
     return { ok: false, response: unauthorized() };
   }
 
-  const website = await prisma.website.findUnique({
-    where: { publicKey: token },
-    select: { id: true, organisationId: true, isActive: true },
-  });
+  let website: { id: string; organisationId: string; isActive: boolean } | null;
+  try {
+    website = await prisma.website.findUnique({
+      where: { publicKey: token },
+      select: { id: true, organisationId: true, isActive: true },
+    });
+  } catch (error) {
+    // A database outage must not surface as an uncaught throw: Next's default
+    // 500 carries no CORS headers, so a browser would see an opaque CORS
+    // failure rather than a status the SDK can act on.
+    console.error("[rift-cmp] failed to look up site credentials", error);
+    return {
+      ok: false,
+      response: jsonError("ingest_failed", "Failed to verify site credentials.", [], 500),
+    };
+  }
 
   if (!website) {
     return { ok: false, response: unauthorized() };
@@ -132,7 +138,7 @@ export async function authenticateManagement(
   const unauthorized = () =>
     managementError("unauthorized", "A valid organisation secret key is required.", [], 401);
 
-  const token = readBearerToken(request, false);
+  const token = readBearerToken(request);
   if (!token || !isSecretKeyFormat(token)) {
     return { ok: false, response: unauthorized() };
   }
@@ -166,7 +172,7 @@ export async function authenticateDelivery(
   const unauthorized = () =>
     managementError("unauthorized", "A valid recipient delivery key is required.", [], 401);
 
-  const token = readBearerToken(request, false);
+  const token = readBearerToken(request);
   if (!token || !isDeliveryKeyFormat(token)) {
     return { ok: false, response: unauthorized() };
   }

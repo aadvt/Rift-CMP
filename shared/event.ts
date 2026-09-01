@@ -10,7 +10,10 @@ export interface AnalyticsEventPayload {
     browser: string;
     os: string;
   };
-  referrer?: string | null;
+  // Always present, per docs/event-schema.md; null when there is no referrer.
+  // The API still accepts a missing referrer and normalises it to null, so an
+  // older SDK build does not start failing validation.
+  referrer: string | null;
   properties?: Record<string, unknown>;
 }
 

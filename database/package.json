@@ -14,6 +14,7 @@
   "types": "./index.ts",
   "scripts": {
     "prisma": "prisma",
+    "postinstall": "prisma generate",
     "generate": "prisma generate",
     "migrate": "prisma migrate dev",
     "validate": "prisma validate",

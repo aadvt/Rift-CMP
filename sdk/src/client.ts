@@ -4,6 +4,8 @@ import { getDeviceInfo } from "./device";
 import { getPageContext } from "./page";
 import type { ConsentCheck, SDKOptions, SessionState } from "./types";
 
+// Envelope `source` per docs/event-schema.md: SDK identifier and version.
+const SDK_SOURCE = "rift-cmp-sdk/0.1.0";
 const SESSION_TTL_MS = 30 * 60 * 1000;
 const FLUSH_INTERVAL_MS = 2000;
 const MAX_BATCH_SIZE = 10;
@@ -17,7 +19,6 @@ export class AnalyticsClient {
   private apiUrl: string;
   private sessionState: SessionState | null = null;
   private consentCheck: ConsentCheck = () => true;
-  private pageContext = getPageContext();
   private eventQueue: AnalyticsEvent[] = [];
   private flushTimer: number | null = null;
   private retryCounts = new Map<string, number>();
@@ -51,10 +52,10 @@ export class AnalyticsClient {
       const sessionStarted = currentSession.isNewSession;
 
       if (sessionStarted) {
-        void this.trackInternal("session_start", undefined, { source: "sdk_session" });
+        void this.trackInternal("session_start");
       }
 
-      void this.trackInternal("page_view", undefined, { source: "sdk_page" });
+      void this.trackInternal("page_view");
 
       if (this.eventQueue.length > 0) {
         void this.flushQueue();
@@ -96,16 +97,6 @@ export class AnalyticsClient {
     }
   }
 
-  /** The site this client sends events for. */
-  getSiteId(): string | null {
-    return this.siteId;
-  }
-
-  /** The public key this client authenticates with. Not a secret. */
-  getPublicKey(): string | null {
-    return this.publicKey;
-  }
-
   getSessionId(): string | null {
     try {
       if (!this.sessionState) {
@@ -140,7 +131,7 @@ export class AnalyticsClient {
   private async trackInternal(
     eventType: "page_view" | "session_start" | "custom",
     name?: string,
-    options: { properties?: Record<string, unknown>; source?: string } = {},
+    options: { properties?: Record<string, unknown> } = {},
   ) {
     try {
       if (!this.siteId) {
@@ -161,7 +152,7 @@ export class AnalyticsClient {
   private buildEvent(
     eventType: "page_view" | "session_start" | "custom",
     name?: string,
-    options: { properties?: Record<string, unknown>; source?: string } = {},
+    options: { properties?: Record<string, unknown> } = {},
   ): AnalyticsEvent {
     if (!this.siteId) {
       throw new Error("analytics.init(siteId) must be called before analytics.track().");
@@ -183,7 +174,7 @@ export class AnalyticsClient {
       name: eventType === "custom" ? name : eventType,
       event_time: new Date().toISOString(),
       schema_version: 1,
-      source: options.source ?? "rift-cmp-sdk/0.1.0",
+      source: SDK_SOURCE,
       payload: {
         page: {
           url: typeof window !== "undefined" ? window.location.href : "unknown",
@@ -194,7 +185,7 @@ export class AnalyticsClient {
           browser: device.browser,
           os: device.os,
         },
-        referrer: page.initialReferrer ?? page.referrer ?? null,
+        referrer: page.initialReferrer,
         properties: options.properties ?? {},
       },
     };
@@ -211,15 +202,24 @@ export class AnalyticsClient {
     if (this.eventQueue.length >= this.maxBatchSize) {
       this.cancelScheduledFlush();
       void this.flushQueue();
+    }
+
+    // Always leave a scheduled drain behind. flushQueue() is a no-op while
+    // another flush is already in flight, so without this the size-triggered
+    // path above could cancel the pending timer, do nothing, and strand the
+    // queue until some later event happened to schedule a new one.
+    this.scheduleFlush();
+  }
+
+  private scheduleFlush(delayMs: number = this.flushIntervalMs) {
+    if (this.flushTimer !== null || this.eventQueue.length === 0) {
       return;
     }
 
-    if (this.flushTimer === null) {
-      this.flushTimer = window.setTimeout(() => {
-        this.flushTimer = null;
-        void this.flushQueue();
-      }, this.flushIntervalMs);
-    }
+    this.flushTimer = window.setTimeout(() => {
+      this.flushTimer = null;
+      void this.flushQueue();
+    }, delayMs);
   }
 
   private cancelScheduledFlush() {
@@ -269,10 +269,8 @@ export class AnalyticsClient {
         const highestAttempts = Math.max(...retryable.map((event) => this.retryCounts.get(event.event_id) ?? 0), 1);
         const nextDelay = 250 * 2 ** Math.max(0, highestAttempts - 1);
         this.persistQueue(this.eventQueue);
-        this.flushTimer = window.setTimeout(() => {
-          this.flushTimer = null;
-          void this.flushQueue();
-        }, nextDelay);
+        this.cancelScheduledFlush();
+        this.scheduleFlush(nextDelay);
       }
 
       if (exhausted.length > 0) {
@@ -283,6 +281,8 @@ export class AnalyticsClient {
       console.warn("[rift-cmp] queue flush failed; events kept for retry", error);
     } finally {
       this.isFlushing = false;
+      // Anything queued while this flush was in flight still needs a drain.
+      this.scheduleFlush();
     }
   }
 
@@ -301,8 +301,18 @@ export class AnalyticsClient {
     window.addEventListener("beforeunload", () => this.flushBeacon());
   }
 
+  // Flush on tab close / hidden. `navigator.sendBeacon` cannot set request
+  // headers, so it can never send `Authorization: Bearer <public_key>` and the
+  // API rejects every beacon with 401. `fetch(..., { keepalive: true })` also
+  // survives page unload but does support headers, so it is used instead.
+  //
+  // The queue is deliberately NOT cleared here: this request cannot be awaited
+  // during unload, so delivery is unknowable. Events stay in localStorage and
+  // are re-sent on the next page load, where the API deduplicates them by
+  // event_id. Losing the queue on an assumed success is worse than sending a
+  // duplicate the API already ignores.
   private flushBeacon() {
-    if (typeof navigator === "undefined" || !("sendBeacon" in navigator)) {
+    if (typeof fetch === "undefined") {
       return;
     }
 
@@ -311,23 +321,26 @@ export class AnalyticsClient {
       return;
     }
 
-    // `sendBeacon` cannot set request headers, so the site's public key travels
-    // as a query parameter here. That is safe precisely because it is a public
-    // identifier; the organisation secret key is never used by the SDK.
-    if (!this.publicKey) {
-      return;
-    }
+    this.persistQueue(payload);
 
-    const body = JSON.stringify({ events: payload });
-    const url = `${this.apiUrl}/api/v1/events?pk=${encodeURIComponent(this.publicKey)}`;
-    const successful = navigator.sendBeacon(url, body);
-
-    if (successful) {
-      this.eventQueue = [];
-      this.clearPersistedQueue();
-      this.retryCounts.clear();
-    } else {
-      this.persistQueue(payload);
+    try {
+      void fetch(`${this.apiUrl}/api/v1/events`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.publicKey}`,
+        },
+        body: JSON.stringify({ events: payload }),
+        mode: "cors",
+        // The fetch spec caps keepalive request bodies at 64 KB. The queue is
+        // capped at MAX_PERSISTED_EVENTS, which keeps it well under that.
+        keepalive: true,
+      }).catch(() => {
+        // Unload is in progress; nothing can be reported. The persisted queue
+        // above is the recovery path.
+      });
+    } catch {
+      // Ignore: events remain persisted for the next page load.
     }
   }
 

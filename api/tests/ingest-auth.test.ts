@@ -58,20 +58,17 @@ describe("ingestion authentication", () => {
     expect(await prisma.event.count()).toBe(0);
   });
 
-  it("accepts the public key as a query parameter, for sendBeacon", async () => {
+  it("refuses a credential passed in the URL instead of a header", async () => {
     const { siteA1 } = await createOwnershipTree();
-    const response = await POST(
-      ingestRequest({ events: [buildEvent({ site_id: siteA1.siteId })] }, { queryKey: siteA1.publicKey }),
-    );
 
-    expect(response.status).toBe(202);
-    expect(await prisma.event.count({ where: { siteId: siteA1.siteId } })).toBe(1);
-  });
-
-  it("refuses an organisation secret smuggled through the query parameter", async () => {
-    const { orgA, siteA1 } = await createOwnershipTree();
+    // The SDK flushes with `fetch(..., { keepalive: true })`, which supports
+    // headers even during unload, so nothing needs a credential in the query
+    // string - where it would leak into access logs and browser history.
     const response = await POST(
-      ingestRequest({ events: [buildEvent({ site_id: siteA1.siteId })] }, { queryKey: orgA.secretKey }),
+      ingestRequest(
+        { events: [buildEvent({ site_id: siteA1.siteId })] },
+        { queryKey: siteA1.publicKey },
+      ),
     );
 
     expect(response.status).toBe(401);

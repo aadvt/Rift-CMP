@@ -123,7 +123,15 @@ export async function POST(request: NextRequest) {
   }
 
   if (accepted.length > 0) {
-    await persistBatch(siteId, accepted);
+    try {
+      await persistBatch(siteId, accepted);
+    } catch (error) {
+      // Without this the handler would throw, and Next's default 500 carries no
+      // CORS headers - a browser would see an opaque CORS failure instead of a
+      // server error, and the SDK could not read the status to decide on retry.
+      console.error("[rift-cmp] failed to persist events", error);
+      return jsonError("ingest_failed", "Failed to persist events.", [], 500);
+    }
   }
 
   const body: IngestResponse = {

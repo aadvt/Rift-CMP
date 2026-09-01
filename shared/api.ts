@@ -22,7 +22,8 @@ export type ApiErrorCode =
   | "consent_not_granted"
   | "authorisation_expired"
   | "authorisation_consumed"
-  | "invalid_envelope";
+  | "invalid_envelope"
+  | "ingest_failed";
 
 export interface ApiErrorDetail {
   code: ApiErrorCode;

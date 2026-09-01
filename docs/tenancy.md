@@ -51,10 +51,10 @@ presented to the ingestion API is rejected with `401`. The check is on the key
 other's credential.
 
 Because public keys ship inside browser code, they are treated as public
-information: they are returned to their owning organisation in plain text, and
-`navigator.sendBeacon` may pass one as a `?pk=` query parameter (that API cannot
-set headers). A secret key is never accepted in a URL, so it can never leak
-through logs, browser history or `Referer` headers.
+information: they are returned to their owning organisation in plain text. Even
+so, no credential of any kind is accepted in a URL — not even a public key —
+because URLs reach access logs, browser history and `Referer` headers. Every
+plane reads its credential from the `Authorization` header only.
 
 SHA-256 — rather than a password hash such as argon2 — is the right digest for
 secret keys because they are 256-bit random tokens, not user-chosen passwords:

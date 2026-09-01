@@ -26,7 +26,7 @@ Routing depends on consent rather than duplicating it: an authorisation is minte
 │  - site script      │                         │ - queue events      │                    │ - validate         │
 │  - custom events    │                         │ - 2s / 10-event    │                    │ - bearer auth      │
 │                     │                         │ - retry/backoff    │                    │ - dedupe + insert  │
-└─────────────────────┘                         │ - sendBeacon       │                    └────────────────────┘
+└─────────────────────┘                         │ - keepalive flush  │                    └────────────────────┘
                                               └─────────────────────┘
                                                            │
                                                            │ reads/writes
@@ -42,7 +42,7 @@ Routing depends on consent rather than duplicating it: an authorisation is minte
 - Automatically emits `page_view` and `session_start` events.
 - Allows arbitrary custom events via `track(name, properties)`.
 - Queues events in memory and flushes as batch payloads of up to 10 events every 2 seconds, with retry/backoff and localStorage persistence for recoverable failures.
-- Uses `navigator.sendBeacon` on unload/hidden transitions to avoid dropping the final queue when a tab closes.
+- Uses `fetch(..., { keepalive: true })` on unload/hidden transitions to avoid dropping the final queue when a tab closes. `navigator.sendBeacon` cannot set request headers and therefore cannot send `Authorization: Bearer <public_key>`, so every beacon would be rejected with `401`; `keepalive` survives unload and does support headers. The queue is not cleared on this path, because the request cannot be awaited during unload — events stay in `localStorage` and are re-sent on the next load, where the API deduplicates them by `event_id`.
 - Sends payloads to the API using the canonical event envelope defined in [event-schema.md](event-schema.md).
 - Handles site and session context such as `site_id`, `session_id`, browser, OS, URL, title, and referrer.
 - Exposes `analytics.consent`, a **headless** consent client: it mints and stores an anonymous principal id, records `GRANTED`/`DENIED`/`WITHDRAWN` decisions, caches the effective state in `localStorage`, and notifies subscribers via `onChange()`. It renders no UI at all.

@@ -61,6 +61,8 @@ model Session {
   events  Event[]
 
   @@unique([id, siteId])
+  // Covers lookups by site alone as a leading-column prefix, so a separate
+  // [siteId] index would be redundant.
   @@index([siteId, lastActivity])
   @@map("sessions")
 }
@@ -87,8 +89,11 @@ model Event {
   /// same site. This makes cross-tenant session reuse impossible at the DB level.
   session Session @relation(fields: [sessionId, siteId], references: [id, siteId], onDelete: Cascade)
 
+  // Access patterns required by docs/database-schema.md: filtering by site_id,
+  // event_time and event_type, and joins on session_id. Postgres does not
+  // index foreign keys automatically, so these are declared explicitly.
   @@index([siteId, eventTime])
-  @@index([siteId, eventType])
+  @@index([siteId, eventType, eventTime])
   @@index([sessionId])
   @@map("events")
 }

@@ -11,7 +11,7 @@ ingestion API.
 - Produce events matching [`../docs/event-schema.md`](../docs/event-schema.md).
 - Batch and transmit events with retry and backoff; buffer to `localStorage`
   during outages, capped at 50 events.
-- Flush the queue on page hide/unload with `navigator.sendBeacon`.
+- Flush the queue on page hide/unload with `fetch(..., { keepalive: true })`.
 - Record and read consent decisions for an anonymous browser principal via
   `analytics.consent`, with no UI of its own.
 
@@ -29,8 +29,11 @@ The SDK never handles an organisation secret key (`sk_...`).
 Re-calling `init()` with a different site or key rebuilds the client, so events
 are never sent under a previous site's credentials.
 
-Because `sendBeacon` cannot set headers, the unload flush passes the public key as
-a `?pk=` query parameter instead of an `Authorization` header.
+The unload flush uses `fetch(..., { keepalive: true })` rather than
+`navigator.sendBeacon`: it survives page unload but, unlike `sendBeacon`, can set
+the `Authorization` header. It also does not report a success the SDK cannot
+verify, so the persisted queue is kept and re-sent on the next load, where the
+API deduplicates by `event_id`.
 
 ## Consent
 

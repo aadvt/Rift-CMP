@@ -6,17 +6,17 @@ import type { ConsentCheck, SDKOptions } from "./types";
 const state = {
   client: null as AnalyticsClient | null,
   consent: null as ConsentClient | null,
+  siteId: null as string | null,
+  publicKey: null as string | null,
   consentCheck: (() => true) as (purpose: string) => boolean,
 };
 
 function getClient(siteId?: string, publicKey?: string, options?: SDKOptions) {
-  const current = state.client;
-
   // Re-initialising with different credentials must not keep sending events
   // under the previous site's key, so the client is rebuilt from scratch.
-  if (current && siteId && publicKey) {
-    const siteChanged = current.getSiteId() !== siteId;
-    const keyChanged = current.getPublicKey() !== publicKey;
+  if (state.client && siteId && publicKey) {
+    const siteChanged = state.siteId !== siteId;
+    const keyChanged = state.publicKey !== publicKey;
     if (siteChanged || keyChanged) {
       state.client = null;
       // The consent client authenticates with the same key against the same
@@ -34,6 +34,11 @@ function getClient(siteId?: string, publicKey?: string, options?: SDKOptions) {
     }
     state.client = new AnalyticsClient(siteId, publicKey, options);
     state.consent = new ConsentClient(siteId, publicKey, options);
+    state.siteId = siteId;
+    state.publicKey = publicKey;
+    // A consent check registered before init() must also gate the automatic
+    // session_start / page_view events that init() emits, not just track().
+    state.client.setConsentCheck(state.consentCheck);
   }
   return state.client;
 }

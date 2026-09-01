@@ -85,15 +85,10 @@ Accepts one event or a batch of events for the site identified by the public key
 Authorization: Bearer pk_demo_12345
 ```
 
-Because `navigator.sendBeacon` cannot set headers, this endpoint *also* accepts
-the public key as a query parameter, used by the SDK on page unload:
-
-```http
-POST /api/v1/events?pk=pk_demo_12345
-```
-
-This is safe only because public keys are not secrets. An `sk_...` key presented
-either way is rejected with `401`.
+The credential must be in the header. It is never accepted in the query string,
+on any plane: a URL reaches access logs, browser history and `Referer`. The SDK's
+unload flush uses `fetch(..., { keepalive: true })`, which survives unload and
+supports headers, so nothing needs a credential in a URL.
 
 #### Request
 
@@ -132,7 +127,7 @@ the server authoritative about ownership.
 ```
 
 Ingestion is idempotent on `event_id`. Replaying a batch — which the SDK does on
-retry, and `sendBeacon` can do on a double-fire — is a no-op rather than a
+retry, and an unload flush can do when its outcome is unobservable — is a no-op rather than a
 duplicate row. Events are an immutable log, so the first write of an `event_id`
 wins and later copies are ignored.
 
