@@ -18,11 +18,13 @@ This is the contract between Rift-CMP’s SDK/API/database side and the other si
 | Crypto boundary package (`secure-transfer/`) | ✅ | — |
 | Orchestration: "is this action currently authorised?" | ✅ | — |
 | Unified audit trail across consent, authorisations and transfers | ✅ | — |
+| Aggregate analytics read API (`/api/v1/analytics/*`) | ✅ | — |
+| Operator dashboard: an internal tool, built as a consumer of the API above | ✅ | — |
 | Deciding whether a purpose required consent in the first place | — | ✅ |
-| Dashboards, exports and analytics over the audit trail | — | ✅ |
+| Customer-facing dashboards, exports and analytics over the audit trail | — | ✅ |
 | Source fiduciary: producing and sealing the plaintext | — | ✅ |
 | **Target fiduciary key management: generating, storing and rotating the X25519 private key** | — | ✅ |
-| Analytics dashboards | — | ✅ |
+| Analytics dashboards for customers | — | ✅ |
 | Compliance engine (which purposes need consent, in which jurisdiction, for how long) | — | ✅ |
 | Consent UX: banners, preference centres | — | ✅ |
 | Event schema definition | shared | shared |
@@ -71,11 +73,14 @@ The other side is responsible for:
   than being embedded in it. Deciding whether a given `WITHDRAWN` decision must
   stop a given piece of processing is that side's call.
 - any downstream business logic that reads the database and derives insights
-- **anything built on the audit trail.** `GET /api/v1/audit` returns a JSON
-  timeline. Rendering it, filtering it in a UI, exporting it, aggregating it, and
-  alerting on it are all that side's work. We do not ship a dashboard, and
-  refused attempts are not recorded at all, so detecting a fiduciary repeatedly
-  probing withdrawn consent is not something the current trail supports.
+- **the customer-facing product built on the audit trail.** `GET /api/v1/audit`
+  returns a JSON timeline. Exporting it, alerting on it, and building anything an
+  end customer sees are that side's work. We ship an **operator** dashboard,
+  which renders that timeline and the analytics counts for our own use and is a
+  consumer of the same public endpoints — it is not a privileged view, not a
+  consent UI, and not the analytics product. Refused attempts are still not
+  recorded at all, so detecting a fiduciary repeatedly probing withdrawn consent
+  is not something the current trail supports, in either side's UI.
 - **what a withdrawal means for data already delivered.** We stop future
   authorisations and preserve the past exactly as it was. Whether a recipient
   must now delete or stop processing what it already holds is a compliance
@@ -214,6 +219,17 @@ The ingestion API contract is defined in [api-spec.md](api-spec.md). The current
   authenticated by a **recipient delivery key** (`rk_...`). It is the only
   endpoint on that plane: it collects sealed envelopes addressed to one recipient
   and confers no ability to read them
+- `GET /api/v1/consent/effective` returns the decisions currently in force for
+  **one** principal on **one** site, on the management plane. It answers the same
+  question as the browser-plane `GET /api/v1/consent`, through the same
+  `resolveEffectiveConsent`, for a caller that holds an `sk_` rather than a
+  `pk_`. Re-deriving the answer from the *paginated* `GET /api/v1/consent/history`
+  is silently wrong past the limit, so consumers should call this instead
+- `GET /api/v1/analytics/summary` and `GET /api/v1/analytics/overview` are
+  management too: aggregate counts over the caller's own sites, filtered by
+  `site_id`, `from` and `to`, defaulting to the last 30 days
+- `GET /api/v1/transfers` gained a `limit` (integer 1–500, default 200) in
+  Phase 5; it was the last list endpoint with no caller-settable bound
 - `GET /api/healthz` is the unauthenticated health check endpoint
 - the three credentials are never interchangeable; using one on another plane is
   `401`, decided on the key prefix before any database lookup
@@ -221,15 +237,63 @@ The ingestion API contract is defined in [api-spec.md](api-spec.md). The current
 - an event whose `site_id` is not the authenticated site is rejected as `site_mismatch`
 - CORS is enabled for ingestion; the management and delivery planes intentionally
   send none
-- There is no analytics query API in the MVP
+- There is still no analytics **query** API. `/api/v1/analytics/*` is a fixed set
+  of counts; it takes no metric, dimension or grouping from the caller
+
+## Shared artifact: the analytics read contract
+
+The fourth shared contract, added in Phase 5, is the analytics read model typed
+in [`../shared/analytics.ts`](../shared/analytics.ts) and served by
+`GET /api/v1/analytics/summary` and `GET /api/v1/analytics/overview`.
+
+It exists so the other side has an alternative to reading the database for
+aggregate activity — one that goes through our authorisation layer instead of
+around it. What both sides must hold to:
+
+- **It is a fixed set of metrics, not a query API.** Totals, ten top pages, three
+  categorical breakdowns, per-site rows, and the operational counts across
+  consent, authorisations and transfers. Adding a metric is a change to this
+  contract; adding a query language is not on the table.
+- **It returns aggregates only.** No individual event, no page URL tied to a
+  person, no consent record, no envelope, no key material. Every query resolves
+  the caller's own site ids first and filters on that list, so a tenant can only
+  ever aggregate over its own data.
+- **It reports sessions, not unique visitors, and must not be relabelled.** There
+  is no persistent visitor identifier in the analytics domain: a session id lives
+  in `sessionStorage` and expires after 30 minutes of inactivity. The one durable
+  per-person identifier is `Principal`, which belongs to the consent domain and
+  is **deliberately never joined to analytics rows**. A consumer that presents
+  `sessions` as a user count is overstating what the data supports, and a
+  consumer that fixes the gap by joining the two domains has broken the
+  separation both sides agreed to in [consent.md](consent.md).
+- **`overview` filters only its `activity` block.** `site_id`, `from` and `to`
+  narrow the SDK activity counts; the sites, consent, authorisation and transfer
+  counts are whole-organisation and all-time. Read them accordingly.
+- **The window is `[from, to)`**, defaulting to the last 30 days, and the
+  resolved range is always echoed in the response.
 
 ## Read API status
 
-A read API may be added later if the analytics/dashboard team explicitly needs it. That is outside scope until requested, and any such addition must be reviewed as part of the same integration contract before implementation.
+The analytics read API above is the first read surface added under this rule, and
+it was reviewed as part of this contract before implementation. Any further read
+endpoint must be reviewed the same way, and must scope every query to the
+authenticated tenant.
 
 ## Database access model
 
-For the MVP, the analytics/dashboard side reads the database directly, not through a dedicated read endpoint. This separation keeps the API focused on ingestion and preserves a simple first version of the platform.
+For the MVP, the analytics/dashboard side still reads the database directly for
+its own reporting. That remains supported, and that side remains responsible for
+scoping its own queries per [tenancy.md](tenancy.md), because our authorisation
+layer is not in the path.
+
+`/api/v1/analytics/*` is a **shared artifact the other team can consume instead**
+for aggregate activity: it is tenant-scoped by the credential, it cannot drift
+from the schema, and it does not require the consumer to reproduce a derivation
+correctly. It does not replace direct access — it is deliberately narrow, and
+anything it does not express still needs the database.
+
+Our own operator dashboard is the proof that the boundary holds: it renders every
+screen from these endpoints and imports `database` nowhere.
 
 ## Tenancy guarantees
 
@@ -369,3 +433,4 @@ Because the SDK runs on arbitrary customer domains, the API must support browser
 | 2026-08-31 | Phase 2: added the consent domain — principals, purposes, policies, policy versions, notices and an append-only consent record — plus `POST\|GET /api/v1/consent` on the browser plane and `/api/v1/consent/history`, `/api/v1/purposes`, `/api/v1/policies`, `/api/v1/notices` on the management plane, and a headless `analytics.consent` SDK client. The consent vocabulary in [consent.md](consent.md) becomes a shared artifact: it encodes structure and no legal rules, and is the base the compliance engine is expected to be built on. Event envelope and analytics tables unchanged; the two domains are not joined. | v1 | — |
 | 2026-09-01 | Phase 3: added secure data routing as a **proof of concept** — `data_recipients`, `transfer_authorisations` and `transfer_records`, plus `GET\|POST /api/v1/recipients`, `POST /api/v1/transfers/authorisations` and `GET\|POST /api/v1/transfers` on the management plane, and a third credential plane (`rk_` recipient delivery key) whose only endpoint is `GET /api/v1/transfers/{transferId}/envelope`. The trust model in [secure-transfer.md](secure-transfer.md) becomes a shared artifact. Rift stores ciphertext and routing metadata and cannot decrypt either; the target fiduciary's X25519 private key is that side's responsibility and never reaches us. Event envelope, analytics tables and the consent schema are unchanged — routing reads consent through `getEffectiveConsent` and references the consent record it relied on, rather than copying a flag. Not cryptographically reviewed; not to be described as production-secure. | v1 | — |
 | 2026-09-01 | Phase 4: connected the consent and secure-routing domains into one product flow. Added an orchestration layer (`database/authorisation.ts`) that answers "is this action currently authorised for this Data Principal, Fiduciary and purpose?" — side-effect free, no cryptography, and the only place the two domains meet — plus a unified audit read model (`database/audit.ts`) that interleaves consent decisions, authorisations and transfers into one timeline without joining them in the database. New endpoints on the management plane: `GET\|POST /api/v1/authorisations`, `POST /api/v1/authorisations/decision` (evaluate only; a refusal is `200` with `permitted: false`, not an HTTP error) and `GET /api/v1/audit`. **BREAKING: `POST /api/v1/transfers/authorisations` moved to `POST /api/v1/authorisations`, in place and with no alias** — authorisation is its own concern, not a sub-resource of transfers. The lifecycle guarantees above become part of the contract. No schema change, no new table, and no SDK change: authorisation, transfer and audit are server-to-server with the organisation secret and must never reach a browser. The secure routing half is still an unreviewed proof of concept. | v1 | — |
+| 2026-09-01 | Phase 5: added an **analytics read API** and an operator dashboard. New on the management plane: `GET /api/v1/analytics/summary` and `GET /api/v1/analytics/overview` (aggregate counts, filters `site_id`, `from`, `to`, default window 30 days) and `GET /api/v1/consent/effective` (effective consent for one principal on one site, for a caller holding `sk_` rather than `pk_` — history is paginated, so re-deriving the answer from it is silently wrong past the limit). `GET /api/v1/transfers` gained a `limit` of 1–500; it was the last unbounded list endpoint. The analytics read contract in [`../shared/analytics.ts`](../shared/analytics.ts) becomes a **shared artifact the other side can consume in place of reading the database directly** for aggregate activity — tenant-scoped by the credential, aggregates only, and reporting **sessions, not unique visitors**: there is no persistent visitor identifier in the analytics domain, and `Principal` is deliberately never joined to analytics rows. The dashboard is an internal operator tool and a pure API consumer — no page imports `database` — signing in with the organisation secret held in an httpOnly cookie, which is an MVP compromise standing in for user accounts and roles. **No schema change and no migration**; analytics reads existing tables. No SDK change. The secure routing half is still an unreviewed proof of concept. | v1 | — |

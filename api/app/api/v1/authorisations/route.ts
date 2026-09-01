@@ -3,7 +3,7 @@ import { z } from "zod";
 import { authoriseTransfer, listAuthorisations, prisma } from "database";
 import { authenticateManagement, findOwnedWebsite, siteNotFound } from "@/lib/auth";
 import { managementError } from "@/lib/cors";
-import { parseJsonBody } from "@/lib/validation";
+import { parseJsonBody, parseLimit } from "@/lib/validation";
 
 /**
  * Authorisation is its own concern, not a sub-resource of transfers.
@@ -68,18 +68,8 @@ export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const siteId = params.get("site_id")?.trim() || undefined;
 
-  const rawLimit = params.get("limit");
-  let limit: number | undefined;
-  if (rawLimit !== null) {
-    const parsed = Number(rawLimit);
-    if (!Number.isInteger(parsed) || parsed < 1 || parsed > MAX_LIMIT) {
-      return managementError(
-        "invalid_request",
-        `Query parameter \`limit\` must be an integer between 1 and ${MAX_LIMIT}.`,
-      );
-    }
-    limit = parsed;
-  }
+  const parsedLimit = parseLimit(request, MAX_LIMIT);
+  if (!parsedLimit.ok) return parsedLimit.response;
 
   if (siteId && !(await findOwnedWebsite(auth.caller.organisationId, siteId))) {
     return siteNotFound(siteId);
@@ -88,7 +78,7 @@ export async function GET(request: NextRequest) {
   const authorisations = await listAuthorisations(prisma, {
     organisationId: auth.caller.organisationId,
     siteId,
-    limit,
+    limit: parsedLimit.limit,
   });
 
   return Response.json({ authorisations }, { status: 200 });

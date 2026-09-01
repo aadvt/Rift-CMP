@@ -9,11 +9,30 @@ const apiDir = path.resolve(here, "../..");
  * Tests run against a dedicated schema in the same database, so they never touch
  * development data.
  *
- * The schema is pinned explicitly in the connection string: Neon's connection
- * pooler can otherwise carry a `search_path` over from a previous session and
- * silently point queries at the wrong schema.
+ * Two things are forced here, both because of Neon's connection pooler:
+ *
+ * 1. **The schema is pinned explicitly.** The pooler can otherwise carry a
+ *    `search_path` over from an unrelated session and point raw SQL at the
+ *    wrong schema.
+ *
+ * 2. **The pooled endpoint is swapped for the direct one.** Through the pooler,
+ *    a write committed in a `$transaction` is intermittently not visible to the
+ *    very next read on a new connection. That surfaced as fixtures appearing to
+ *    succeed and then their rows being absent - "No purpose found with code:
+ *    analytics", or an organisation that had just been created failing to
+ *    authenticate with 401. It is intermittent, load-dependent and had been
+ *    misdiagnosed twice as a test-isolation problem. The direct endpoint has no
+ *    pooler in the path and does not exhibit it.
+ *
+ * The application itself still uses the pooled endpoint, which is correct for
+ * serverless request handling; this applies only to the test harness.
  */
 export const TEST_SCHEMA = "rift_cmp_test";
+
+/** Neon names its pooled endpoint `<endpoint>-pooler`; the direct one omits it. */
+function toDirectEndpoint(url: string): string {
+  return url.replace("-pooler.", ".");
+}
 
 function readFromEnvFile(file: string): string | undefined {
   const full = path.resolve(apiDir, file);
@@ -36,6 +55,8 @@ export function resolveTestDatabaseUrl(): string {
     );
   }
 
-  const stripped = base.replace(/([?&])schema=[^&]*/g, "$1").replace(/[?&]+$/, "");
+  const stripped = toDirectEndpoint(base)
+    .replace(/([?&])schema=[^&]*/g, "$1")
+    .replace(/[?&]+$/, "");
   return `${stripped}${stripped.includes("?") ? "&" : "?"}schema=${TEST_SCHEMA}`;
 }

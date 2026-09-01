@@ -9,7 +9,7 @@ interchangeable. See [tenancy.md](tenancy.md) for the full ownership model.
 | Plane | Base path | Credential | Purpose |
 | --- | --- | --- | --- |
 | Ingestion | `/api/v1/events`, `/api/v1/consent` | site public key `pk_...` | append events, record consent decisions, read one principal's state |
-| Management | `/api/v1/organisation`, `/api/v1/sites`, `/api/v1/consent/history`, `/api/v1/purposes`, `/api/v1/policies`, `/api/v1/notices`, `/api/v1/recipients`, `/api/v1/authorisations`, `/api/v1/transfers`, `/api/v1/audit` | organisation secret key `sk_...` | read/modify that org's sites, consent reference data and the audit trail; register recipients; ask whether an action is permitted; authorise and submit transfers; read its own transfer metadata and the unified lifecycle timeline |
+| Management | `/api/v1/organisation`, `/api/v1/sites`, `/api/v1/consent/history`, `/api/v1/consent/effective`, `/api/v1/purposes`, `/api/v1/policies`, `/api/v1/notices`, `/api/v1/recipients`, `/api/v1/authorisations`, `/api/v1/transfers`, `/api/v1/audit`, `/api/v1/analytics` | organisation secret key `sk_...` | read/modify that org's sites, consent reference data and the audit trail; register recipients; ask whether an action is permitted; authorise and submit transfers; read its own transfer metadata, the unified lifecycle timeline, and aggregate activity |
 | Delivery | `/api/v1/transfers/{transferId}/envelope` | recipient delivery key `rk_...` | collect sealed envelopes addressed to one recipient, and nothing else |
 
 Each credential is **prefix-checked before any database lookup**, so no plane can
@@ -464,6 +464,64 @@ by a database trigger — see [consent.md](consent.md).
 
 An out-of-range `limit` is rejected rather than silently clamped, so a caller is
 never quietly given a different page size than it asked for.
+
+### `GET /api/v1/consent/effective`
+
+The decision currently in force for each purpose, for **one** principal on one
+site — the same answer as `GET /api/v1/consent`, on the management plane.
+
+Both are needed. The ingestion version authenticates with a **site public key**,
+which an operator tool does not hold and should not be given. The alternative,
+re-deriving the state by reducing `GET /api/v1/consent/history`, is only correct
+if the reducer can see the principal's *entire* history — and history is
+paginated by `limit`, so past that boundary the derived answer would be silently
+wrong. Both planes reduce the same append-only log through the same
+`resolveEffectiveConsent` in `shared/consent.ts`, so they cannot disagree.
+
+Both query parameters are **required**. Consent is recorded per site: the same
+external id on two sites is two different principals, so an effective answer is
+only meaningful once a site is named.
+
+| Parameter | Notes |
+| --- | --- |
+| `site_id` | Required. Must be a site the caller owns, else `404` |
+| `principal_external_id` | Required. Exact match |
+
+```http
+GET /api/v1/consent/effective?site_id=site_demo&principal_external_id=p_3f9c
+Authorization: Bearer sk_2f8c...
+```
+
+`200 OK`, in the same `ConsentStateResponse` shape the ingestion plane returns:
+
+```json
+{
+  "site_id": "site_demo",
+  "principal_external_id": "p_3f9c",
+  "purposes": [
+    {
+      "purpose_code": "analytics",
+      "status": "GRANTED",
+      "decided_at": "2026-09-01T09:00:00.000Z",
+      "consent_record_id": "6b1c0f2a-...",
+      "notice_id": "3a1e6b52-...",
+      "policy_version_id": "9c04b1de-..."
+    }
+  ]
+}
+```
+
+A principal that has never been seen returns `purposes: []`, **not** `404` —
+"no decision recorded" is the normal state, absence of a decision already means
+"not granted", and a `404` would turn the endpoint into an oracle for whether a
+principal id exists. `site_id` and `principal_external_id` echo the request; the
+endpoint never resolves them into internal ids.
+
+| Status | `code` | Cause |
+| --- | --- | --- |
+| `401` | `unauthorized` | missing, malformed, unknown, or wrong-plane key |
+| `400` | `invalid_request` | `site_id` or `principal_external_id` missing or empty |
+| `404` | `not_found` | `site_id` names a site the caller does not own |
 
 ### `GET /api/v1/purposes`
 
@@ -970,16 +1028,24 @@ the authenticated data.
 
 ### `GET /api/v1/transfers`
 
-The authenticated organisation's own transfer records, newest first, capped at
-200. Routing metadata and integrity digests only — **the envelope is never
-returned here**. It is collected by the recipient, on the delivery plane.
+The authenticated organisation's own transfer records, newest first. Routing
+metadata and integrity digests only — **the envelope is never returned here**. It
+is collected by the recipient, on the delivery plane.
 
 | Parameter | Notes |
 | --- | --- |
 | `site_id` | Optional. Must be a site the caller owns, else `404` |
+| `limit` | Optional integer 1–500, default 200 |
+
+`limit` was **added in Phase 5**. This was the last list endpoint with no bound
+a caller could set: it returned a fixed 200 and had no way to ask for fewer or
+more. It now shares `parseLimit` with `/api/v1/authorisations`, so the bound, the
+message and the failure mode cannot drift apart, and an out-of-range value is
+rejected rather than silently clamped. Absent means the endpoint's own default,
+not "unlimited".
 
 ```http
-GET /api/v1/transfers?site_id=site_demo
+GET /api/v1/transfers?site_id=site_demo&limit=50
 Authorization: Bearer sk_2f8c...
 ```
 
@@ -989,6 +1055,7 @@ Authorization: Bearer sk_2f8c...
 | Status | `code` | Cause |
 | --- | --- | --- |
 | `401` | `unauthorized` | missing, malformed, unknown, or wrong-plane key |
+| `400` | `invalid_request` | `limit` is not an integer between 1 and 500 |
 | `404` | `not_found` | `site_id` names a site the caller does not own |
 
 ### `GET /api/v1/audit`
@@ -1085,6 +1152,150 @@ what happened rather than what was attempted. See the scope limits in
 | --- | --- | --- |
 | `401` | `unauthorized` | missing, malformed, unknown, or wrong-plane key |
 | `400` | `invalid_request` | `limit` is not an integer between 1 and 1000 |
+| `404` | `not_found` | `site_id` names a site the caller does not own |
+
+### `GET /api/v1/analytics/summary`
+
+Aggregate SDK activity for the authenticated organisation.
+
+**Counts only.** This returns no individual event, no page URL tied to a person,
+and nothing from the consent or transfer domains. It is deliberately a fixed set
+of metrics rather than a query API: the platform's job is consent and authorised
+data movement, and analytics exists here so an operator can confirm the SDK is
+working and see roughly what it captures.
+
+Read the note on `sessions` below before using any number from it.
+
+| Parameter | Notes |
+| --- | --- |
+| `site_id` | Optional. Must be a site the caller owns, else `404` |
+| `from` | Optional ISO 8601. Inclusive lower bound on `event_time` / `started_at` |
+| `to` | Optional ISO 8601. Exclusive upper bound |
+
+Both bounds are optional and independent. `to` defaults to now; `from` defaults
+to 30 days before `to`. `from` must be strictly earlier than `to`.
+
+```http
+GET /api/v1/analytics/summary?site_id=site_demo&from=2026-08-01T00:00:00Z
+Authorization: Bearer sk_2f8c...
+```
+
+`200 OK`:
+
+```json
+{
+  "range": { "from": "2026-08-01T00:00:00.000Z", "to": "2026-09-01T12:00:00.000Z" },
+  "totals": {
+    "sessions": 412,
+    "page_views": 1180,
+    "custom_events": 96,
+    "total_events": 1688,
+    "active_sites": 2
+  },
+  "top_pages": [
+    { "url": "https://demo.example.com/pricing", "title": "Pricing", "views": 310 }
+  ],
+  "devices": [{ "key": "desktop", "events": 1204 }],
+  "browsers": [{ "key": "Chrome", "events": 1010 }],
+  "operating_systems": [{ "key": "Windows", "events": 890 }],
+  "by_site": [
+    {
+      "site_id": "site_demo",
+      "name": "Demo Website",
+      "sessions": 300,
+      "page_views": 940,
+      "total_events": 1290
+    }
+  ]
+}
+```
+
+| Field | Notes |
+| --- | --- |
+| `range` | The resolved window, always echoed, so a response is self-describing even when the caller sent no bounds |
+| `totals.sessions` | Sessions **started** in the range. See the note below |
+| `totals.total_events` | Every event type, including `session_start` |
+| `totals.active_sites` | Sites of this organisation that recorded any event in range |
+| `top_pages` | At most 10, ordered by views |
+| `devices`, `browsers`, `operating_systems` | Every distinct value, ordered by event count, descending. A row whose underlying value is null is reported as `"Unknown"` |
+| `by_site` | One row per site in scope, ordered by `total_events`. A site with no activity is still listed, with zeros |
+
+A tenant with no sites, or no activity, returns this exact shape with zeros and
+empty arrays rather than `404` or a partial body — an empty tenant is a normal
+state, and a dashboard should render it without special-casing missing fields.
+
+**`sessions` is not a visitor count.** There is no persistent visitor identifier
+in the analytics domain: a session id lives in `sessionStorage` and expires after
+30 minutes of inactivity, so one person across two days counts twice. The only
+durable per-person identifier in the system is `Principal`, which belongs to the
+consent domain and is deliberately never joined to analytics rows. Naming this
+"visitors" anywhere downstream would overstate what the data supports.
+
+`top_pages` groups by the **full URL**, query string included, so `/pricing` and
+`/pricing?utm_source=x` are separate rows.
+
+| Status | `code` | Cause |
+| --- | --- | --- |
+| `401` | `unauthorized` | missing, malformed, unknown, or wrong-plane key |
+| `400` | `invalid_request` | `from` or `to` is not an ISO 8601 date, or `from` is not earlier than `to` |
+| `404` | `not_found` | `site_id` names a site the caller does not own |
+
+### `GET /api/v1/analytics/overview`
+
+Operational counts across every domain: sites, consent decisions, authorisations,
+transfers, and SDK activity. This is what the dashboard overview renders.
+
+Like the summary endpoint it returns aggregates only — never a consent record, an
+envelope, or a payload.
+
+Takes the same three parameters as `/api/v1/analytics/summary`, with the same
+validation and the same failure modes.
+
+`200 OK`:
+
+```json
+{
+  "sites": { "total": 3, "active": 2 },
+  "consent": {
+    "total_decisions": 58,
+    "granted": 41,
+    "denied": 9,
+    "withdrawn": 8,
+    "principals": 34
+  },
+  "authorisations": { "total": 12, "authorised": 2, "consumed": 9, "expired": 1 },
+  "transfers": { "total": 9, "recorded": 1, "delivered": 8, "failed": 0 },
+  "activity": {
+    "sessions": 412,
+    "page_views": 1180,
+    "custom_events": 96,
+    "total_events": 1688,
+    "active_sites": 2
+  }
+}
+```
+
+`consent.principals` counts distinct principals across the organisation's sites,
+not distinct people: the same person on two sites is two principals, because
+consent does not travel between sites.
+
+**`site_id`, `from` and `to` narrow the `activity` block only.** The `sites`,
+`consent`, `authorisations` and `transfers` counts are whole-organisation and
+all-time regardless of the filters, and the response does not signal which is
+which. Read `activity` as "in the range", and everything above it as "in total".
+
+`activity` is exactly `totals` from `/api/v1/analytics/summary` — the overview
+calls that same read model rather than recomputing it, so the two endpoints
+cannot report different numbers for the same window.
+
+The four blocks are counted independently and assembled in TypeScript, not joined
+in SQL, for the same reason the audit trail is: the three domains are not joined
+in the database and a read model is not the place to start.
+
+| Status | `code` | Cause |
+| --- | --- | --- |
+| `401` | `unauthorized` | missing, malformed, unknown, or wrong-plane key |
+| `400` | `invalid_request` | `from` or `to` is not an ISO 8601 date, or `from` is not earlier than `to` |
 | `404` | `not_found` | `site_id` names a site the caller does not own |
 
 ---
@@ -1204,16 +1415,29 @@ Unauthenticated liveness check.
 
 ## Notes on scope
 
-- There are no analytics or reporting endpoints. The analytics/dashboard team
-  reads the database directly for now.
+- The analytics endpoints are a **fixed set of counts**, not a query API. Ten top
+  pages, three breakdowns, one date range. There is no time series, no
+  period-over-period comparison, no funnel, no custom-property drill-down and no
+  export. They report **sessions, not unique visitors**, and there is no
+  identifier in the analytics domain that would let them do otherwise.
+- The analytics/dashboard team still reads the database directly for its own
+  reporting; `/api/v1/analytics/*` is the first piece of an alternative, not a
+  replacement for it.
 - The consent surface records and reads decisions; it enforces nothing. There is
   no compliance engine, no consent UI, and no endpoint that answers "is this
   processing lawful". See [consent.md](consent.md).
 - Consent reference data has no update or delete routes. Purposes, policies,
   versions and notices can be created and listed only.
-- `GET /api/v1/audit` returns JSON, not a dashboard. There is no aggregation, no
-  export format, and no alerting; refused attempts are not recorded at all. See
-  [lifecycle.md](lifecycle.md).
+- `GET /api/v1/audit` returns a JSON timeline. There is no export format and no
+  alerting, and refused attempts are not recorded at all. The operator dashboard
+  shipped in Phase 5 renders this endpoint like any other consumer would — it is
+  not a second, privileged view. See [lifecycle.md](lifecycle.md) and
+  [mvp.md](mvp.md).
+- Nothing resolves a `notice_id` or a `policy_version_id` to a name. Consent
+  records cite them; no endpoint turns one into a notice version or a policy
+  title, so a consumer can only render the opaque id.
+- No list endpoint paginates beyond `limit`. There is no cursor and no `next`, so
+  past the cap older rows are unreachable.
 - The secure routing surface is a **proof of concept**. It has had no
   cryptographic review and must not be described as production-secure. There is
   no recipient update or delete route, no key rotation, no PKI to authenticate a
@@ -1222,8 +1446,11 @@ Unauthenticated liveness check.
 - Organisations are provisioned out of band (seed script or the
   `createOrganisation()` helper), not over HTTP — there is no credential that
   could authenticate creating a tenant.
-- If a read API is added later it must be reviewed as part of the integration
-  contract, and must scope every query to the authenticated tenant.
+- The analytics read API is the first read surface added under this rule: it is
+  recorded in [integration-contract.md](integration-contract.md), and every one
+  of its queries resolves the caller's own site ids first and filters on that
+  list. Any further read endpoint must be reviewed the same way, and must scope
+  every query to the authenticated tenant.
 
 ## Versioning
 

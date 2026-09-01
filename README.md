@@ -16,16 +16,18 @@ consent  ->  authorisation  ->  secure transfer  ->  audit
 
 A single side-effect-free orchestration layer answers "is this action currently authorised for this Data Principal, Fiduciary and purpose?". It is the only place the consent and routing domains meet: consent knows nothing about transfers, transfers know nothing about how consent is evaluated, and asking is deliberately separate from committing. A withdrawal stops future authorisations and never rewrites past ones. See [docs/lifecycle.md](docs/lifecycle.md).
 
+Phase 5 adds an **aggregate analytics read API** and an **operator dashboard**. The dashboard is a pure consumer of the platform API — every page fetches over HTTP with the organisation secret, and no page imports `database` — so if a screen needs something the API cannot express, the API is what changes. It adds no table and no migration. The complete picture, including the MVP's security assumptions and an honest list of what it does not do, is in [docs/mvp.md](docs/mvp.md).
+
 ## Repository layout
 
 | Path | Purpose |
 | --- | --- |
-| `docs/` | Architecture, event schema, consent model, secure transfer trust model, the end-to-end lifecycle, API contract, database model, and integration docs |
+| `docs/` | The MVP overview, architecture, event schema, consent model, secure transfer trust model, the end-to-end lifecycle, API contract, database model, and integration docs |
 | `sdk/` | Browser SDK that emits page/session/custom events, batches them before sending, and records consent decisions |
-| `api/` | Next.js App Router API for ingestion, consent, site management, secure routing, and health checks; test suite in `api/tests/` |
-| `shared/` | Shared TypeScript event, tenancy, consent, transfer, authorisation, audit, and API contract types |
+| `api/` | Next.js App Router app: the three API planes under `app/api/`, the operator dashboard under `app/dashboard/`, its server-only session and API client in `lib/dashboard/`, and the test suite in `tests/` |
+| `shared/` | Shared TypeScript event, tenancy, consent, transfer, authorisation, audit, analytics, and API contract types |
 | `secure-transfer/` | The crypto boundary: `envelope.ts` (types, canonical AAD, digest, shape validation) is Rift-safe; `fiduciary.ts` (key generation, seal, open) belongs to the fiduciaries and is never imported by `api/` |
-| `database/` | Prisma schema, generated client, migrations, credential/tenancy helpers, the consent and transfer service layers, the orchestration layer (`authorisation.ts`) and audit read model (`audit.ts`), and seed data |
+| `database/` | Prisma schema, generated client, migrations, credential/tenancy helpers, the consent and transfer service layers, the orchestration layer (`authorisation.ts`), the audit and analytics read models (`audit.ts`, `analytics.ts`), and seed data |
 
 ## What this repo owns
 
@@ -52,6 +54,13 @@ A single side-effect-free orchestration layer answers "is this action currently 
 - The unified audit trail, `GET /api/v1/audit`: consent decisions, authorisations
   and transfers interleaved into one timeline, cross-referenced but **not** joined
   in the database
+- The aggregate analytics read API — `GET /api/v1/analytics/summary` and
+  `GET /api/v1/analytics/overview` — plus `GET /api/v1/consent/effective`, which
+  answers the browser plane's question with an organisation secret instead of a
+  site public key. Counts only, tenant-scoped by the credential, and **sessions
+  rather than unique visitors**
+- The operator dashboard at `/dashboard`: five server-rendered pages that read
+  the endpoints above over HTTP and nothing else
 - The crypto boundary in `secure-transfer/`, split so that Rift's inability to
   decrypt is structural: the sealing and opening code is not in its dependency
   graph, and a test fails the build if it ever is
@@ -66,6 +75,11 @@ other side of the platform; see [docs/integration-contract.md](docs/integration-
 
 ## Documentation
 
+Start with the first one; it is the entry point and links to the rest.
+
+- [The MVP](docs/mvp.md) — the whole product in one document: architecture, the
+  credential planes, the five domains, the security assumptions, the known
+  limitations, and what comes next
 - [Architecture](docs/architecture.md)
 - [Tenancy and Ownership Model](docs/tenancy.md)
 - [Consent Domain](docs/consent.md)
@@ -78,7 +92,8 @@ other side of the platform; see [docs/integration-contract.md](docs/integration-
 
 ## Local development
 
-This is the shortest path for a fresh clone to a working local event pipeline.
+This is the shortest path for a fresh clone to a working local event pipeline and
+a dashboard you can sign in to.
 
 ### 1) Install dependencies
 
@@ -177,29 +192,77 @@ are fixed and committed on purpose: they ship in browser code and are not secret
 
 ### 5) Run the API locally
 
-From the repo root:
+From the repo root, one command builds the SDK bundle and starts the app:
+
+```bash
+npm run dev
+```
+
+Or from `api/` alone, if the bundle is already built:
 
 ```bash
 cd api
 npm run dev -- --hostname 127.0.0.1 --port 3000
 ```
 
+`api`'s `predev` and `prebuild` steps run `scripts/copy-sdk.mjs`, which publishes
+`sdk/dist/index.global.js` to `api/public/js/rift-cmp.js` — the path the
+dashboard's install snippet points at. If the SDK has not been built, the script
+warns and exits cleanly, and that URL 404s until it has.
+
 The API routes are:
 - `GET http://127.0.0.1:3000/api/healthz`
 - `POST http://127.0.0.1:3000/api/v1/events`
 - `POST|GET http://127.0.0.1:3000/api/v1/consent`
 - `GET http://127.0.0.1:3000/api/v1/consent/history` (secret key)
+- `GET http://127.0.0.1:3000/api/v1/consent/effective` (secret key) — effective consent for one principal on one site
+- `GET http://127.0.0.1:3000/api/v1/organisation`, `GET|POST /api/v1/sites`, `GET|PATCH /api/v1/sites/{siteId}` (secret key)
 - `GET|POST http://127.0.0.1:3000/api/v1/purposes`, `/api/v1/policies`, `/api/v1/notices` (secret key)
+- `POST http://127.0.0.1:3000/api/v1/policies/{policyId}/versions` (secret key)
 - `GET|POST http://127.0.0.1:3000/api/v1/recipients` (secret key)
 - `GET|POST http://127.0.0.1:3000/api/v1/authorisations` (secret key) — was `/api/v1/transfers/authorisations` before Phase 4
 - `POST http://127.0.0.1:3000/api/v1/authorisations/decision` (secret key) — evaluate only, creates nothing
-- `GET|POST http://127.0.0.1:3000/api/v1/transfers` (secret key)
+- `GET|POST http://127.0.0.1:3000/api/v1/transfers` (secret key) — `GET` takes `site_id` and `limit` (1–500, default 200)
 - `GET http://127.0.0.1:3000/api/v1/audit` (secret key)
+- `GET http://127.0.0.1:3000/api/v1/analytics/summary` (secret key) — aggregate SDK activity
+- `GET http://127.0.0.1:3000/api/v1/analytics/overview` (secret key) — counts across every domain
+- `GET http://127.0.0.1:3000/api/v1/transfers/pending` (**delivery key**, `rk_...`)
 - `GET http://127.0.0.1:3000/api/v1/transfers/{transferId}/envelope` (**delivery key**, `rk_...`)
 
-The API validates the request with `Authorization: Bearer <public_key>` and rejects bad keys with `401`. The management routes above require the organisation secret key (`sk_...`) instead, and the envelope route requires a recipient delivery key (`rk_...`); presenting any of the three credentials on another plane is a `401`, decided on the key prefix before any database lookup.
+Both analytics endpoints take the same optional filters: `site_id`, `from` and
+`to`, defaulting to the last 30 days.
 
-### 6) Open the SDK demo page
+The API validates the request with `Authorization: Bearer <public_key>` and rejects bad keys with `401`. The management routes above require the organisation secret key (`sk_...`) instead, and the delivery routes require a recipient delivery key (`rk_...`); presenting any of the three credentials on another plane is a `401`, decided on the key prefix before any database lookup.
+
+### 6) Open the dashboard
+
+`http://127.0.0.1:3000/dashboard` — the app's root redirects here, and here
+redirects to `/signin` when there is no session.
+
+Sign in with an **organisation secret key** (`sk_...`), the one `npm run seed`
+printed in step 4. It is validated against `GET /api/v1/organisation` before it is
+stored, then held in an httpOnly cookie (`rift_dashboard_key`, `sameSite:
+strict`, eight hours) and read only on the server. The secret never reaches page
+scripts.
+
+This is an **MVP compromise**: there are no user accounts, no roles and no
+per-user sessions, so one shared organisation secret stands in for all three, and
+anything holding that cookie is the whole organisation. See the known limitations
+in [docs/mvp.md](docs/mvp.md).
+
+| Page | What it shows |
+| --- | --- |
+| **Overview** | Counts for sites, consent decisions, authorisations, transfers and SDK activity, then the 15 most recent audit entries as one timeline |
+| **Consent** | The decision log — who agreed to what, under which notice, when — filterable by site, principal and purpose, plus the decisions currently in force for a named principal on a named site |
+| **Transfers** | Authorisations and the sealed transfers that spent them, each naming the consent record it relied on. Sizes and digests only: the payload is never shown, because Rift cannot read it |
+| **Analytics** | Totals, top pages, device/browser/OS breakdowns and per-site activity for a date range. **Sessions, not unique visitors** — the page says so |
+| **Integration** | Site ids and public keys, a copy-ready install snippet built from this deployment's origin, an API reachability check, and the purposes, notices and recipients already declared |
+
+Every page reads through `api/lib/dashboard/api.ts`, which makes real HTTP calls
+to the API above. No page imports `database`. The sign-in guard in the layout is
+convenience, not security — the API authenticates every request independently.
+
+### 7) Open the SDK demo page
 
 Serve the static page from the repo root:
 
@@ -220,7 +283,7 @@ analyticsClient.init("site_demo", "pk_demo_12345", { apiUrl: "http://127.0.0.1:3
 
 When the page loads, it sends its automatic `page_view` and `session_start` events. Clicking the demo button sends a custom event through the same batched pipeline.
 
-### 7) If you change the SDK bundle
+### 8) If you change the SDK bundle
 
 After making SDK changes, rebuild the browser bundle:
 
@@ -229,25 +292,45 @@ cd sdk
 npm run build
 ```
 
-### 8) Running the checks
+Then restart the API, or run `npm run dev` from the repo root, so the copy step
+republishes it to `api/public/js/rift-cmp.js`.
+
+### 9) Running the checks
 
 From the repo root:
 
 ```bash
-npm test        # vitest: 183 tests covering tenancy, auth, isolation, consent, secure transfer and the end-to-end lifecycle
-npm run typecheck
-npm run lint
-npm run build
+npm run test:unit   # vitest: 37 tests, no database, a few seconds
+npm test            # vitest: all 215 tests; the integration half needs Postgres
+npm run typecheck   # tsc --noEmit across the api workspace
+npm run lint        # eslint
+npm run build       # builds the SDK bundle, then next build
 ```
 
-Tests run against a dedicated `rift_cmp_test` schema in the same database, so they
-never touch development data. The suite applies migrations itself before running,
-which doubles as migration validation.
+The suite is split into two vitest projects, configured in `api/vitest.config.ts`:
+
+| Project | Files | Tests | Needs a database |
+| --- | --- | --- | --- |
+| `unit` | `keys.test.ts`, `secure-transfer-crypto.test.ts`, `dashboard-components.test.tsx` | 37 | no |
+| `integration` | everything else under `api/tests/` | 178 | yes |
+
+The split exists because crypto, key-format and component tests have no business
+requiring Postgres. Before it, a database outage failed even the formatting
+tests, which was both slow and misleading. `npm run test:unit` is the fast loop;
+`npm run test:integration` (from `api/`) runs only the other half.
+
+Integration tests run against a dedicated `rift_cmp_test` schema in the same
+database, so they never touch development data. They apply migrations themselves
+before running, which doubles as migration validation, and run single-file,
+single-fork: every file shares one schema and truncates between tests, so two
+files at once would let one file's `resetDatabase()` delete rows another is
+asserting on.
 
 Fifty of those tests cover secure routing, across three files:
 `secure-transfer-crypto.test.ts` (the construction and the attacks it must
-reject), `transfer-flow.test.ts` (end to end, plus the consent gate), and
-`transfer-boundary.test.ts` (attempts to falsify the claim from Rift's own
+reject — the only one of the three in the `unit` project, since cryptography
+needs no database), `transfer-flow.test.ts` (end to end, plus the consent gate),
+and `transfer-boundary.test.ts` (attempts to falsify the claim from Rift's own
 position — dumping the whole database looking for the payload, trying every
 stored string as a decryption key, and scanning the source tree for an import of
 the fiduciary module).
@@ -259,9 +342,22 @@ the secure payload boundary), plus the failure modes — replay, a duplicate
 request, a failed transfer leaving its authorisation reusable, and two concurrent
 submissions resolving to exactly one transfer.
 
-Expect roughly 10-12 minutes against a remote Neon instance. Almost all of that is
-network round trips, not computation - the tests exercise real foreign keys,
-cascades and the append-only trigger, which a mocked database could not verify.
+`analytics-api.test.ts` covers the two analytics endpoints — the arithmetic, the
+date range, and the isolation, which matters more here than anywhere else because
+these are the only endpoints that aggregate across a whole tenant.
+
+`mvp-acceptance.test.ts` is a single test with twelve steps: register a site,
+instrument it with the real SDK, record consent, authorise, seal, transfer,
+collect, read every dashboard endpoint, withdraw, be refused, and confirm the
+history survived. It uses the real SDK, the real route handlers and the real
+cryptography. If it passes, the product works end to end.
+
+Expect roughly 20–25 minutes for the integration project against a remote Neon
+instance. Almost all of that is network round trips, not computation — the tests
+exercise real foreign keys, cascades and the append-only trigger, which a mocked
+database could not verify. The `unit` project finishes in seconds, which is the
+whole reason it was split out.
+
 Run a single file while iterating:
 
 ```bash
@@ -274,7 +370,7 @@ SDK checks live in `sdk/`:
 cd sdk && npm run typecheck && npm run build
 ```
 
-### 9) Vercel note
+### 10) Vercel note
 
 If you eventually deploy `api/` to Vercel, set the same `DATABASE_URL` in the Vercel project environment variables. Use the Neon pooled connection string there as well; do not create a deployment config in this repo unless it is explicitly requested.
 
@@ -288,12 +384,13 @@ Keep the following aligned when making changes:
 - [docs/consent.md](docs/consent.md)
 - [docs/secure-transfer.md](docs/secure-transfer.md)
 - [docs/lifecycle.md](docs/lifecycle.md)
-- [shared/event.ts](shared/event.ts), [shared/tenancy.ts](shared/tenancy.ts), [shared/consent.ts](shared/consent.ts), [shared/transfer.ts](shared/transfer.ts), [shared/authorisation.ts](shared/authorisation.ts) and [shared/audit.ts](shared/audit.ts)
+- [docs/mvp.md](docs/mvp.md)
+- [shared/event.ts](shared/event.ts), [shared/tenancy.ts](shared/tenancy.ts), [shared/consent.ts](shared/consent.ts), [shared/transfer.ts](shared/transfer.ts), [shared/authorisation.ts](shared/authorisation.ts), [shared/audit.ts](shared/audit.ts) and [shared/analytics.ts](shared/analytics.ts)
 - [secure-transfer/envelope.ts](secure-transfer/envelope.ts) — the AAD definition in particular, since both fiduciaries must rebuild it byte-identically
 - [database/prisma/schema.prisma](database/prisma/schema.prisma)
-- [database/consent.ts](database/consent.ts), [database/transfers.ts](database/transfers.ts), [database/authorisation.ts](database/authorisation.ts) and [database/audit.ts](database/audit.ts)
+- [database/consent.ts](database/consent.ts), [database/transfers.ts](database/transfers.ts), [database/authorisation.ts](database/authorisation.ts), [database/audit.ts](database/audit.ts) and [database/analytics.ts](database/analytics.ts)
 - [api/app/api/v1/events/route.ts](api/app/api/v1/events/route.ts)
 - [api/app/api/v1/consent/route.ts](api/app/api/v1/consent/route.ts)
 - [api/lib/auth.ts](api/lib/auth.ts)
 
-This project intentionally keeps the API focused on ingestion and the consent record, while the analytics/dashboard side reads the database directly and builds the compliance engine on top of the consent vocabulary.
+This project intentionally keeps the API focused on ingestion, the consent record and authorised data movement. The analytics/dashboard side still reads the database directly for its own reporting and builds the compliance engine on top of the consent vocabulary; `/api/v1/analytics/*` is a narrow, tenant-scoped alternative for aggregate activity, not a replacement for that access.

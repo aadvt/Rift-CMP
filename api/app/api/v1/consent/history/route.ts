@@ -2,10 +2,9 @@ import type { NextRequest } from "next/server";
 import { getConsentHistory, prisma } from "database";
 import type { ConsentHistoryResponse } from "@rift-cmp/shared";
 import { authenticateManagement, findOwnedWebsite, siteNotFound } from "@/lib/auth";
-import { managementError } from "@/lib/cors";
+import { parseLimit } from "@/lib/validation";
 
 const MAX_LIMIT = 1000;
-const DEFAULT_LIMIT = 500;
 
 /**
  * The complete consent audit trail for the authenticated organisation.
@@ -29,18 +28,8 @@ export async function GET(request: NextRequest) {
   const principalExternalId = params.get("principal_external_id")?.trim() || undefined;
   const purposeCode = params.get("purpose_code")?.trim() || undefined;
 
-  const rawLimit = params.get("limit");
-  let limit = DEFAULT_LIMIT;
-  if (rawLimit !== null) {
-    const parsed = Number(rawLimit);
-    if (!Number.isInteger(parsed) || parsed < 1 || parsed > MAX_LIMIT) {
-      return managementError(
-        "invalid_request",
-        `Query parameter \`limit\` must be an integer between 1 and ${MAX_LIMIT}.`,
-      );
-    }
-    limit = parsed;
-  }
+  const parsedLimit = parseLimit(request, MAX_LIMIT);
+  if (!parsedLimit.ok) return parsedLimit.response;
 
   // Narrowing to a site the caller does not own is a 404, matching how every
   // other site-addressed endpoint behaves, rather than silently returning [].
@@ -53,7 +42,7 @@ export async function GET(request: NextRequest) {
     siteId,
     principalExternalId,
     purposeCode,
-    limit,
+    limit: parsedLimit.limit,
   });
 
   const body: ConsentHistoryResponse = { records };

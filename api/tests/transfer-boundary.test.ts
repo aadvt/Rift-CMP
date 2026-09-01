@@ -596,8 +596,12 @@ describe("cross-tenant and credential isolation", () => {
     const response = await listTransfers(
       managementRequest("/api/v1/transfers", { key: scenario.orgB.secretKey }),
     );
-    const body = await response.json();
 
+    // Assert the status first. Without this, an unrelated failure that returns
+    // an error body reads as `expected undefined to equal []`, which is
+    // indistinguishable from a genuine tenancy leak.
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { transfers: unknown[] };
     expect(body.transfers).toEqual([]);
   });
 

@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Build output copied in by scripts/copy-sdk.mjs so the dashboard's install
+    // snippet resolves; it is minified and not ours to lint.
+    "public/js/**",
   ]),
 ]);
 

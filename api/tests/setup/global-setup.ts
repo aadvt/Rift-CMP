@@ -8,8 +8,9 @@ const databaseDir = path.resolve(
   "../../../database",
 );
 
-const ATTEMPTS = 3;
-const BACKOFF_MS = 5000;
+const ATTEMPTS = 5;
+/** Escalating, because a suspended serverless compute can take tens of seconds. */
+const BACKOFF_MS = [5_000, 10_000, 20_000, 30_000];
 
 /**
  * Brings the test schema up to date by replaying the full migration history.
@@ -32,12 +33,14 @@ export default function setup() {
       return;
     } catch (error) {
       if (attempt === ATTEMPTS) throw error;
+      const wait = BACKOFF_MS[attempt - 1] ?? 30_000;
       console.warn(
-        `[test setup] migrate deploy failed (attempt ${attempt}/${ATTEMPTS}); retrying...`,
+        `[test setup] migrate deploy failed (attempt ${attempt}/${ATTEMPTS}); ` +
+          `retrying in ${wait / 1000}s...`,
       );
       // Synchronous sleep: this runs before the worker pool starts, so there is
       // no event loop to yield to.
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, BACKOFF_MS);
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, wait);
     }
   }
 }

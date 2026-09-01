@@ -24,3 +24,4 @@ export * from "./consent";
 export * from "./transfers";
 export * from "./authorisation";
 export * from "./audit";
+export * from "./analytics";

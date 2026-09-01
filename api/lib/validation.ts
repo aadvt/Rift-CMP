@@ -43,3 +43,32 @@ export async function parseJsonBody<S extends z.ZodType>(
 
   return { ok: true, data: parsed.data };
 }
+
+/**
+ * Parses a `limit` query parameter.
+ *
+ * Four list endpoints grew their own copy of this while the API was being built
+ * out; they now share one, so the bound, the message and the failure mode cannot
+ * drift apart. An absent parameter is not an error — the caller supplies its own
+ * default.
+ */
+export function parseLimit(
+  request: NextRequest,
+  max: number,
+): { ok: true; limit: number | undefined } | { ok: false; response: Response } {
+  const raw = request.nextUrl.searchParams.get("limit");
+  if (raw === null) return { ok: true, limit: undefined };
+
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > max) {
+    return {
+      ok: false,
+      response: managementError(
+        "invalid_request",
+        `Query parameter \`limit\` must be an integer between 1 and ${max}.`,
+      ),
+    };
+  }
+
+  return { ok: true, limit: parsed };
+}

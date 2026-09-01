@@ -11,7 +11,8 @@
     "./consent": "./consent.ts",
     "./transfer": "./transfer.ts",
     "./audit": "./audit.ts",
-    "./authorisation": "./authorisation.ts"
+    "./authorisation": "./authorisation.ts",
+    "./analytics": "./analytics.ts"
   },
   "types": "./index.ts",
   "dependencies": {

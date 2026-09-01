@@ -1,8 +1,6 @@
+import { redirect } from "next/navigation";
+
+/** The root is the dashboard; the guard there sends signed-out users to sign in. */
 export default function Home() {
-  return (
-    <main style={{ padding: "2rem", fontFamily: "sans-serif" }}>
-      <h1>Rift-CMP API</h1>
-      <p>Event ingestion service for the Rift-CMP SDK.</p>
-    </main>
-  );
+  redirect("/dashboard");
 }

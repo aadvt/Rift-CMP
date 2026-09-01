@@ -515,6 +515,24 @@ the unique credential/identifier the lookup actually keys on:
 - a source organisation's own transfer log →
   `transfer_records_organisation_id_recorded_at_idx`
 
+### The analytics read models add no index
+
+`database/analytics.ts` (Phase 5) aggregates over tables that already existed,
+using indexes that already existed:
+
+- activity in a window for a tenant's sites →
+  `events_site_id_event_time_idx`, with `site_id` leading, so the aggregate never
+  scans another tenant's rows
+- sessions started in a window → `sessions_site_id_last_activity_idx` covers the
+  site scope; the range predicate is on `started_at`
+- the per-domain counts in `getPlatformOverview` → the same tenant-leading
+  indexes the audit trail uses
+
+No migration accompanied Phase 5, and no column was added. If the analytics
+surface grows beyond a fixed set of counts, that is the point at which an index —
+or a rollup table — becomes worth adding, and it should be argued for on the
+access pattern rather than added pre-emptively.
+
 ## Retention
 
 The MVP does not yet specify a retention policy. This will be added when the first
@@ -550,4 +568,8 @@ work — see the known limitations in [secure-transfer.md](secure-transfer.md).
   consent-record FK needs as a target. It changes no existing column, writes no
   transfer state onto consent or analytics rows, and adds no column capable of
   holding plaintext or a private key.
+- **Phase 5 added no migration.** The analytics read API and the operator
+  dashboard read existing tables through existing indexes. A read model that
+  needed a schema change would have been a sign the domains were modelled wrong,
+  not a reason to add a column.
 - Never edit a migration that has been applied — add a new one.

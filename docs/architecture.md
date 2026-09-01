@@ -22,6 +22,8 @@ Routing depends on consent rather than duplicating it: an authorisation is minte
 
 Phase 4 joins the consent and routing domains into one product flow without joining the domains themselves. The single coupling point is an **orchestration layer**, described below and in [lifecycle.md](lifecycle.md); a fourth table is not added, and the audit trail that reads across all three domains is a read model rather than a foreign key.
 
+Phase 5 adds an aggregate read surface over the same three domains (`database/analytics.ts`) and an **operator dashboard** on top of it. It adds no table and no migration, and it adds no rule: the dashboard reads the public API over HTTP like any other consumer. The complete picture, including what the MVP assumes and what it does not do, is in [mvp.md](mvp.md).
+
 ```text
 ┌─────────────────────┐   queued + batched events     ┌─────────────────────┐      persist       ┌────────────────────┐
 │ Customer Website    │ ─────────────────────▶ │ SDK (`sdk/`)        │ ─────────────────▶ │ API (`api/`)       │ ─────▶ Database (`database/`) │
@@ -60,9 +62,10 @@ Phase 4 joins the consent and routing domains into one product flow without join
   appends one decision, or returns the effective state of the *one* principal whose
   id the caller already knows.
 - **Management plane** - `/api/v1/organisation`, `/api/v1/sites`,
-  `/api/v1/consent/history`, `/api/v1/purposes`, `/api/v1/policies`,
-  `/api/v1/notices`, `/api/v1/recipients`, `/api/v1/authorisations` (including
-  `/api/v1/authorisations/decision`), `/api/v1/transfers` and `/api/v1/audit`,
+  `/api/v1/consent/history`, `/api/v1/consent/effective`, `/api/v1/purposes`,
+  `/api/v1/policies`, `/api/v1/notices`, `/api/v1/recipients`,
+  `/api/v1/authorisations` (including `/api/v1/authorisations/decision`),
+  `/api/v1/transfers`, `/api/v1/audit` and `/api/v1/analytics/*`,
   authenticated by an organisation secret key
   (`sk_...`). Server-to-server only, so it deliberately returns no CORS headers. The
   audit trail and all consent reference data live here because a public key is
@@ -81,7 +84,44 @@ Phase 4 joins the consent and routing domains into one product flow without join
 - The three credentials are never interchangeable; presenting one to another plane
   is a `401`, decided on the key prefix before any database lookup.
 - `GET /api/healthz` is unauthenticated.
-- Does not expose analytics or query endpoints in this MVP; those are intentionally out of scope.
+- Exposes a deliberately small analytics read surface —
+  `GET /api/v1/analytics/summary` and `GET /api/v1/analytics/overview` — which
+  returns aggregate counts and nothing else. It is not a query API, and it is not
+  a replacement for the direct database access the analytics team has; see
+  [mvp.md](mvp.md).
+
+### Operator dashboard (`api/app/dashboard/`)
+
+- Five server-rendered pages in the same Next.js app as the API: Overview,
+  Consent, Transfers, Analytics and Integration, plus a sign-in page at
+  `/signin`.
+- **It is an API consumer, not a source of business logic.** Every page reads
+  through `apiGet` in `api/lib/dashboard/api.ts`, which makes a real HTTP request
+  to the platform API. No page imports `database`, and no page touches Prisma.
+  That is slightly slower than querying directly, and it is the point: if a
+  screen needs something the API cannot express, **the API is what changes**. No
+  rule, no aggregate and no derivation lives here that an integrator calling the
+  same endpoints could not reproduce.
+- `GET /api/v1/consent/effective` exists because that rule was followed rather
+  than worked around. The browser-plane `GET /api/v1/consent` needs a site public
+  key the dashboard does not hold, and re-deriving effective consent from a
+  *paginated* history page would be silently wrong past the limit. Both planes
+  reduce the same append-only log through the same `resolveEffectiveConsent`.
+- Sign-in is the **organisation secret key**, held in an httpOnly cookie
+  (`rift_dashboard_key`, `sameSite: strict`, eight hours, `secure` in
+  production) and read only on the server. The secret is attached to outgoing
+  requests in `apiGet`; the browser receives rendered HTML and never the
+  credential. This is an **MVP compromise**: a production system needs user
+  accounts, short-lived sessions and per-user roles instead of one shared
+  organisation secret standing in for all three.
+- The layout's redirect to `/signin` is **convenience, not security**. The API
+  authenticates every request independently, so a page reached without a valid
+  key renders nothing; the guard exists so an operator sees a form rather than a
+  wall of `401`s.
+- The dashboard is the one part of this repo that overlaps the other side's
+  scope. It is an operator tool for confirming the platform is working — not the
+  analytics product, not a consent UI, and not a compliance view. See
+  [integration-contract.md](integration-contract.md).
 
 ### Orchestration layer (`database/authorisation.ts`)
 
@@ -187,6 +227,9 @@ Our side owns:
 - the orchestration layer that answers "is this action currently authorised?", and
   the unified audit read model over consent, authorisations and transfers — but
   **not** any judgement about whether a purpose required consent in the first place
+- the aggregate analytics read models and the operator dashboard that renders
+  them — an internal tool for confirming the platform is working, built strictly
+  as a consumer of the public API, and **not** the analytics product
 
 The other side owns:
 - analytics dashboards and views

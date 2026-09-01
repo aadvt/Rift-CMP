@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { prisma, recordConsentDecision } from "database";
+import { prisma } from "database";
 import type {
   AuditResponse,
   AuthorisationDecisionResponse,
@@ -355,6 +355,9 @@ describe("Scenario F - cross-tenant attempt", () => {
     const response = await getAudit(
       managementRequest("/api/v1/audit", { key: scenario.orgB.secretKey }),
     );
+
+    // Status first, so an error body cannot masquerade as an empty result.
+    expect(response.status).toBe(200);
     const body = (await response.json()) as AuditResponse;
     expect(body.entries).toEqual([]);
   });

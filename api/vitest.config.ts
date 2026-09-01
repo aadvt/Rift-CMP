@@ -5,25 +5,57 @@ import { resolveTestDatabaseUrl } from "./tests/setup/database-url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
+/**
+ * Tests that touch no database.
+ *
+ * Kept as a separate project so pure logic and component rendering can be run
+ * and iterated on in milliseconds, without a Postgres connection. Before this
+ * split, a database outage failed even the formatting tests, which was both
+ * slow and misleading.
+ */
+const UNIT_TESTS = [
+  "tests/keys.test.ts",
+  "tests/secure-transfer-crypto.test.ts",
+  "tests/dashboard-components.test.tsx",
+];
+
 export default defineConfig({
   resolve: {
     alias: { "@": here },
   },
   test: {
-    environment: "node",
-    include: ["tests/**/*.test.ts"],
-    globalSetup: ["./tests/setup/global-setup.ts"],
-    // Every test file shares one database schema and truncates between tests, so
-    // two files running at once would let one file's `resetDatabase()` delete the
-    // rows another file is mid-way through asserting on. `fileParallelism: false`
-    // alone still permits separate worker processes; `singleFork` puts every file
-    // in one process, one at a time, which also means one Prisma connection pool
-    // against Neon instead of one per worker.
+    // Applies to every project: no two test files run concurrently.
     fileParallelism: false,
-    pool: "forks",
-    poolOptions: { forks: { singleFork: true } },
-    testTimeout: 60_000,
-    hookTimeout: 120_000,
-    env: { DATABASE_URL: resolveTestDatabaseUrl() },
+    projects: [
+      {
+        resolve: { alias: { "@": here } },
+        test: {
+          name: "unit",
+          include: UNIT_TESTS,
+          // Component tests need a DOM; the others are happy in either. The DOM
+          // environment is selected per file with a `@vitest-environment` docblock.
+          environment: "node",
+        },
+      },
+      {
+        resolve: { alias: { "@": here } },
+        test: {
+          name: "integration",
+          include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
+          exclude: ["node_modules/**", ...UNIT_TESTS],
+          globalSetup: ["./tests/setup/global-setup.ts"],
+          // Every test file shares one database schema and truncates between
+          // tests, so two files running at once would let one file's
+          // `resetDatabase()` delete rows another is asserting on. `singleFork`
+          // puts every file in one process, one at a time, which also means one
+          // Prisma connection pool against Neon instead of one per worker.
+          pool: "forks",
+          poolOptions: { forks: { singleFork: true } },
+          testTimeout: 60_000,
+          hookTimeout: 120_000,
+          env: { DATABASE_URL: resolveTestDatabaseUrl() },
+        },
+      },
+    ],
   },
 });

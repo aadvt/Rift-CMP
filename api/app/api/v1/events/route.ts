@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
  * Writes a validated, single-site batch.
  *
  * Both inserts use `skipDuplicates`, which makes ingestion idempotent: replaying
- * a batch (the SDK retries, and `sendBeacon` can double-fire) is a no-op rather
+ * a batch (the SDK retries, and an unload flush can repeat) is a no-op rather
  * than a duplicate row. Events are an immutable log, so the first write of an
  * `event_id` wins and later copies are ignored.
  */

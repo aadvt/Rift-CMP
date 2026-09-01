@@ -10,3 +10,6 @@ coverage
 # Prisma client is generated output — run `npm run generate` in database/.
 # It contains a platform-specific native query engine and must not be committed.
 database/generated
+
+# Built SDK bundle, published into the API for the install snippet
+api/public/js

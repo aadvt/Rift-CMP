@@ -3,7 +3,7 @@ import { z } from "zod";
 import { listTransfers, prisma, recordTransfer } from "database";
 import { authenticateManagement, findOwnedWebsite, siteNotFound } from "@/lib/auth";
 import { managementError } from "@/lib/cors";
-import { parseJsonBody } from "@/lib/validation";
+import { parseJsonBody, parseLimit } from "@/lib/validation";
 
 /**
  * Submitting a sealed payload, and reading a source organisation's own transfer
@@ -30,6 +30,8 @@ const submitSchema = z
     envelope: envelopeSchema,
   })
   .strict();
+
+const MAX_LIMIT = 500;
 
 const FAILURE_STATUS: Record<string, number> = {
   not_found: 404,
@@ -75,7 +77,12 @@ export async function GET(request: NextRequest) {
   const auth = await authenticateManagement(request);
   if (!auth.ok) return auth.response;
 
-  const siteId = request.nextUrl.searchParams.get("site_id")?.trim() || undefined;
+  const params = request.nextUrl.searchParams;
+  const siteId = params.get("site_id")?.trim() || undefined;
+
+  const parsedLimit = parseLimit(request, MAX_LIMIT);
+  if (!parsedLimit.ok) return parsedLimit.response;
+
   if (siteId && !(await findOwnedWebsite(auth.caller.organisationId, siteId))) {
     return siteNotFound(siteId);
   }
@@ -83,6 +90,7 @@ export async function GET(request: NextRequest) {
   const transfers = await listTransfers(prisma, {
     organisationId: auth.caller.organisationId,
     siteId,
+    limit: parsedLimit.limit,
   });
 
   return Response.json({ transfers }, { status: 200 });

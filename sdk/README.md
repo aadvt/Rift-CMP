@@ -144,6 +144,27 @@ npm run build     # tsup -> dist/index.global.js (IIFE, global `analytics`)
 Rebuild the bundle after changing anything under `src/`; `examples/demo.html`
 loads `dist/index.global.js` directly.
 
+## Where the built bundle is served
+
+`api/scripts/copy-sdk.mjs` copies `dist/index.global.js` to
+`api/public/js/rift-cmp.js`, so the API serves it at **`/js/rift-cmp.js`**. That
+is the path the dashboard's install snippet tells an operator to paste:
+
+```html
+<script src="/js/rift-cmp.js"></script>
+```
+
+The copy runs from `api`'s `predev` and `prebuild` steps, and the repo-root
+`npm run dev` and `npm run build` build this workspace first, so a normal start
+publishes a current bundle. `api/public/js` is gitignored — the served file is
+build output, not something committed. If the SDK has not been built, the copy
+script warns and exits without failing the build, and that URL 404s until it has.
+
+The published path is **unversioned and carries no integrity hash**: it is
+whatever the last build produced. A real deployment wants a versioned URL and an
+SRI hash so a customer page can verify what it loads. See the known limitations
+in [`../docs/mvp.md`](../docs/mvp.md).
+
 ## Status
 
 Implemented. There are no unit tests inside `sdk/`; the event contract it produces

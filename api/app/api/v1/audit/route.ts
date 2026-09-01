@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { getAuditTrail, prisma } from "database";
 import type { AuditResponse } from "@rift-cmp/shared";
 import { authenticateManagement, findOwnedWebsite, siteNotFound } from "@/lib/auth";
-import { managementError } from "@/lib/cors";
+import { parseLimit } from "@/lib/validation";
 
 /**
  * The audit trail: consent decisions, authorisations and transfers for one
@@ -27,18 +27,8 @@ export async function GET(request: NextRequest) {
   const principalExternalId = params.get("principal_external_id")?.trim() || undefined;
   const purposeCode = params.get("purpose_code")?.trim() || undefined;
 
-  const rawLimit = params.get("limit");
-  let limit: number | undefined;
-  if (rawLimit !== null) {
-    const parsed = Number(rawLimit);
-    if (!Number.isInteger(parsed) || parsed < 1 || parsed > MAX_LIMIT) {
-      return managementError(
-        "invalid_request",
-        `Query parameter \`limit\` must be an integer between 1 and ${MAX_LIMIT}.`,
-      );
-    }
-    limit = parsed;
-  }
+  const parsedLimit = parseLimit(request, MAX_LIMIT);
+  if (!parsedLimit.ok) return parsedLimit.response;
 
   if (siteId && !(await findOwnedWebsite(auth.caller.organisationId, siteId))) {
     return siteNotFound(siteId);
@@ -49,7 +39,7 @@ export async function GET(request: NextRequest) {
     siteId,
     principalExternalId,
     purposeCode,
-    limit,
+    limit: parsedLimit.limit,
   });
 
   const body: AuditResponse = { entries };
