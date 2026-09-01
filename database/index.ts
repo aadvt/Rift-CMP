@@ -22,3 +22,5 @@ export * from "./keys";
 export * from "./tenancy";
 export * from "./consent";
 export * from "./transfers";
+export * from "./authorisation";
+export * from "./audit";

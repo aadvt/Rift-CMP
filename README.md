@@ -8,16 +8,24 @@ It also owns the **consent domain** — principals, purposes, policies, notices 
 
 Phase 3 adds a **secure data routing proof of concept**: Rift authorises a personal-data transfer against a recorded consent decision, relays the sealed payload, and cannot read it. The source seals the plaintext before it is sent; the target fiduciary holds the only decryption key; Rift holds ciphertext, routing metadata and public keys. It invents no cryptography and adds no dependency — X25519 ECDH, HKDF-SHA256 and AES-256-GCM, all from Node's built-in `node:crypto`. It has had **no cryptographic review** and is not production-secure. See [docs/secure-transfer.md](docs/secure-transfer.md).
 
+Phase 4 connects those two halves into **one end-to-end flow**: a principal decides, a fiduciary asks whether an action is permitted, is granted a single-use authorisation, seals and submits the payload, and the whole story reads back as one timeline —
+
+```text
+consent  ->  authorisation  ->  secure transfer  ->  audit
+```
+
+A single side-effect-free orchestration layer answers "is this action currently authorised for this Data Principal, Fiduciary and purpose?". It is the only place the consent and routing domains meet: consent knows nothing about transfers, transfers know nothing about how consent is evaluated, and asking is deliberately separate from committing. A withdrawal stops future authorisations and never rewrites past ones. See [docs/lifecycle.md](docs/lifecycle.md).
+
 ## Repository layout
 
 | Path | Purpose |
 | --- | --- |
-| `docs/` | Architecture, event schema, consent model, secure transfer trust model, API contract, database model, and integration docs |
+| `docs/` | Architecture, event schema, consent model, secure transfer trust model, the end-to-end lifecycle, API contract, database model, and integration docs |
 | `sdk/` | Browser SDK that emits page/session/custom events, batches them before sending, and records consent decisions |
 | `api/` | Next.js App Router API for ingestion, consent, site management, secure routing, and health checks; test suite in `api/tests/` |
-| `shared/` | Shared TypeScript event, tenancy, consent, transfer, and API contract types |
+| `shared/` | Shared TypeScript event, tenancy, consent, transfer, authorisation, audit, and API contract types |
 | `secure-transfer/` | The crypto boundary: `envelope.ts` (types, canonical AAD, digest, shape validation) is Rift-safe; `fiduciary.ts` (key generation, seal, open) belongs to the fiduciaries and is never imported by `api/` |
-| `database/` | Prisma schema, generated client, migrations, credential/tenancy helpers, consent and transfer service layers, and seed data |
+| `database/` | Prisma schema, generated client, migrations, credential/tenancy helpers, the consent and transfer service layers, the orchestration layer (`authorisation.ts`) and audit read model (`audit.ts`), and seed data |
 
 ## What this repo owns
 
@@ -32,10 +40,18 @@ Phase 3 adds a **secure data routing proof of concept**: Rift authorises a perso
 - A headless `analytics.consent` SDK client — identity, transport and caching, no UI
 - An append-only consent record whose immutability is enforced by a PostgreSQL
   trigger, with current state derived rather than stored
-- Secure data routing: `GET|POST /api/v1/recipients`,
-  `POST /api/v1/transfers/authorisations` and `GET|POST /api/v1/transfers` on the
-  management plane, and `GET /api/v1/transfers/{transferId}/envelope` on a third
-  **delivery plane** authenticated by a recipient delivery key (`rk_...`)
+- Secure data routing: `GET|POST /api/v1/recipients` and
+  `GET|POST /api/v1/transfers` on the management plane, and
+  `GET /api/v1/transfers/{transferId}/envelope` on a third **delivery plane**
+  authenticated by a recipient delivery key (`rk_...`)
+- The orchestration layer that joins consent to routing —
+  `GET|POST /api/v1/authorisations` and `POST /api/v1/authorisations/decision`
+  (evaluate only, no side effect) on the management plane. **`POST /api/v1/transfers/authorisations`
+  moved to `POST /api/v1/authorisations` in Phase 4**: authorisation is its own
+  concern, not a sub-resource of transfers
+- The unified audit trail, `GET /api/v1/audit`: consent decisions, authorisations
+  and transfers interleaved into one timeline, cross-referenced but **not** joined
+  in the database
 - The crypto boundary in `secure-transfer/`, split so that Rift's inability to
   decrypt is structural: the sealing and opening code is not in its dependency
   graph, and a test fails the build if it ever is
@@ -54,6 +70,7 @@ other side of the platform; see [docs/integration-contract.md](docs/integration-
 - [Tenancy and Ownership Model](docs/tenancy.md)
 - [Consent Domain](docs/consent.md)
 - [Secure Data Routing](docs/secure-transfer.md)
+- [Lifecycle: Consent to Transfer to Audit](docs/lifecycle.md)
 - [Event Schema](docs/event-schema.md)
 - [API Spec](docs/api-spec.md)
 - [Database Schema](docs/database-schema.md)
@@ -174,8 +191,10 @@ The API routes are:
 - `GET http://127.0.0.1:3000/api/v1/consent/history` (secret key)
 - `GET|POST http://127.0.0.1:3000/api/v1/purposes`, `/api/v1/policies`, `/api/v1/notices` (secret key)
 - `GET|POST http://127.0.0.1:3000/api/v1/recipients` (secret key)
-- `POST http://127.0.0.1:3000/api/v1/transfers/authorisations` (secret key)
+- `GET|POST http://127.0.0.1:3000/api/v1/authorisations` (secret key) — was `/api/v1/transfers/authorisations` before Phase 4
+- `POST http://127.0.0.1:3000/api/v1/authorisations/decision` (secret key) — evaluate only, creates nothing
 - `GET|POST http://127.0.0.1:3000/api/v1/transfers` (secret key)
+- `GET http://127.0.0.1:3000/api/v1/audit` (secret key)
 - `GET http://127.0.0.1:3000/api/v1/transfers/{transferId}/envelope` (**delivery key**, `rk_...`)
 
 The API validates the request with `Authorization: Bearer <public_key>` and rejects bad keys with `401`. The management routes above require the organisation secret key (`sk_...`) instead, and the envelope route requires a recipient delivery key (`rk_...`); presenting any of the three credentials on another plane is a `401`, decided on the key prefix before any database lookup.
@@ -215,7 +234,7 @@ npm run build
 From the repo root:
 
 ```bash
-npm test        # vitest: 163 tests covering tenancy, auth, isolation, consent and secure transfer
+npm test        # vitest: 183 tests covering tenancy, auth, isolation, consent, secure transfer and the end-to-end lifecycle
 npm run typecheck
 npm run lint
 npm run build
@@ -232,6 +251,13 @@ reject), `transfer-flow.test.ts` (end to end, plus the consent gate), and
 position — dumping the whole database looking for the payload, trying every
 stored string as a decryption key, and scanning the source tree for an import of
 the fiduciary module).
+
+A further 21 are in `lifecycle.test.ts`, which walks the product flow through the
+HTTP surface rather than the service functions underneath it: scenarios A–G (no
+consent, granted, withdrawn, wrong purpose, wrong fiduciary, cross-tenant, and
+the secure payload boundary), plus the failure modes — replay, a duplicate
+request, a failed transfer leaving its authorisation reusable, and two concurrent
+submissions resolving to exactly one transfer.
 
 Expect roughly 10-12 minutes against a remote Neon instance. Almost all of that is
 network round trips, not computation - the tests exercise real foreign keys,
@@ -261,10 +287,11 @@ Keep the following aligned when making changes:
 - [docs/tenancy.md](docs/tenancy.md)
 - [docs/consent.md](docs/consent.md)
 - [docs/secure-transfer.md](docs/secure-transfer.md)
-- [shared/event.ts](shared/event.ts), [shared/tenancy.ts](shared/tenancy.ts), [shared/consent.ts](shared/consent.ts) and [shared/transfer.ts](shared/transfer.ts)
+- [docs/lifecycle.md](docs/lifecycle.md)
+- [shared/event.ts](shared/event.ts), [shared/tenancy.ts](shared/tenancy.ts), [shared/consent.ts](shared/consent.ts), [shared/transfer.ts](shared/transfer.ts), [shared/authorisation.ts](shared/authorisation.ts) and [shared/audit.ts](shared/audit.ts)
 - [secure-transfer/envelope.ts](secure-transfer/envelope.ts) — the AAD definition in particular, since both fiduciaries must rebuild it byte-identically
 - [database/prisma/schema.prisma](database/prisma/schema.prisma)
-- [database/consent.ts](database/consent.ts) and [database/transfers.ts](database/transfers.ts)
+- [database/consent.ts](database/consent.ts), [database/transfers.ts](database/transfers.ts), [database/authorisation.ts](database/authorisation.ts) and [database/audit.ts](database/audit.ts)
 - [api/app/api/v1/events/route.ts](api/app/api/v1/events/route.ts)
 - [api/app/api/v1/consent/route.ts](api/app/api/v1/consent/route.ts)
 - [api/lib/auth.ts](api/lib/auth.ts)

@@ -12,7 +12,7 @@ import type {
 import { buildTransferAad } from "@rift-cmp/secure-transfer";
 import { fromWireBinding, fromWireEnvelope } from "@rift-cmp/shared";
 import { generateRecipientKeyPair, openEnvelope } from "@rift-cmp/secure-transfer/fiduciary";
-import { POST as authorise } from "@/app/api/v1/transfers/authorisations/route";
+import { POST as authorise } from "@/app/api/v1/authorisations/route";
 import { GET as listTransfers, POST as submitTransfer } from "@/app/api/v1/transfers/route";
 import { GET as collectEnvelope } from "@/app/api/v1/transfers/[transferId]/envelope/route";
 import {
@@ -52,7 +52,7 @@ const FIDUCIARY_IMPORT = /(?:from|import|require)\s*\(?\s*["'][^"']*secure-tr
 
 async function runTransfer(scenario: TransferScenario, plaintext = PII) {
   const authResponse = await authorise(
-    managementRequest("/api/v1/transfers/authorisations", {
+    managementRequest("/api/v1/authorisations", {
       key: scenario.orgA.secretKey,
       method: "POST",
       body: {
@@ -115,7 +115,7 @@ describe("plaintext never reaches Rift", () => {
     bodies.push(JSON.stringify(authBody));
 
     const authResponse = await authorise(
-      managementRequest("/api/v1/transfers/authorisations", {
+      managementRequest("/api/v1/authorisations", {
         key: scenario.orgA.secretKey,
         method: "POST",
         body: authBody,
@@ -135,7 +135,7 @@ describe("plaintext never reaches Rift", () => {
     const scenario = await createTransferScenario();
     const { authorisation } = await (async () => {
       const response = await authorise(
-        managementRequest("/api/v1/transfers/authorisations", {
+        managementRequest("/api/v1/authorisations", {
           key: scenario.orgA.secretKey,
           method: "POST",
           body: {
@@ -170,7 +170,7 @@ describe("plaintext never reaches Rift", () => {
     const scenario = await createTransferScenario();
 
     const response = await authorise(
-      managementRequest("/api/v1/transfers/authorisations", {
+      managementRequest("/api/v1/authorisations", {
         key: scenario.orgA.secretKey,
         method: "POST",
         body: {
@@ -406,7 +406,7 @@ describe("tampering, replay and misdelivery", () => {
   it("rejects an expired authorisation", async () => {
     const scenario = await createTransferScenario();
     const response = await authorise(
-      managementRequest("/api/v1/transfers/authorisations", {
+      managementRequest("/api/v1/authorisations", {
         key: scenario.orgA.secretKey,
         method: "POST",
         body: {
@@ -444,7 +444,7 @@ describe("tampering, replay and misdelivery", () => {
   it("rejects a mismatched nonce", async () => {
     const scenario = await createTransferScenario();
     const response = await authorise(
-      managementRequest("/api/v1/transfers/authorisations", {
+      managementRequest("/api/v1/authorisations", {
         key: scenario.orgA.secretKey,
         method: "POST",
         body: {
@@ -554,7 +554,7 @@ describe("cross-tenant and credential isolation", () => {
     const scenario = await createTransferScenario();
 
     const response = await authorise(
-      managementRequest("/api/v1/transfers/authorisations", {
+      managementRequest("/api/v1/authorisations", {
         key: scenario.orgA.secretKey,
         method: "POST",
         body: {
@@ -574,7 +574,7 @@ describe("cross-tenant and credential isolation", () => {
     const scenario = await createTransferScenario();
 
     const response = await authorise(
-      managementRequest("/api/v1/transfers/authorisations", {
+      managementRequest("/api/v1/authorisations", {
         key: scenario.orgB.secretKey,
         method: "POST",
         body: {

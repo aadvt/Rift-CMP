@@ -136,12 +136,20 @@ Only `GRANTED` means processing is permitted. **Absence of a decision is not
 permission**: `isPurposeGranted` returns `false` for a purpose no one has decided
 on, so a first-time visitor is not accidentally treated as consenting.
 
+`getEffectiveConsent` is also what the orchestration layer reads when something
+downstream asks whether an action is permitted, so there is one gate rather than
+a second opinion. See [lifecycle.md](lifecycle.md).
+
 ### `WITHDRAWN` is not `DENIED`
 
 Both currently resolve to "not permitted", so they behave identically at the
 gate. They are still separate statuses, because refusing up front and revoking a
 consent previously given are different events, and an audit trail that cannot
 tell them apart has lost information that no later query can recover.
+
+The distinction is carried through rather than dropped at the boundary: the
+orchestration layer refuses with `consent_denied` or `consent_withdrawn`, not one
+generic reason. See [lifecycle.md](lifecycle.md).
 
 Status is a `String` column, not a database enum, so a new decision type needs no
 type migration — the API validates against `CONSENT_STATUSES` from the shared
@@ -425,6 +433,10 @@ These are known and accepted for this phase:
   a published version in place would silently rewrite what a principal agreed to.
   A purpose can be deactivated via `is_active`, but nothing in the API sets it
   today.
-- **Consent is not enforced anywhere by us.** Whether a downstream consumer
-  respects a `WITHDRAWN` decision is that consumer's responsibility, because it
-  reads the database directly rather than through our API.
+- **Consent is enforced only on the paths that go through our API.** Phase 4 made
+  it the gate for one action: a transfer authorisation is refused unless the
+  decision in force is `GRANTED`, via the orchestration layer in
+  [lifecycle.md](lifecycle.md). Everything else is unchanged — a downstream
+  consumer that reads the database directly is outside our authorisation layer,
+  so whether it respects a `WITHDRAWN` decision remains that consumer's
+  responsibility.

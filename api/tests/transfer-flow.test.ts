@@ -5,7 +5,7 @@ import type {
   TransferDelivery,
   TransferRecordSummary,
 } from "@rift-cmp/shared";
-import { POST as authorise } from "@/app/api/v1/transfers/authorisations/route";
+import { POST as authorise } from "@/app/api/v1/authorisations/route";
 import { GET as listTransfers, POST as submitTransfer } from "@/app/api/v1/transfers/route";
 import { GET as collectEnvelope } from "@/app/api/v1/transfers/[transferId]/envelope/route";
 import { POST as createRecipientRoute } from "@/app/api/v1/recipients/route";
@@ -33,7 +33,7 @@ async function getAuthorisation(
   overrides: Record<string, unknown> = {},
 ): Promise<TransferAuthorisationSummary> {
   const response = await authorise(
-    managementRequest("/api/v1/transfers/authorisations", {
+    managementRequest("/api/v1/authorisations", {
       key: scenario.orgA.secretKey,
       method: "POST",
       body: {
@@ -181,10 +181,10 @@ describe("end to end: source seals, Rift routes, target decrypts", () => {
 
 describe("consent gates the transfer", () => {
   it("refuses to authorise when consent was denied", async () => {
-    const scenario = await createTransferScenario({ grant: false });
+    const scenario = await createTransferScenario({ consent: "DENIED" });
 
     const response = await authorise(
-      managementRequest("/api/v1/transfers/authorisations", {
+      managementRequest("/api/v1/authorisations", {
         key: scenario.orgA.secretKey,
         method: "POST",
         body: {
@@ -221,7 +221,7 @@ describe("consent gates the transfer", () => {
     );
 
     const response = await authorise(
-      managementRequest("/api/v1/transfers/authorisations", {
+      managementRequest("/api/v1/authorisations", {
         key: scenario.orgA.secretKey,
         method: "POST",
         body: {
@@ -243,7 +243,7 @@ describe("consent gates the transfer", () => {
     const scenario = await createTransferScenario();
 
     const response = await authorise(
-      managementRequest("/api/v1/transfers/authorisations", {
+      managementRequest("/api/v1/authorisations", {
         key: scenario.orgA.secretKey,
         method: "POST",
         body: {
@@ -262,7 +262,7 @@ describe("consent gates the transfer", () => {
     const scenario = await createTransferScenario();
 
     const response = await authorise(
-      managementRequest("/api/v1/transfers/authorisations", {
+      managementRequest("/api/v1/authorisations", {
         key: scenario.orgA.secretKey,
         method: "POST",
         body: {
@@ -281,7 +281,7 @@ describe("consent gates the transfer", () => {
     const scenario = await createTransferScenario();
 
     const response = await authorise(
-      managementRequest("/api/v1/transfers/authorisations", {
+      managementRequest("/api/v1/authorisations", {
         key: scenario.orgA.secretKey,
         method: "POST",
         body: {
@@ -307,7 +307,7 @@ describe("consent gates the transfer", () => {
     });
 
     const response = await authorise(
-      managementRequest("/api/v1/transfers/authorisations", {
+      managementRequest("/api/v1/authorisations", {
         key: scenario.orgA.secretKey,
         method: "POST",
         body: {

@@ -16,6 +16,10 @@ This is the contract between Rift-CMP’s SDK/API/database side and the other si
 | Headless SDK consent client (`analytics.consent`) | ✅ | — |
 | Secure routing: recipient registry, transfer authorisation, envelope relay | ✅ | — |
 | Crypto boundary package (`secure-transfer/`) | ✅ | — |
+| Orchestration: "is this action currently authorised?" | ✅ | — |
+| Unified audit trail across consent, authorisations and transfers | ✅ | — |
+| Deciding whether a purpose required consent in the first place | — | ✅ |
+| Dashboards, exports and analytics over the audit trail | — | ✅ |
 | Source fiduciary: producing and sealing the plaintext | — | ✅ |
 | **Target fiduciary key management: generating, storing and rotating the X25519 private key** | — | ✅ |
 | Analytics dashboards | — | ✅ |
@@ -41,6 +45,20 @@ Our side is responsible for:
   envelopes, and handing them to the recipient they were addressed to
 - keeping the crypto boundary structural: `api/` and `database/` import only the
   Rift-safe half of `secure-transfer/`, enforced by a test rather than by review
+- **the orchestration layer.** One function, `evaluateAuthorisation`, answers "is
+  this requested action currently authorised for this Data Principal, this
+  Fiduciary and this purpose?". It is side-effect free — it creates no rows and
+  contains no cryptography — and it is the **only** place the consent domain and
+  the routing prototype meet. Consent knows nothing about transfers; transfers
+  know nothing about how consent is evaluated. We own keeping it that way.
+- **the refusal vocabulary.** `site_not_found`, `principal_not_found`,
+  `purpose_not_found`, `no_consent_decision`, `consent_denied` and
+  `consent_withdrawn` are distinct and must stay distinguishable, for the same
+  reason `DENIED` and `WITHDRAWN` are distinct statuses.
+- **the audit read model.** One timeline over consent decisions, authorisations
+  and transfers, cross-referenced by `consent_record_id` / `authorisation_id` /
+  `transfer_id`. The three domains are not joined in the database, and we own not
+  joining them.
 - ensuring the event envelope, the consent vocabulary and the API contract are
   implemented correctly
 
@@ -53,6 +71,16 @@ The other side is responsible for:
   than being embedded in it. Deciding whether a given `WITHDRAWN` decision must
   stop a given piece of processing is that side's call.
 - any downstream business logic that reads the database and derives insights
+- **anything built on the audit trail.** `GET /api/v1/audit` returns a JSON
+  timeline. Rendering it, filtering it in a UI, exporting it, aggregating it, and
+  alerting on it are all that side's work. We do not ship a dashboard, and
+  refused attempts are not recorded at all, so detecting a fiduciary repeatedly
+  probing withdrawn consent is not something the current trail supports.
+- **what a withdrawal means for data already delivered.** We stop future
+  authorisations and preserve the past exactly as it was. Whether a recipient
+  must now delete or stop processing what it already holds is a compliance
+  question and a recipient obligation, not something this layer can express by
+  editing history.
 - **scoping every read by tenant.** Because that side queries the database
   directly rather than through our API, our authorisation layer is not in the
   path. The ownership model those queries must respect is in [tenancy.md](tenancy.md).
@@ -168,11 +196,20 @@ The ingestion API contract is defined in [api-spec.md](api-spec.md). The current
   `GET|POST /api/v1/notices` are also management, for the same reason: a public
   key is visible in page source and must not be able to enumerate principals,
   read history, or invent reference data
-- `GET|POST /api/v1/recipients`, `POST /api/v1/transfers/authorisations` and
-  `GET|POST /api/v1/transfers` are management too, authenticated by the
-  **organisation secret key** (`sk_...`): registering a target fiduciary,
-  authorising one transfer, submitting the sealed envelope, and reading the
-  organisation's own transfer metadata
+- `GET|POST /api/v1/recipients`, `GET|POST /api/v1/authorisations`,
+  `POST /api/v1/authorisations/decision`, `GET|POST /api/v1/transfers` and
+  `GET /api/v1/audit` are management too, authenticated by the
+  **organisation secret key** (`sk_...`): registering a target fiduciary, asking
+  whether an action is permitted, authorising one transfer, submitting the sealed
+  envelope, and reading the organisation's own transfer metadata and lifecycle
+  timeline
+- **`POST /api/v1/transfers/authorisations` moved to `POST /api/v1/authorisations`
+  in Phase 4.** The old path is gone, with no alias — a breaking change, recorded
+  in the change log below. Authorisation is its own concern, not a sub-resource of
+  transfers
+- `POST /api/v1/authorisations/decision` answers the same question with **no side
+  effect**, and a refusal is a `200` with `permitted: false` rather than an HTTP
+  error: "consent was withdrawn" is a successful answer to a well-formed question
 - `GET /api/v1/transfers/{transferId}/envelope` is the **delivery plane**,
   authenticated by a **recipient delivery key** (`rk_...`). It is the only
   endpoint on that plane: it collects sealed envelopes addressed to one recipient
@@ -255,6 +292,62 @@ which purpose, when, and how large it was), Rift is trusted for availability and
 is not defended against as a malicious operator who changes the code, and none of
 this has been reviewed by a cryptographer.
 
+## Lifecycle guarantees
+
+Phase 4 joined the consent and routing domains into one flow. These properties
+are part of the contract and **must not regress**. They are covered by
+`api/tests/lifecycle.test.ts`, whose scenarios A–G walk the flow end to end
+through the HTTP surface rather than the service functions underneath it. The
+full reasoning is in [lifecycle.md](lifecycle.md).
+
+- **Asking is not committing.** `evaluateAuthorisation` is side-effect free: it
+  creates no rows, mints no nonce and contains no cryptography. A test asserts
+  that a permitted decision leaves the authorisation count at zero. Anything that
+  makes the evaluation write becomes a change to this contract.
+- **There is one gate and one definition of current consent.** The evaluation
+  calls `getEffectiveConsent`; `authoriseTransfer` calls the evaluation. There is
+  no second implementation of "is consent granted", and no path that mints an
+  authorisation without going through it.
+- **The domains stay decoupled.** The orchestration layer is the only place
+  consent and transfers meet, and the audit trail is a read model — consent has
+  no foreign key to transfers, and adding one to tidy a query is a contract
+  change, not an optimisation.
+- **Refusals stay distinguishable.** Six reasons, not one generic failure.
+  Collapsing `no_consent_decision`, `consent_denied` and `consent_withdrawn` into
+  a single code would destroy information no later query can recover.
+- **Existence non-disclosure holds across the seam.** Another tenant's site,
+  principal or purpose is reported exactly like one that does not exist —
+  including through the decision endpoint's body, where a cross-tenant request
+  reports `site_not_found` rather than leaking that the site exists. Consent does
+  not travel between sites, including sibling sites of one organisation.
+- **Every step names the decision it relied upon.** An authorisation stores the
+  exact `consent_records` id, a transfer inherits it, and every audit entry
+  carries it. None of them stores a copied boolean.
+- **History is never mutated.** A withdrawal appends a new consent record and
+  stops *future* authorisations. It does not rewrite past transfers, which still
+  cite the consent that was in force when they happened, and that record still
+  reads `GRANTED`. A test asserts exactly this.
+- **A refusal creates nothing.** No authorisation row and no transfer row exist
+  after a refused request, in any scenario.
+- **Single-use stays single-use, under a race.** Two simultaneous submissions of
+  one authorisation resolve to exactly one `201` and one `409`, one transfer row,
+  and an authorisation left `CONSUMED` — never two transfers, and never a
+  consumed authorisation with nothing recorded against it.
+- **A failed transfer does not burn its permission.** A rejected envelope leaves
+  the authorisation `AUTHORISED` and the retry succeeds.
+- **Two requests are two permissions.** Authorisation requests are not
+  deduplicated; each is independently single-use, with its own nonce.
+- **No payload rides along with a permission request.** The authorisation and
+  decision schemas are `.strict()`, so an attached `plaintext` is a `400`.
+- **The audit trail carries metadata, never contents.** A test asserts the
+  plaintext appears nowhere in it.
+- **The SDK is unchanged, and must stay that way.** It speaks only consent and
+  events, authenticated by a site public key. Authorisation, transfer and audit
+  are server-to-server, authenticated by the organisation secret, which must
+  never reach a browser. Shipping any of the three into the SDK would hand every
+  visitor the ability to authorise transfers of other people's data and to read
+  the whole organisation's audit trail.
+
 ## Compatibility rules
 
 - Schema changes must be reviewed by both teams before implementation.
@@ -275,3 +368,4 @@ Because the SDK runs on arbitrary customer domains, the API must support browser
 | 2026-08-31 | Added organisation tenancy, public/secret key separation, the site management plane, and tenant-isolation guarantees. Event envelope unchanged; `site_id` is now validated against the authenticating key. | v1 | — |
 | 2026-08-31 | Phase 2: added the consent domain — principals, purposes, policies, policy versions, notices and an append-only consent record — plus `POST\|GET /api/v1/consent` on the browser plane and `/api/v1/consent/history`, `/api/v1/purposes`, `/api/v1/policies`, `/api/v1/notices` on the management plane, and a headless `analytics.consent` SDK client. The consent vocabulary in [consent.md](consent.md) becomes a shared artifact: it encodes structure and no legal rules, and is the base the compliance engine is expected to be built on. Event envelope and analytics tables unchanged; the two domains are not joined. | v1 | — |
 | 2026-09-01 | Phase 3: added secure data routing as a **proof of concept** — `data_recipients`, `transfer_authorisations` and `transfer_records`, plus `GET\|POST /api/v1/recipients`, `POST /api/v1/transfers/authorisations` and `GET\|POST /api/v1/transfers` on the management plane, and a third credential plane (`rk_` recipient delivery key) whose only endpoint is `GET /api/v1/transfers/{transferId}/envelope`. The trust model in [secure-transfer.md](secure-transfer.md) becomes a shared artifact. Rift stores ciphertext and routing metadata and cannot decrypt either; the target fiduciary's X25519 private key is that side's responsibility and never reaches us. Event envelope, analytics tables and the consent schema are unchanged — routing reads consent through `getEffectiveConsent` and references the consent record it relied on, rather than copying a flag. Not cryptographically reviewed; not to be described as production-secure. | v1 | — |
+| 2026-09-01 | Phase 4: connected the consent and secure-routing domains into one product flow. Added an orchestration layer (`database/authorisation.ts`) that answers "is this action currently authorised for this Data Principal, Fiduciary and purpose?" — side-effect free, no cryptography, and the only place the two domains meet — plus a unified audit read model (`database/audit.ts`) that interleaves consent decisions, authorisations and transfers into one timeline without joining them in the database. New endpoints on the management plane: `GET\|POST /api/v1/authorisations`, `POST /api/v1/authorisations/decision` (evaluate only; a refusal is `200` with `permitted: false`, not an HTTP error) and `GET /api/v1/audit`. **BREAKING: `POST /api/v1/transfers/authorisations` moved to `POST /api/v1/authorisations`, in place and with no alias** — authorisation is its own concern, not a sub-resource of transfers. The lifecycle guarantees above become part of the contract. No schema change, no new table, and no SDK change: authorisation, transfer and audit are server-to-server with the organisation secret and must never reach a browser. The secure routing half is still an unreviewed proof of concept. | v1 | — |

@@ -292,28 +292,34 @@ export interface TransferScenario {
 }
 
 /**
- * A tenant that is ready to transfer: consent granted, recipient registered.
+ * A tenant ready to transfer: a registered recipient, and consent in whatever
+ * state the test needs.
  *
- * Consent is recorded through the real service so the transfer is authorised
- * against a genuine append-only decision, not a fabricated row.
+ * Consent is recorded through the real service so an authorisation is always
+ * evaluated against a genuine append-only decision, never a fabricated row.
+ * `"none"` records nothing at all, which is materially different from `DENIED`
+ * and must be testable separately.
  */
 export async function createTransferScenario(
-  options: { grant?: boolean } = {},
+  options: { consent?: "GRANTED" | "DENIED" | "WITHDRAWN" | "none" } = {},
 ): Promise<TransferScenario> {
   const tree = await createOwnershipTree();
   const consent = await createConsentFixture(tree.orgA.organisationId);
   const principalExternalId = "principal-transfer-1";
 
-  const decision = await recordConsentDecision(prisma, {
-    organisationId: tree.orgA.organisationId,
-    siteId: tree.siteA1.siteId,
-    principalExternalId,
-    purposeCode: consent.purposeCode,
-    status: options.grant === false ? "DENIED" : "GRANTED",
-    noticeId: consent.noticeId,
-    source: "test",
-  });
-  if (!decision.ok) throw new Error(`transfer fixture failed: ${decision.message}`);
+  const wanted = options.consent ?? "GRANTED";
+  if (wanted !== "none") {
+    const decision = await recordConsentDecision(prisma, {
+      organisationId: tree.orgA.organisationId,
+      siteId: tree.siteA1.siteId,
+      principalExternalId,
+      purposeCode: consent.purposeCode,
+      status: wanted,
+      noticeId: consent.noticeId,
+      source: "test",
+    });
+    if (!decision.ok) throw new Error(`transfer fixture failed: ${decision.message}`);
+  }
 
   const target = new MockTargetFiduciary();
   const recipient = await createRecipient(prisma, {

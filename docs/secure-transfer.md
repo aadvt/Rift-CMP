@@ -163,7 +163,10 @@ Three new models. Nothing here holds plaintext or private keys.
 
 Referencing `consentRecordId` rather than storing "consent was granted" means an
 auditor can later see precisely which decision justified the transfer — and,
-because Phase 2's log is append-only, that decision can never be rewritten.
+because Phase 2's log is append-only, that decision can never be rewritten. That
+reference is what `GET /api/v1/audit` follows to present the decision, the
+authorisation and the transfer as one story; a withdrawal afterwards stops future
+authorisations without altering this row. See [lifecycle.md](lifecycle.md).
 
 **`TransferRecord`** — what actually happened, and the sealed payload in transit.
 
@@ -200,6 +203,21 @@ Steps 1-6 involve no payload at all. **Authorisation and payload are separate
 requests**: Rift decides whether a transfer may happen before any ciphertext
 exists, and the ciphertext is never an input to the authorisation decision.
 
+Steps 2 to 5 are not transfer-specific, and since Phase 4 they are not
+implemented here. `authoriseTransfer` delegates them to `evaluateAuthorisation`
+in `database/authorisation.ts` — a side-effect-free orchestration layer that owns
+"is this action permitted?" and contains no cryptography — and then does the one
+thing that *is* transfer-specific: minting a single-use permission to move a
+payload. That layer is also reachable on its own, at
+`POST /api/v1/authorisations/decision`, for a fiduciary that needs the answer
+without committing to it. The flow end to end, the refusal vocabulary and the
+audit trail over it are in [lifecycle.md](lifecycle.md).
+
+The endpoint that mints an authorisation is `POST /api/v1/authorisations`. It was
+`POST /api/v1/transfers/authorisations` in Phase 3; authorisation is its own
+concern rather than a sub-resource of transfers, since a transfer is merely one
+action that needs permission.
+
 ## Credential planes
 
 Phase 1 established two; this adds a third. Each is prefix-checked before any
@@ -208,7 +226,7 @@ database lookup, so no plane can be probed with another's credential.
 | Plane | Credential | Can |
 | --- | --- | --- |
 | Ingestion | `pk_` site public key | write events, record consent |
-| Management | `sk_` organisation secret | manage sites, purposes, recipients; authorise and submit transfers; read own transfer metadata |
+| Management | `sk_` organisation secret | manage sites, purposes, recipients; ask whether an action is permitted; authorise and submit transfers; read own transfer metadata and audit trail |
 | **Delivery** | `rk_` recipient delivery key | collect envelopes addressed to that recipient, and nothing else |
 
 ## Where the keys live

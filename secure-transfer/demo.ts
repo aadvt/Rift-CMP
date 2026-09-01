@@ -1,5 +1,9 @@
 /**
- * Manual end-to-end demonstration of secure data routing.
+ * Manual end-to-end demonstration of the whole product flow:
+ *
+ *   consent -> authorisation -> secure transfer -> audit record
+ *
+ * and the refusal that follows a withdrawal.
  *
  * Runs against a live API and plays both fiduciaries in one process. The target's
  * private key is held in a local variable and is never sent anywhere: everything
@@ -99,8 +103,21 @@ async function main() {
   console.log(`   principal : ${PRINCIPAL}`);
   console.log(`   purpose   : ${PURPOSE_CODE} -> ${record.status}`);
 
-  heading("4. Source asks Rift to authorise a transfer (no payload involved)");
-  const authorised = await call("POST", "/api/v1/transfers/authorisations", {
+  heading("4. Source asks whether this is permitted (no side effect)");
+  const preCheck = await call("POST", "/api/v1/authorisations/decision", {
+    key: SECRET_KEY!,
+    body: {
+      site_id: SITE_ID,
+      principal_external_id: PRINCIPAL,
+      purpose_code: PURPOSE_CODE,
+    },
+  });
+  console.log(`   permitted     : ${preCheck.body.permitted}`);
+  console.log(`   consent cited : ${preCheck.body.consent_record_id}`);
+  console.log(`   reason        : ${preCheck.body.reason ?? "(none - granted)"}`);
+
+  heading("5. Source asks Rift to authorise a transfer (no payload involved)");
+  const authorised = await call("POST", "/api/v1/authorisations", {
     key: SECRET_KEY!,
     body: {
       site_id: SITE_ID,
@@ -115,7 +132,7 @@ async function main() {
   console.log(`   consent cited : ${auth.consent_record_id}`);
   console.log(`   expires       : ${auth.expires_at}`);
 
-  heading("5. Source seals the payload locally");
+  heading("6. Source seals the payload locally");
   console.log(`   plaintext : ${PLAINTEXT}`);
   const binding: TransferBinding = {
     authorisationId: auth.authorisation_id,
@@ -134,7 +151,7 @@ async function main() {
     `   contains the plaintext? ${Buffer.from(envelope.ciphertext, "base64").toString("utf8").includes("ABCDE1234F")}`,
   );
 
-  heading("6. Source submits the sealed envelope to Rift");
+  heading("7. Source submits the sealed envelope to Rift");
   const submitted = await call("POST", "/api/v1/transfers", {
     key: SECRET_KEY!,
     body: {
@@ -154,13 +171,13 @@ async function main() {
   console.log(`   digest      : ${String(transfer.ciphertext_sha256).slice(0, 32)}...`);
   console.log(`   size        : ${transfer.payload_bytes} bytes`);
 
-  heading("7. What Rift can see (its own management view)");
+  heading("8. What Rift can see (its own management view)");
   const listed = await call("GET", "/api/v1/transfers", { key: SECRET_KEY! });
   const view = JSON.stringify((listed.body.transfers as unknown[])[0], null, 2);
   console.log(view.split("\n").map((line) => `   ${line}`).join("\n"));
   console.log(`\n   plaintext present in Rift's view? ${view.includes("ABCDE1234F")}`);
 
-  heading("8. Target collects the envelope and decrypts it");
+  heading("9. Target collects the envelope and decrypts it");
   const collected = await call("GET", `/api/v1/transfers/${transfer.transfer_id}/envelope`, {
     key: deliveryKey,
   });
@@ -198,7 +215,7 @@ async function main() {
   console.log(`   recovered : ${recovered}`);
   console.log(`   matches the original? ${recovered === PLAINTEXT}`);
 
-  heading("9. Can Rift decrypt what it just delivered?");
+  heading("10. Can Rift decrypt what it just delivered?");
   // Everything Rift holds, tried as a decryption key.
   const riftHolds: Array<[string, string]> = [
     ["recipient public key", auth.recipient_public_key],
@@ -224,16 +241,74 @@ async function main() {
     }
   }
 
-  heading(broke === 0 ? "RESULT: boundary holds" : "RESULT: BOUNDARY BROKEN");
+  heading("11. The audit trail: one timeline across all three domains");
+  const audit = await call("GET", `/api/v1/audit?principal_external_id=${encodeURIComponent(PRINCIPAL)}`, {
+    key: SECRET_KEY!,
+  });
+  for (const entry of (audit.body.entries as Array<Record<string, string>>) ?? []) {
+    console.log(`   ${entry.at}  ${entry.kind.padEnd(14)} ${entry.status.padEnd(11)} ${entry.summary}`);
+  }
+  const auditText = JSON.stringify(audit.body);
+  console.log(`
+   plaintext present anywhere in the audit trail? ${auditText.includes("ABCDE1234F")}`);
+
+  heading("12. Principal withdraws consent; the next request is refused");
+  await call("POST", "/api/v1/consent", {
+    key: SITE_PUBLIC_KEY,
+    body: { principal_external_id: PRINCIPAL, purpose_code: PURPOSE_CODE, status: "WITHDRAWN" },
+  });
+
+  const afterWithdrawal = await call("POST", "/api/v1/authorisations/decision", {
+    key: SECRET_KEY!,
+    body: { site_id: SITE_ID, principal_external_id: PRINCIPAL, purpose_code: PURPOSE_CODE },
+  });
+  console.log(`   permitted : ${afterWithdrawal.body.permitted}`);
+  console.log(`   reason    : ${afterWithdrawal.body.reason}`);
+
+  const refused = await call("POST", "/api/v1/authorisations", {
+    key: SECRET_KEY!,
+    body: {
+      site_id: SITE_ID,
+      principal_external_id: PRINCIPAL,
+      purpose_code: PURPOSE_CODE,
+      recipient_code: RECIPIENT_CODE,
+    },
+  });
+  console.log(`   authorisation request -> HTTP ${refused.status} ${(refused.body.error as Record<string, string>)?.code ?? ""}`);
+
+  const stillRecorded = await call("GET", "/api/v1/transfers", { key: SECRET_KEY! });
+  const thisPrincipalsTransfers = (
+    stillRecorded.body.transfers as Array<Record<string, string>>
+  ).filter((t) => t.principal_external_id === PRINCIPAL);
   console.log(
-    broke === 0
-      ? "   Rift authorised the transfer, relayed the payload and recorded it,\n" +
-          "   using nothing it holds to read the plaintext. Only the target, holding\n" +
-          "   the private key Rift never saw, recovered the original.\n\n" +
-          "   This is a proof of concept and has had no cryptographic review."
+    `   this principal's completed transfers still on record: ${thisPrincipalsTransfers.length}` +
+      "  (withdrawal stops future transfers; it does not rewrite the past)",
+  );
+
+  const refusedCorrectly =
+    afterWithdrawal.body.permitted === false &&
+    afterWithdrawal.body.reason === "consent_withdrawn" &&
+    refused.status === 409;
+
+  heading(
+    broke === 0 && refusedCorrectly ? "RESULT: lifecycle holds" : "RESULT: SOMETHING IS WRONG",
+  );
+  console.log(
+    broke === 0 && refusedCorrectly
+      ? [
+          "   Consent was recorded, the request was checked against it, and an",
+          "   authorisation was minted citing the exact decision relied upon. The",
+          "   sealed payload was relayed and recorded, and the whole story reads",
+          "   back as one audit trail. Rift could not read the payload at any",
+          "   point, and once consent was withdrawn the next request was refused",
+          "   while the completed transfer stayed on the record.",
+          "",
+          "   The secure transfer piece is a proof of concept with no cryptographic",
+          "   review. Do not deploy it as-is.",
+        ].join("\n")
       : "   Investigate immediately.",
   );
-  process.exit(broke === 0 ? 0 : 1);
+  process.exit(broke === 0 && refusedCorrectly ? 0 : 1);
 }
 
 main().catch((error) => {

@@ -9,7 +9,9 @@
     "./keys": "./keys.ts",
     "./tenancy": "./tenancy.ts",
     "./consent": "./consent.ts",
-    "./transfers": "./transfers.ts"
+    "./transfers": "./transfers.ts",
+    "./authorisation": "./authorisation.ts",
+    "./audit": "./audit.ts"
   },
   "types": "./index.ts",
   "scripts": {

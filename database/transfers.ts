@@ -20,7 +20,7 @@ import {
 } from "@rift-cmp/secure-transfer";
 import type { PrismaClient } from "./generated/client";
 import { generateDeliveryKey, hashSecretKey } from "./keys";
-import { getEffectiveConsent } from "./consent";
+import { evaluateAuthorisation, type DecisionReason } from "./authorisation";
 
 /**
  * Secure data routing.
@@ -177,18 +177,39 @@ export async function findRecipientByDeliveryKey(prisma: PrismaClient, deliveryK
 
 // --- Authorisation -----------------------------------------------------------
 
+type AuthoriseFailureCode =
+  | "not_found"
+  | "unknown_purpose"
+  | "unknown_recipient"
+  | "consent_not_granted";
+
 export type AuthoriseTransferResult =
   | { ok: true; authorisation: TransferAuthorisationSummary }
   | {
       ok: false;
-      code: "not_found" | "unknown_purpose" | "unknown_recipient" | "consent_not_granted";
+      code: AuthoriseFailureCode;
+      /** Present when the orchestration layer refused; absent for recipient errors. */
+      reason?: DecisionReason;
       message: string;
     };
 
+/** Maps an orchestration refusal onto the API's error vocabulary. */
+const CODE_FOR_REASON: Record<DecisionReason, AuthoriseFailureCode> = {
+  site_not_found: "not_found",
+  principal_not_found: "not_found",
+  purpose_not_found: "unknown_purpose",
+  no_consent_decision: "consent_not_granted",
+  consent_denied: "consent_not_granted",
+  consent_withdrawn: "consent_not_granted",
+};
+
 /**
- * Steps 2 to 6 of the authorisation flow: identify the principal, the purpose
- * and the recipient, verify consent is currently granted, and mint a single-use
- * authorisation.
+ * Mints a single-use permission to move a payload.
+ *
+ * Deciding *whether* it is permitted is not done here: identifying the
+ * fiduciary, principal and purpose, and checking consent, all belong to
+ * `evaluateAuthorisation` in `./authorisation`. This function adds only the
+ * transfer-specific part — resolving the recipient and recording the permission.
  *
  * No payload is involved. Rift decides whether a transfer may happen before any
  * ciphertext exists, and the ciphertext is never an input to that decision.
@@ -204,37 +225,15 @@ export async function authoriseTransfer(
     ttlSeconds?: number;
   },
 ): Promise<AuthoriseTransferResult> {
-  const site = await prisma.website.findFirst({
-    where: { id: input.siteId, organisationId: input.organisationId },
-    select: { id: true },
-  });
-  if (!site) {
-    return { ok: false, code: "not_found", message: `No site found with id: ${input.siteId}.` };
-  }
-
-  const principal = await prisma.principal.findUnique({
-    where: {
-      siteId_externalId: { siteId: site.id, externalId: input.principalExternalId },
-    },
-    select: { id: true },
-  });
-  if (!principal) {
+  // The orchestration layer owns "is this permitted?"; this function owns
+  // "given that it is, mint a single-use permission to move a payload".
+  const decision = await evaluateAuthorisation(prisma, input);
+  if (!decision.permitted) {
     return {
       ok: false,
-      code: "not_found",
-      message: `No principal found on this site with that external id.`,
-    };
-  }
-
-  const purpose = await prisma.purpose.findFirst({
-    where: { organisationId: input.organisationId, code: input.purposeCode },
-    select: { id: true },
-  });
-  if (!purpose) {
-    return {
-      ok: false,
-      code: "unknown_purpose",
-      message: `No purpose found with code: ${input.purposeCode}.`,
+      code: CODE_FOR_REASON[decision.reason],
+      reason: decision.reason,
+      message: decision.message,
     };
   }
 
@@ -250,33 +249,17 @@ export async function authoriseTransfer(
     };
   }
 
-  // Reuses Phase 2's single definition of "current consent", so a transfer can
-  // never be authorised against a rule the consent API would disagree with.
-  const state = await getEffectiveConsent(prisma, {
-    siteId: site.id,
-    principalExternalId: input.principalExternalId,
-  });
-  const decision = state?.effective.find((entry) => entry.purpose_code === input.purposeCode);
-
-  if (!decision || decision.status !== "GRANTED") {
-    return {
-      ok: false,
-      code: "consent_not_granted",
-      message: decision
-        ? `Consent for "${input.purposeCode}" is currently ${decision.status}.`
-        : `No consent decision recorded for "${input.purposeCode}".`,
-    };
-  }
-
   const ttl = input.ttlSeconds ?? DEFAULT_AUTHORISATION_TTL_SECONDS;
   const authorisation = await prisma.transferAuthorisation.create({
     data: {
       organisationId: input.organisationId,
-      siteId: site.id,
-      principalId: principal.id,
-      purposeId: purpose.id,
+      siteId: decision.context.siteId,
+      principalId: decision.context.principalId,
+      purposeId: decision.context.purposeId,
       recipientId: recipient.id,
-      consentRecordId: decision.consent_record_id,
+      // The exact decision relied upon, so an auditor can always see what
+      // justified this transfer.
+      consentRecordId: decision.context.consentRecordId,
       nonce: randomBytes(24).toString("base64url"),
       status: "AUTHORISED",
       expiresAt: new Date(Date.now() + ttl * 1000),
@@ -488,4 +471,21 @@ export async function listTransfers(
     include: { authorisation: { include: AUTHORISATION_INCLUDE } },
   });
   return rows.map(toTransferRecordSummary);
+}
+
+/** A source organisation's own authorisations. Metadata only. */
+export async function listAuthorisations(
+  prisma: PrismaClient,
+  filter: { organisationId: string; siteId?: string; limit?: number },
+): Promise<TransferAuthorisationSummary[]> {
+  const rows = await prisma.transferAuthorisation.findMany({
+    where: {
+      organisationId: filter.organisationId,
+      ...(filter.siteId ? { siteId: filter.siteId } : {}),
+    },
+    orderBy: { createdAt: "desc" },
+    take: filter.limit ?? 200,
+    include: AUTHORISATION_INCLUDE,
+  });
+  return rows.map(toAuthorisationSummary);
 }

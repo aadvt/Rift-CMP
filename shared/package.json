@@ -9,7 +9,9 @@
     "./tenancy": "./tenancy.ts",
     "./api": "./api.ts",
     "./consent": "./consent.ts",
-    "./transfer": "./transfer.ts"
+    "./transfer": "./transfer.ts",
+    "./audit": "./audit.ts",
+    "./authorisation": "./authorisation.ts"
   },
   "types": "./index.ts",
   "dependencies": {

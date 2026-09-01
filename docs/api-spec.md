@@ -9,7 +9,7 @@ interchangeable. See [tenancy.md](tenancy.md) for the full ownership model.
 | Plane | Base path | Credential | Purpose |
 | --- | --- | --- | --- |
 | Ingestion | `/api/v1/events`, `/api/v1/consent` | site public key `pk_...` | append events, record consent decisions, read one principal's state |
-| Management | `/api/v1/organisation`, `/api/v1/sites`, `/api/v1/consent/history`, `/api/v1/purposes`, `/api/v1/policies`, `/api/v1/notices`, `/api/v1/recipients`, `/api/v1/transfers` | organisation secret key `sk_...` | read/modify that org's sites, consent reference data and the audit trail; register recipients; authorise and submit transfers; read its own transfer metadata |
+| Management | `/api/v1/organisation`, `/api/v1/sites`, `/api/v1/consent/history`, `/api/v1/purposes`, `/api/v1/policies`, `/api/v1/notices`, `/api/v1/recipients`, `/api/v1/authorisations`, `/api/v1/transfers`, `/api/v1/audit` | organisation secret key `sk_...` | read/modify that org's sites, consent reference data and the audit trail; register recipients; ask whether an action is permitted; authorise and submit transfers; read its own transfer metadata and the unified lifecycle timeline |
 | Delivery | `/api/v1/transfers/{transferId}/envelope` | recipient delivery key `rk_...` | collect sealed envelopes addressed to one recipient, and nothing else |
 
 Each credential is **prefix-checked before any database lookup**, so no plane can
@@ -60,6 +60,28 @@ Secure data routing added these:
 | `authorisation_expired` | The authorisation's `expires_at` has passed |
 | `authorisation_consumed` | A transfer has already been recorded against that authorisation |
 | `invalid_envelope` | The sealed envelope is malformed, empty, or over the size limit |
+
+### Decision reasons
+
+`POST /api/v1/authorisations/decision` reports a refusal in its **response body**,
+not in an error body, so these are not `ApiErrorCode` values and do not appear
+inside `error.code`. They are typed as `DecisionReason` in
+`shared/authorisation.ts`, and they are deliberately distinct: "never decided",
+"refused" and "granted then withdrew" are materially different facts.
+
+| `reason` | Meaning |
+| --- | --- |
+| `site_not_found` | No site with that id in the caller's organisation |
+| `principal_not_found` | No principal with that external id on that site |
+| `purpose_not_found` | No purpose with that code in the caller's organisation |
+| `no_consent_decision` | Principal and purpose both exist; no decision has ever been recorded for the pair |
+| `consent_denied` | The decision in force is `DENIED` |
+| `consent_withdrawn` | The decision in force is `WITHDRAWN` |
+
+`POST /api/v1/authorisations` collapses the same six onto the error codes above —
+`not_found`, `unknown_purpose` and `consent_not_granted` — because it is
+reporting a failed request rather than answering a question. The mapping is in
+[lifecycle.md](lifecycle.md).
 
 ## CORS
 
@@ -679,7 +701,18 @@ can be registered. Hand it to the target fiduciary out of band.
 | `400` | `invalid_request` | schema failure or unknown field |
 | `409` | `conflict` | a recipient with that `code` already exists in this organisation |
 
-### `POST /api/v1/transfers/authorisations`
+### `POST /api/v1/authorisations`
+
+> **Moved.** This endpoint was `POST /api/v1/transfers/authorisations` in Phase 3.
+> The old path no longer exists and returns `404`. This is a **breaking change**;
+> there is no alias and no deprecation window.
+>
+> Authorisation is its own concern, not a sub-resource of transfers. A transfer is
+> one action that needs permission; the permission itself is the thing being
+> modelled. The flat boundary means a future action type can be gated by the same
+> decision without reshaping this API, and it keeps the consent domain and the
+> routing prototype from depending on each other. The reasoning is in
+> [lifecycle.md](lifecycle.md).
 
 Mints a single-use, time-bounded permission to transfer one principal's data to
 one recipient for one purpose.
@@ -688,6 +721,11 @@ This request is **payload-free by construction**. Rift decides whether a transfe
 may happen before any ciphertext exists, so the ciphertext can never influence
 the decision. The schema is strict: sending `plaintext`, `data` or an envelope
 here is a `400`, not something quietly ignored.
+
+The consent check itself is not performed here. It is delegated to
+`evaluateAuthorisation` in `database/authorisation.ts` — the same side-effect-free
+orchestration layer behind `POST /api/v1/authorisations/decision`, so the two can
+never disagree about whether an action is permitted.
 
 Request body:
 
@@ -756,6 +794,115 @@ the API so ids cannot be probed across tenants — which is why `unknown_purpose
 is a `404` here while the same code is a `400` on `POST /api/v1/consent`. `409`
 is used only for the one case where every identifier resolved and the answer is
 simply "the principal has not permitted this".
+
+### `GET /api/v1/authorisations`
+
+The authenticated organisation's own authorisations, newest first. Metadata only.
+
+| Parameter | Notes |
+| --- | --- |
+| `site_id` | Optional. Must be a site the caller owns, else `404` |
+| `limit` | Optional integer 1–500, default 200 |
+
+```http
+GET /api/v1/authorisations?site_id=site_demo&limit=50
+Authorization: Bearer sk_2f8c...
+```
+
+`200 OK` with `{ "authorisations": [ ... ] }`, each entry the object shown under
+`POST /api/v1/authorisations` — including `nonce` and `recipient_public_key`,
+which are not secrets: the nonce is authenticated data the recipient rebuilds
+anyway, and the public key is what a source encrypts to.
+
+| Status | `code` | Cause |
+| --- | --- | --- |
+| `401` | `unauthorized` | missing, malformed, unknown, or wrong-plane key |
+| `400` | `invalid_request` | `limit` is not an integer between 1 and 500 |
+| `404` | `not_found` | `site_id` names a site the caller does not own |
+
+An out-of-range `limit` is rejected rather than silently clamped, matching the
+rest of the management plane.
+
+### `POST /api/v1/authorisations/decision`
+
+Answers "is this action currently authorised?" **without creating anything.**
+
+Creating an authorisation writes a row and mints a single-use permission. A
+fiduciary often needs the answer first — to decide whether to collect the data at
+all, to show a user why something is unavailable, or to check a batch before
+starting. This endpoint runs the same orchestration layer with no side effect.
+
+Request body (strict — unknown fields are a `400`). Note there is no
+`recipient_code`: the question is about permission, not about a particular
+transfer.
+
+```json
+{
+  "site_id": "site_demo",
+  "principal_external_id": "p_3f9c",
+  "purpose_code": "analytics"
+}
+```
+
+| Field | Notes |
+| --- | --- |
+| `site_id` | Must be a site the caller owns |
+| `principal_external_id` | 1–200 chars |
+| `purpose_code` | 1–100 chars |
+
+`200 OK` when permitted:
+
+```json
+{
+  "permitted": true,
+  "reason": null,
+  "message": "Consent for \"analytics\" is currently GRANTED.",
+  "site_id": "site_demo",
+  "principal_external_id": "p_3f9c",
+  "purpose_code": "analytics",
+  "consent_record_id": "6b1c0f2a-...",
+  "consent_status": "GRANTED",
+  "decided_at": "2026-09-01T09:00:00.000Z"
+}
+```
+
+**A refusal is also `200`,** with `permitted: false`:
+
+```json
+{
+  "permitted": false,
+  "reason": "consent_withdrawn",
+  "message": "Consent for \"analytics\" is currently WITHDRAWN.",
+  "site_id": "site_demo",
+  "principal_external_id": "p_3f9c",
+  "purpose_code": "analytics",
+  "consent_record_id": null,
+  "consent_status": null,
+  "decided_at": null
+}
+```
+
+"Consent was withdrawn" is a successful answer to a well-formed question, not an
+HTTP error. Conflating it with a malformed request or a bad credential would make
+both harder to handle. The status says whether the question was answered;
+`permitted` says what the answer was.
+
+`consent_record_id`, `consent_status` and `decided_at` are populated **only** when
+`permitted` is `true` — a refusal cites no record, because no record permitted
+anything. `site_id`, `principal_external_id` and `purpose_code` echo the request
+verbatim, so a stored response is self-describing.
+
+A site the caller does not own reports `permitted: false` with
+`reason: "site_not_found"`, exactly as a site that does not exist would. That is
+the same existence non-disclosure rule as everywhere else, expressed in the body
+rather than in a status code.
+
+| Status | `code` | Cause |
+| --- | --- | --- |
+| `200` | — | the question was answered; read `permitted` and `reason` |
+| `401` | `unauthorized` | missing, malformed, unknown, or wrong-plane key |
+| `400` | `invalid_json` | body is not valid JSON |
+| `400` | `invalid_request` | schema failure or unknown field |
 
 ### `POST /api/v1/transfers`
 
@@ -842,6 +989,102 @@ Authorization: Bearer sk_2f8c...
 | Status | `code` | Cause |
 | --- | --- | --- |
 | `401` | `unauthorized` | missing, malformed, unknown, or wrong-plane key |
+| `404` | `not_found` | `site_id` names a site the caller does not own |
+
+### `GET /api/v1/audit`
+
+Consent decisions, authorisations and transfers for the authenticated
+organisation, interleaved into a single timeline, newest first.
+
+This is an operator capability, which is why it needs the secret key: a site
+public key can only read the single principal it already has the id for.
+
+| Parameter | Notes |
+| --- | --- |
+| `site_id` | Optional. Must be a site the caller owns, else `404` |
+| `principal_external_id` | Optional. Exact match |
+| `purpose_code` | Optional. Exact match |
+| `limit` | Optional integer 1–1000, default 200 |
+
+Every filter **narrows within** the tenant and can never widen beyond one.
+
+```http
+GET /api/v1/audit?principal_external_id=p_3f9c
+Authorization: Bearer sk_2f8c...
+```
+
+`200 OK`:
+
+```json
+{
+  "entries": [
+    {
+      "kind": "transfer",
+      "at": "2026-09-01T09:05:04.117Z",
+      "site_id": "site_demo",
+      "principal_external_id": "p_3f9c",
+      "purpose_code": "analytics",
+      "status": "RECORDED",
+      "summary": "Sealed payload of 148 bytes recorded for \"partner-bank\" (recorded).",
+      "consent_record_id": "6b1c0f2a-...",
+      "authorisation_id": "8ad1f0c2-...",
+      "transfer_id": "c07e4b9a-..."
+    },
+    {
+      "kind": "authorisation",
+      "at": "2026-09-01T09:05:00.000Z",
+      "site_id": "site_demo",
+      "principal_external_id": "p_3f9c",
+      "purpose_code": "analytics",
+      "status": "CONSUMED",
+      "summary": "Transfer to \"partner-bank\" authorised for \"analytics\", relying on consent record 6b1c0f2a-....",
+      "consent_record_id": "6b1c0f2a-...",
+      "authorisation_id": "8ad1f0c2-...",
+      "transfer_id": null
+    },
+    {
+      "kind": "consent",
+      "at": "2026-09-01T09:00:00.000Z",
+      "site_id": "site_demo",
+      "principal_external_id": "p_3f9c",
+      "purpose_code": "analytics",
+      "status": "GRANTED",
+      "summary": "Principal recorded GRANTED for \"analytics\".",
+      "consent_record_id": "6b1c0f2a-...",
+      "authorisation_id": null,
+      "transfer_id": null
+    }
+  ]
+}
+```
+
+| Field | Notes |
+| --- | --- |
+| `kind` | `consent`, `authorisation` or `transfer` |
+| `at` | RFC3339. The sort key across all three kinds |
+| `status` | Domain-specific: `GRANTED`/`DENIED`/`WITHDRAWN`, `AUTHORISED`/`CONSUMED`/`EXPIRED`, `RECORDED`/`DELIVERED`/`FAILED` |
+| `summary` | One line a human can read without cross-referencing anything |
+| `consent_record_id`, `authorisation_id`, `transfer_id` | Cross-references; `null` where the kind does not have one |
+
+Ordering is newest first by `at`, with ties broken by kind — transfer, then
+authorisation, then consent — so a consent decision, the authorisation it
+justified and the resulting transfer read in causal order even when they land in
+the same millisecond.
+
+The three domains are stored separately and **deliberately not joined in the
+database**. This is a read model that joins them for a reader; it exposes no
+table shape, and the ids it returns are the same public identifiers the other
+endpoints already use. The sealed envelope is never included — the audit trail is
+metadata about a transfer, never its contents.
+
+Refused attempts do not appear. A refusal creates no row, so this endpoint shows
+what happened rather than what was attempted. See the scope limits in
+[lifecycle.md](lifecycle.md).
+
+| Status | `code` | Cause |
+| --- | --- | --- |
+| `401` | `unauthorized` | missing, malformed, unknown, or wrong-plane key |
+| `400` | `invalid_request` | `limit` is not an integer between 1 and 1000 |
 | `404` | `not_found` | `site_id` names a site the caller does not own |
 
 ---
@@ -949,10 +1192,6 @@ A transfer sealed for another recipient is reported exactly like one that does
 not exist, following the same existence non-disclosure rule as the rest of the
 API.
 
-There is no "list my pending envelopes" endpoint. `listPendingForRecipient` exists
-in `database/transfers.ts` but is not exposed over HTTP in this prototype; a
-target learns its transfer ids out of band.
-
 ---
 
 ## `GET /api/healthz`
@@ -972,6 +1211,9 @@ Unauthenticated liveness check.
   processing lawful". See [consent.md](consent.md).
 - Consent reference data has no update or delete routes. Purposes, policies,
   versions and notices can be created and listed only.
+- `GET /api/v1/audit` returns JSON, not a dashboard. There is no aggregation, no
+  export format, and no alerting; refused attempts are not recorded at all. See
+  [lifecycle.md](lifecycle.md).
 - The secure routing surface is a **proof of concept**. It has had no
   cryptographic review and must not be described as production-secure. There is
   no recipient update or delete route, no key rotation, no PKI to authenticate a
@@ -987,4 +1229,11 @@ Unauthenticated liveness check.
 
 - The API is versioned in the path as `/api/v1`.
 - Breaking API changes require a new versioned route, not an in-place change.
+- One exception has been taken, and it is recorded rather than hidden:
+  `POST /api/v1/transfers/authorisations` was **moved** to
+  `POST /api/v1/authorisations` in Phase 4, in place, with no alias. It was taken
+  because the surface has no external consumers yet and the nested path encoded a
+  relationship that was wrong; carrying it to `/api/v2` would have meant shipping
+  the mistake for the life of v1. Once this API has a consumer outside the repo,
+  the rule above applies without exception.
 - The underlying event schema remains the shared artifact both teams depend on.

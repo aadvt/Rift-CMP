@@ -20,6 +20,8 @@ The third domain is a **proof of concept**, added in Phase 3. It exists to demon
 
 Routing depends on consent rather than duplicating it: an authorisation is minted only if `getEffectiveConsent` — the same derivation the consent API uses — resolves to `GRANTED`, and the authorisation row then references the exact `consent_records` id it relied upon rather than a copied boolean. It invents no cryptography; every primitive comes from Node's built-in `node:crypto`. It has had **no cryptographic review** and must not be treated as production-secure. The trust model, the construction, and the things it explicitly does not defend against are all in [secure-transfer.md](secure-transfer.md).
 
+Phase 4 joins the consent and routing domains into one product flow without joining the domains themselves. The single coupling point is an **orchestration layer**, described below and in [lifecycle.md](lifecycle.md); a fourth table is not added, and the audit trail that reads across all three domains is a read model rather than a foreign key.
+
 ```text
 ┌─────────────────────┐   queued + batched events     ┌─────────────────────┐      persist       ┌────────────────────┐
 │ Customer Website    │ ─────────────────────▶ │ SDK (`sdk/`)        │ ─────────────────▶ │ API (`api/`)       │ ─────▶ Database (`database/`) │
@@ -59,12 +61,19 @@ Routing depends on consent rather than duplicating it: an authorisation is minte
   id the caller already knows.
 - **Management plane** - `/api/v1/organisation`, `/api/v1/sites`,
   `/api/v1/consent/history`, `/api/v1/purposes`, `/api/v1/policies`,
-  `/api/v1/notices`, `/api/v1/recipients` and `/api/v1/transfers` (including
-  `/api/v1/transfers/authorisations`), authenticated by an organisation secret key
+  `/api/v1/notices`, `/api/v1/recipients`, `/api/v1/authorisations` (including
+  `/api/v1/authorisations/decision`), `/api/v1/transfers` and `/api/v1/audit`,
+  authenticated by an organisation secret key
   (`sk_...`). Server-to-server only, so it deliberately returns no CORS headers. The
   audit trail and all consent reference data live here because a public key is
   visible to anyone viewing page source and must not be able to enumerate principals
   or read history.
+- Authorisation is its own top-level resource, not a sub-resource of transfers:
+  `POST /api/v1/transfers/authorisations` **moved** to `POST /api/v1/authorisations`
+  in Phase 4. A transfer is one action that needs permission; the permission is the
+  thing being modelled, so a later action type can reuse the same decision without
+  reshaping the API. This is a breaking change and is recorded as one in
+  [integration-contract.md](integration-contract.md).
 - **Delivery plane** - `GET /api/v1/transfers/{transferId}/envelope`, authenticated
   by a recipient delivery key (`rk_...`). The narrowest of the three: it authorises a
   target fiduciary to collect sealed envelopes addressed to that one recipient, and
@@ -73,6 +82,16 @@ Routing depends on consent rather than duplicating it: an authorisation is minte
   is a `401`, decided on the key prefix before any database lookup.
 - `GET /api/healthz` is unauthenticated.
 - Does not expose analytics or query endpoints in this MVP; those are intentionally out of scope.
+
+### Orchestration layer (`database/authorisation.ts`)
+
+- The component that joins the domains, and **the only place they are joined**. `evaluateAuthorisation` answers exactly one question: *is this requested action currently authorised for this Data Principal, this Fiduciary and this purpose?*
+- It is **side-effect free**. It creates no rows, mints no nonce, and contains no cryptography. Asking is not the same as being granted permission, and keeping the two apart is what lets `POST /api/v1/authorisations/decision` exist at all — a fiduciary can check before committing without writing a row or burning a single-use permission.
+- Consent knows nothing about transfers, and transfers know nothing about how consent is evaluated. `authoriseTransfer` in `database/transfers.ts` no longer decides anything: it delegates to this module and then does the one transfer-specific thing, minting a single-use permission. Remove the routing prototype and the consent domain is untouched; remove this module and the two stop being able to talk, which is the correct blast radius for a coupling point.
+- There is one definition of "current consent" in the codebase. This module calls `getEffectiveConsent`, the same derivation the consent API and the SDK use, rather than reimplementing the gate.
+- Refusals are distinct — `site_not_found`, `principal_not_found`, `purpose_not_found`, `no_consent_decision`, `consent_denied`, `consent_withdrawn` — because "never decided", "refused" and "granted then withdrew" are different facts to both a caller and an auditor. Every lookup is scoped to the organisation the credential resolved to, so another tenant's rows are indistinguishable from rows that do not exist.
+- `database/audit.ts` is the matching read side: it queries the three domains separately and interleaves them by time into one timeline. They are **not joined in SQL** — introducing a foreign key to make the query tidier would couple domains that Phase 2 and Phase 3 kept apart. The join happens in a read model, where it costs nothing structurally.
+- The end-to-end flow, the refusal vocabulary and what a withdrawal does and does not change are in [lifecycle.md](lifecycle.md).
 
 ### Secure transfer (`secure-transfer/`)
 - A workspace package holding every line of cryptography in the project, split so the trust boundary is **structural rather than a matter of discipline**.
@@ -99,8 +118,9 @@ secure-transfer/
   independently of application code.
 - Also owns credential minting and tenant provisioning (`keys.ts`, `tenancy.ts`),
   so key material is generated in exactly one place, the consent service layer
-  (`consent.ts`), and the secure routing service layer (`transfers.ts`) — every
-  function of both takes its tenant as an explicit argument.
+  (`consent.ts`), the secure routing service layer (`transfers.ts`), the
+  orchestration layer (`authorisation.ts`) and the audit read model (`audit.ts`) —
+  every function of all four takes its tenant as an explicit argument.
 - The database is accessed directly by the analytics/dashboard side for reporting, not via our API surface.
 
 ## Data flow
@@ -164,6 +184,9 @@ Our side owns:
 - the secure routing prototype: recipient registration, the consent-gated transfer
   authorisation, the relay itself, and the crypto boundary package — but **not** the
   fiduciaries at either end, and specifically not the target's key management
+- the orchestration layer that answers "is this action currently authorised?", and
+  the unified audit read model over consent, authorisations and transfers — but
+  **not** any judgement about whether a purpose required consent in the first place
 
 The other side owns:
 - analytics dashboards and views
@@ -172,6 +195,6 @@ The other side owns:
 - downstream business logic that reads the database
 - the fiduciary systems at either end of a transfer, and above all **the target's key management**: generating the X25519 key pair, keeping the private half out of Rift's reach, and rotating it. Rift's inability to decrypt is only worth as much as that side's custody of the key
 
-The shared contract between these teams is the event schema in [event-schema.md](event-schema.md), the consent vocabulary in [consent.md](consent.md), the trust model in [secure-transfer.md](secure-transfer.md), and the API contract in [api-spec.md](api-spec.md). These must be agreed before any change is made.
+The shared contract between these teams is the event schema in [event-schema.md](event-schema.md), the consent vocabulary in [consent.md](consent.md), the trust model in [secure-transfer.md](secure-transfer.md), the end-to-end flow in [lifecycle.md](lifecycle.md), and the API contract in [api-spec.md](api-spec.md). These must be agreed before any change is made.
 
 The split on consent is the important one: we record structure, they judge it. Nothing in our schema, API or SDK encodes a retention period, a jurisdiction, or a rule that a given purpose requires consent.
