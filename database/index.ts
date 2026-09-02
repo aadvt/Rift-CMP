@@ -25,3 +25,5 @@ export * from "./transfers";
 export * from "./authorisation";
 export * from "./audit";
 export * from "./analytics";
+export * from "./discovery";
+export * from "./tracker-catalogue";

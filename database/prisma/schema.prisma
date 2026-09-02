@@ -45,6 +45,9 @@ model Website {
   principals          Principal[]
   consentRecords      ConsentRecord[]
   transferAuthorisations TransferAuthorisation[]
+  discoveredComponents DiscoveredComponent[]
+  discoveredStorage    DiscoveredStorage[]
+  discoveryViolations  DiscoveryViolation[]
 
   @@unique([id, organisationId])
   @@index([organisationId])
@@ -372,4 +375,101 @@ model TransferRecord {
   @@unique([authorisationId, organisationId])
   @@index([organisationId, recordedAt])
   @@map("transfer_records")
+}
+
+// ─── Discovery domain ────────────────────────────────────────────────────────
+//
+// What is actually running on a customer's pages, where it sends data, and
+// whether any of it fired without consent. Populated by the SDK from inside real
+// page views rather than by a crawler, which is what makes the violation record
+// below possible at all: only code present in the page can observe that a
+// request genuinely left the browser.
+//
+// Site-scoped, like the analytics domain. Deliberately *not* joined to
+// `Principal`: a violation records that a destination was contacted under a
+// non-granted purpose, never which person was on the page. Attributing these to
+// individuals would manufacture exactly the behavioural profile the platform
+// exists to avoid.
+
+/// One destination a site's pages contact, aggregated across page views.
+model DiscoveredComponent {
+  id     String @id @default(uuid())
+  siteId String @map("site_id")
+
+  /// Hostname only. The SDK strips query strings and fragments before sending.
+  host String
+  /// script | image | iframe | fetch | xhr | beacon | stylesheet | media | font | other
+  kind String
+  /// The script this was attributed to, as `host/file`. Null when the browser
+  /// gave no usable stack - common for requests issued by served markup.
+  initiator  String?
+  samplePath String? @map("sample_path")
+  pageUrl    String  @map("page_url")
+
+  /// False when the host equals the page's own origin.
+  isThirdParty Boolean @map("is_third_party")
+  requestCount Int     @default(1) @map("request_count")
+
+  /// Server-side classification. Null vendor means unmatched, which is surfaced
+  /// as "unclassified" rather than treated as safe.
+  vendor             String?
+  category           String?
+  destinationCountry String? @map("destination_country")
+  crossesBorder      Boolean @default(false) @map("crosses_border")
+
+  firstSeen DateTime @map("first_seen")
+  lastSeen  DateTime @map("last_seen")
+
+  website Website @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  /// One row per destination per kind per site, so repeated page views update a
+  /// count instead of growing the table without bound.
+  @@unique([siteId, host, kind])
+  @@index([siteId, lastSeen])
+  @@index([siteId, isThirdParty])
+  @@map("discovered_components")
+}
+
+/// A storage key a site's pages write. Names only - never values.
+model DiscoveredStorage {
+  id     String @id @default(uuid())
+  siteId String @map("site_id")
+
+  /// cookie | local_storage | session_storage
+  kind   String
+  name   String
+  writer String?
+
+  firstSeen DateTime @map("first_seen")
+  lastSeen  DateTime @map("last_seen")
+
+  website Website @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, kind, name])
+  @@index([siteId, lastSeen])
+  @@map("discovered_storage")
+}
+
+/// A destination contacted while consent for its purpose was not granted.
+///
+/// Stored rather than derived, because effective consent is "newest decision
+/// wins": the state at the moment of the request cannot be reconstructed later.
+/// This is the evidentiary record a crawler-based scanner cannot produce.
+model DiscoveryViolation {
+  id     String @id @default(uuid())
+  siteId String @map("site_id")
+
+  host        String
+  purposeCode String @map("purpose_code")
+  /// The effective status at the moment of observation: DENIED or WITHDRAWN.
+  consentStatus String @map("consent_status")
+  pageUrl       String @map("page_url")
+
+  observedAt DateTime @map("observed_at")
+  recordedAt DateTime @default(now()) @map("recorded_at")
+
+  website Website @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, observedAt])
+  @@map("discovery_violations")
 }

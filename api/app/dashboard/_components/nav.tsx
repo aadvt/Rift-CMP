@@ -6,11 +6,13 @@ import { usePathname } from "next/navigation";
 /**
  * Primary navigation.
  *
- * The order is the product's story: what is happening, who agreed to what, what
- * moved as a result, how the site is performing, and how to wire it up.
+ * The order is the product's story: what is happening, what is running on the
+ * page, who agreed to what, what moved as a result, how the site is performing,
+ * and how to wire it up.
  */
 const LINKS = [
   { href: "/dashboard", label: "Overview" },
+  { href: "/dashboard/discovery", label: "Discovery" },
   { href: "/dashboard/consent", label: "Consent" },
   { href: "/dashboard/transfers", label: "Transfers" },
   { href: "/dashboard/analytics", label: "Analytics" },

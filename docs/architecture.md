@@ -4,13 +4,16 @@
 
 Rift-CMP is a privacy-first analytics + consent platform. Our side is responsible for the SDK, the ingestion API, and the database that stores raw event data and the consent record. The platform is multi-tenant: every website belongs to an **organisation**, and an organisation is the boundary that data isolation is enforced against. The full ownership model is in [tenancy.md](tenancy.md). The customer website embeds our SDK, which automatically emits session and page events and optionally sends custom events through `track(name, properties)`. The other side of the system is responsible for analytics dashboards, the compliance engine, consent UX, and downstream reporting; they consume the data from the database rather than through a read API in this MVP.
 
-There are **three domains**, and they are deliberately kept apart:
+There are **four domains**, and they are deliberately kept apart:
 
 | Domain | Tables | Grain | What it records |
 | --- | --- | --- | --- |
 | Analytics | `sessions`, `events` | site + session | what happened on a page |
 | Consent | `principals`, `purposes`, `policies`, `policy_versions`, `notices`, `notice_purposes`, `consent_records` | site + principal | who decided what, about which purpose, under which notice, when |
 | Secure data routing | `data_recipients`, `transfer_authorisations`, `transfer_records` | site + principal + recipient | that an authorised personal-data transfer happened, and the sealed payload while it is in transit |
+| Discovery | `discovered_components`, `discovered_storage`, `discovery_violations` | site + destination | what runs on the site's pages, where it sends data, and what fired without consent |
+
+The discovery domain is site-scoped like analytics and is deliberately never joined to `Principal`: a violation records that a destination was contacted under a non-granted purpose, never who was on the page. See [discovery.md](discovery.md).
 
 Nothing in the consent schema references `Session` or `Event`, and no consent flag is copied onto analytics rows. The link, when one is needed, is made through `Principal`. Denormalising consent onto immutable event rows would bake one reading of the rules into them, and would be wrong the moment a decision changed. The reasoning, and the whole consent vocabulary, is in [consent.md](consent.md).
 

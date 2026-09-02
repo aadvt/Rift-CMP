@@ -88,6 +88,7 @@ Start with the first one; it is the entry point and links to the rest.
 - [Event Schema](docs/event-schema.md)
 - [API Spec](docs/api-spec.md)
 - [Database Schema](docs/database-schema.md)
+- [Discovery](docs/discovery.md)
 - [Integration Contract](docs/integration-contract.md)
 
 ## Local development
@@ -223,6 +224,8 @@ The API routes are:
 - `GET|POST http://127.0.0.1:3000/api/v1/authorisations` (secret key) — was `/api/v1/transfers/authorisations` before Phase 4
 - `POST http://127.0.0.1:3000/api/v1/authorisations/decision` (secret key) — evaluate only, creates nothing
 - `GET|POST http://127.0.0.1:3000/api/v1/transfers` (secret key) — `GET` takes `site_id` and `limit` (1–500, default 200)
+- `POST http://127.0.0.1:3000/api/v1/discovery` (public key) — in-page discovery report
+- `GET http://127.0.0.1:3000/api/v1/discovery/inventory` (secret key) — what runs on a site, where it sends data, and what fired without consent
 - `GET http://127.0.0.1:3000/api/v1/audit` (secret key)
 - `GET http://127.0.0.1:3000/api/v1/analytics/summary` (secret key) — aggregate SDK activity
 - `GET http://127.0.0.1:3000/api/v1/analytics/overview` (secret key) — counts across every domain

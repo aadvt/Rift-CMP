@@ -6,3 +6,4 @@ export * from "./transfer";
 export * from "./authorisation";
 export * from "./audit";
 export * from "./analytics";
+export * from "./discovery";
