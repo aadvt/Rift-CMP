@@ -1,50 +1,89 @@
 /*
  * Dashboard design tokens and primitives.
  *
- * One small stylesheet rather than a CSS framework: the surface is five pages of
+ * One small stylesheet rather than a CSS framework: the surface is six pages of
  * tables and counts, and a utility framework would be more machinery than the
  * problem needs. Everything is a plain class, so a page composes markup rather
  * than assembling long strings of utilities.
+ *
+ * The palette sits on a slightly cool slate rather than pure grey, with a single
+ * teal accent. Semantic colours (ok / warn / bad) are deliberately a separate
+ * family from the accent, so "this is selected" never reads as "this is fine" —
+ * a distinction that matters on a page whose job is to show you a consent
+ * violation.
  */
 
 :root {
-  --bg: #f7f7f8;
+  color-scheme: light;
+
+  --bg: #f4f6f7;
   --surface: #ffffff;
-  --border: #e4e4e7;
-  --text: #18181b;
-  --muted: #71717a;
-  --accent: #3730a3;
-  --accent-soft: #eef2ff;
+  --surface-2: #f8fafa;
+  --border: #dfe4e7;
+  --border-strong: #c9d1d6;
 
-  --ok: #166534;
-  --ok-soft: #dcfce7;
-  --warn: #92400e;
-  --warn-soft: #fef3c7;
-  --bad: #991b1b;
-  --bad-soft: #fee2e2;
-  --neutral-soft: #f4f4f5;
+  --text: #10181c;
+  --text-2: #3d4a52;
+  --muted: #6b7a83;
+  --faint: #93a1a9;
 
-  --radius: 8px;
-  --gap: 16px;
+  --accent: #0d6068;
+  --accent-hover: #0a4d54;
+  --accent-soft: #dceef0;
+  --accent-line: #7fc0c6;
+  --on-accent: #ffffff;
+
+  --ok: #15603a;
+  --ok-soft: #dcf2e5;
+  --warn: #8a5109;
+  --warn-soft: #fbeed6;
+  --bad: #8f2226;
+  --bad-soft: #fbe3e4;
+  --neutral-soft: #eef1f3;
+
+  --radius: 10px;
+  --radius-sm: 7px;
+  --gap: 14px;
+
+  --shadow-sm: 0 1px 2px rgba(16, 24, 28, 0.05);
+  --shadow: 0 1px 2px rgba(16, 24, 28, 0.05), 0 6px 16px -10px rgba(16, 24, 28, 0.18);
+
+  --ring: 0 0 0 3px rgba(13, 96, 104, 0.22);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0b0b0d;
-    --surface: #131316;
-    --border: #27272a;
-    --text: #ededed;
-    --muted: #a1a1aa;
-    --accent: #a5b4fc;
-    --accent-soft: #1e1b4b;
+    color-scheme: dark;
 
-    --ok: #86efac;
-    --ok-soft: #14321f;
-    --warn: #fcd34d;
-    --warn-soft: #3a2d0b;
-    --bad: #fca5a5;
-    --bad-soft: #3b1518;
-    --neutral-soft: #1c1c1f;
+    --bg: #0a0f11;
+    --surface: #121a1d;
+    --surface-2: #162024;
+    --border: #243136;
+    --border-strong: #33454b;
+
+    --text: #e8eef0;
+    --text-2: #b8c6cb;
+    --muted: #8798a0;
+    --faint: #64757d;
+
+    --accent: #5ec5cf;
+    --accent-hover: #7ad4dd;
+    --accent-soft: #0f2f34;
+    --accent-line: #2b6d75;
+    --on-accent: #05191c;
+
+    --ok: #6ddba0;
+    --ok-soft: #0e2a1c;
+    --warn: #e8b45c;
+    --warn-soft: #2e2210;
+    --bad: #f08b8f;
+    --bad-soft: #331416;
+    --neutral-soft: #1a2429;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 20px -12px rgba(0, 0, 0, 0.7);
+
+    --ring: 0 0 0 3px rgba(94, 197, 207, 0.25);
   }
 }
 
@@ -64,167 +103,275 @@ body {
   color: var(--text);
   font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 a {
   color: inherit;
 }
 
+::selection {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+/* A visible focus ring everywhere, because this is operated with a keyboard. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
 /* --- Shell ---------------------------------------------------------------- */
 
 .shell {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 232px 1fr;
   min-height: 100vh;
 }
 
 .sidebar {
   background: var(--surface);
   border-right: 1px solid var(--border);
-  padding: 20px 12px;
+  padding: 22px 14px 18px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 26px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
 }
 
 .brand {
   font-weight: 600;
   font-size: 15px;
-  padding: 0 8px;
+  letter-spacing: -0.01em;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+/* A small mark, so the sidebar has an anchor that is not only text. */
+.brand-mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: linear-gradient(140deg, var(--accent) 0%, var(--accent-line) 100%);
+  flex: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
 }
 
 .brand small {
-  display: block;
   font-weight: 400;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .nav {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
-.nav a {
-  padding: 7px 8px;
-  border-radius: 6px;
+.nav-link {
+  position: relative;
+  display: block;
+  padding: 8px 11px;
+  border-radius: var(--radius-sm);
   text-decoration: none;
   color: var(--muted);
-}
-
-.nav a:hover {
-  background: var(--neutral-soft);
-  color: var(--text);
-}
-
-.nav a[aria-current="page"] {
-  background: var(--accent-soft);
-  color: var(--accent);
   font-weight: 500;
+  transition: color 0.16s ease, background-color 0.16s ease;
+  isolation: isolate;
+}
+
+.nav-link:hover {
+  color: var(--text);
+  background: var(--neutral-soft);
+}
+
+.nav-link[aria-current="page"] {
+  color: var(--accent);
+}
+
+.nav-link[aria-current="page"]:hover {
+  background: transparent;
+}
+
+/* The travelling highlight. Sits behind the label via z-index, not opacity. */
+.nav-active {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  z-index: -1;
+}
+
+.nav-label {
+  position: relative;
 }
 
 .sidebar-foot {
   margin-top: auto;
   font-size: 12px;
   color: var(--muted);
-  padding: 0 8px;
+  padding: 0 2px;
 }
 
 .content {
-  padding: 28px 32px 64px;
-  max-width: 1100px;
+  padding: 34px 40px 80px;
+  max-width: 1180px;
+  min-width: 0;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 860px) {
   .shell {
     grid-template-columns: 1fr;
   }
   .sidebar {
+    position: static;
+    height: auto;
     border-right: none;
     border-bottom: 1px solid var(--border);
+    gap: 16px;
   }
   .nav {
     flex-direction: row;
     flex-wrap: wrap;
+    gap: 4px;
   }
   .content {
-    padding: 20px 16px 48px;
+    padding: 22px 18px 56px;
   }
 }
 
 /* --- Page furniture ------------------------------------------------------- */
 
 .page-header {
-  margin-bottom: 24px;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
 }
 
 .page-header h1 {
-  margin: 0 0 4px;
-  font-size: 20px;
-  font-weight: 600;
+  margin: 0 0 6px;
+  font-size: 26px;
+  font-weight: 640;
+  letter-spacing: -0.022em;
+  line-height: 1.15;
+  text-wrap: balance;
 }
 
 .page-header p {
   margin: 0;
   color: var(--muted);
-  max-width: 70ch;
+  max-width: 74ch;
+  font-size: 13.5px;
 }
 
 .section {
-  margin-bottom: 28px;
+  margin-bottom: 32px;
 }
 
 .section > h2 {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 11.5px;
+  font-weight: 650;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  margin: 0 0 10px;
+  letter-spacing: 0.09em;
+  color: var(--faint);
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* A hairline from the heading to the edge, so sections read as bands. */
+.section > h2::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
 }
 
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 16px;
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
 }
 
 .grid {
   display: grid;
   gap: var(--gap);
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(172px, 1fr));
 }
 
 /* --- Stat tiles ----------------------------------------------------------- */
 
 .stat {
+  position: relative;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 14px 16px;
+  padding: 15px 17px 16px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  height: 100%;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.stat:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow);
+  transform: translateY(-1px);
+}
+
+/* A quiet accent edge, so a wall of tiles has a reading direction. */
+.stat::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: var(--accent-line);
+  opacity: 0.55;
 }
 
 .stat-label {
   color: var(--muted);
-  font-size: 12px;
-  margin-bottom: 6px;
+  font-size: 11.5px;
+  font-weight: 550;
+  letter-spacing: 0.02em;
+  margin-bottom: 7px;
 }
 
 .stat-value {
-  font-size: 24px;
-  font-weight: 600;
+  font-size: 30px;
+  font-weight: 640;
   font-variant-numeric: tabular-nums;
-  line-height: 1.1;
+  letter-spacing: -0.028em;
+  line-height: 1.05;
+  color: var(--text);
 }
 
 .stat-hint {
-  color: var(--muted);
-  font-size: 12px;
-  margin-top: 4px;
+  color: var(--faint);
+  font-size: 11.5px;
+  margin-top: 6px;
+  line-height: 1.4;
 }
 
 /* --- Tables --------------------------------------------------------------- */
@@ -234,6 +381,7 @@ a {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow-x: auto;
+  box-shadow: var(--shadow-sm);
 }
 
 table {
@@ -242,18 +390,36 @@ table {
   font-size: 13px;
 }
 
+thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surface-2);
+  z-index: 1;
+}
+
 th,
 td {
   text-align: left;
-  padding: 9px 14px;
+  padding: 11px 15px;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
 
 th {
   color: var(--muted);
-  font-weight: 500;
-  font-size: 12px;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.055em;
+  border-bottom-color: var(--border-strong);
+}
+
+tbody tr {
+  transition: background-color 0.13s ease;
+}
+
+tbody tr:hover {
+  background: var(--surface-2);
 }
 
 tbody tr:last-child td {
@@ -275,18 +441,33 @@ code,
 .mono {
   font-family: var(--font-geist-mono), ui-monospace, monospace;
   font-size: 12px;
+  color: var(--text-2);
 }
 
 /* --- Badges --------------------------------------------------------------- */
 
 .badge {
-  display: inline-block;
-  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
   border-radius: 999px;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: 0.015em;
   background: var(--neutral-soft);
   color: var(--muted);
+  white-space: nowrap;
+}
+
+/* A dot carries state as shape as well as hue, for colour-blind readers. */
+.badge::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
 }
 
 .badge-ok {
@@ -310,77 +491,150 @@ code,
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 28px 20px;
+  padding: 40px 24px;
   text-align: center;
   color: var(--muted);
+  box-shadow: var(--shadow-sm);
 }
 
 .state strong {
   display: block;
   color: var(--text);
-  margin-bottom: 4px;
-  font-weight: 600;
+  margin-bottom: 6px;
+  font-weight: 640;
+  font-size: 15px;
+}
+
+.state p {
+  margin: 0 auto;
+  max-width: 56ch;
+  font-size: 13px;
 }
 
 .state-error {
   border-color: var(--bad);
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+
+.state-error strong {
+  color: var(--bad);
 }
 
 .skeleton {
-  background: var(--neutral-soft);
-  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--neutral-soft) 25%,
+    var(--surface-2) 50%,
+    var(--neutral-soft) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 5px;
   height: 12px;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
 }
 
 /* --- Forms and filters ---------------------------------------------------- */
 
 .filters {
   display: flex;
-  gap: 10px;
+  gap: 11px;
   align-items: flex-end;
   flex-wrap: wrap;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
 }
 
 label {
   display: block;
-  font-size: 12px;
+  font-size: 11.5px;
+  font-weight: 550;
   color: var(--muted);
-  margin-bottom: 4px;
+  margin-bottom: 5px;
 }
 
 input,
 select,
 button {
   font: inherit;
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  padding: 7px 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+}
+
+input:hover,
+select:hover {
+  border-color: var(--accent-line);
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--ring);
+}
+
+input::placeholder {
+  color: var(--faint);
 }
 
 button {
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 550;
+}
+
+button:hover {
+  border-color: var(--accent-line);
+  background: var(--surface-2);
+}
+
+button:active {
+  transform: translateY(1px);
 }
 
 button.primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
+  font-weight: 600;
 }
 
-@media (prefers-color-scheme: dark) {
-  button.primary {
-    color: #1e1b4b;
-  }
+button.primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
+
+/* --- Sign in -------------------------------------------------------------- */
 
 .signin {
-  max-width: 420px;
-  margin: 12vh auto;
-  padding: 0 16px;
+  max-width: 430px;
+  margin: 14vh auto;
+  padding: 0 18px;
+}
+
+.signin h1 {
+  font-size: 24px;
+  letter-spacing: -0.022em;
+  margin: 0 0 6px;
 }
 
 .hint {
@@ -391,4 +645,80 @@ button.primary {
 .error-text {
   color: var(--bad);
   font-size: 13px;
+}
+
+/* --- Entrance animation --------------------------------------------------- */
+/*
+ * Movement only. Deliberately no opacity.
+ *
+ * The obvious entrance fades from `opacity: 0`, and every version of that -
+ * JavaScript or CSS - shares one failure: if the animation does not run, the
+ * content is invisible. That is not hypothetical. A browser freezes animation
+ * timelines in a hidden tab, so a page rendered while backgrounded (a headless
+ * screenshot, print-to-PDF, a preloaded background tab) sits at frame zero
+ * forever. Both were reproduced on this page.
+ *
+ * Animating only `transform` removes the failure mode entirely: the resting
+ * state is fully visible, so content that never animates is merely static, and
+ * an operator reading a consent violation is never shown an empty screen.
+ */
+
+@keyframes rise {
+  from {
+    transform: translateY(9px);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes slide {
+  from {
+    transform: translateY(4px);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.reveal {
+  animation: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Children arrive in sequence, so a row of numbers has a reading order. */
+.stagger > * {
+  animation: rise 0.46s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.stagger > *:nth-child(1) { animation-delay: 0.02s; }
+.stagger > *:nth-child(2) { animation-delay: 0.06s; }
+.stagger > *:nth-child(3) { animation-delay: 0.1s; }
+.stagger > *:nth-child(4) { animation-delay: 0.14s; }
+.stagger > *:nth-child(5) { animation-delay: 0.18s; }
+.stagger > *:nth-child(6) { animation-delay: 0.22s; }
+.stagger > *:nth-child(7) { animation-delay: 0.26s; }
+.stagger > *:nth-child(n + 8) { animation-delay: 0.3s; }
+
+/* Rows move less than tiles: thirty rows travelling far reads as lag. */
+.stagger-rows > tr {
+  animation: slide 0.32s ease both;
+}
+
+.stagger-rows > tr:nth-child(1) { animation-delay: 0.01s; }
+.stagger-rows > tr:nth-child(2) { animation-delay: 0.03s; }
+.stagger-rows > tr:nth-child(3) { animation-delay: 0.05s; }
+.stagger-rows > tr:nth-child(4) { animation-delay: 0.07s; }
+.stagger-rows > tr:nth-child(5) { animation-delay: 0.09s; }
+.stagger-rows > tr:nth-child(6) { animation-delay: 0.11s; }
+.stagger-rows > tr:nth-child(7) { animation-delay: 0.13s; }
+.stagger-rows > tr:nth-child(8) { animation-delay: 0.15s; }
+/* Past this the stagger stops reading as sequence and starts reading as lag. */
+.stagger-rows > tr:nth-child(n + 9) { animation-delay: 0.17s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .stagger > *,
+  .stagger-rows > tr {
+    animation: none;
+  }
 }

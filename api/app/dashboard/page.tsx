@@ -5,6 +5,7 @@ import {
   ErrorState,
   PageHeader,
   Section,
+  StatGrid,
   StatTile,
   StatusBadge,
   TableWrap,
@@ -84,14 +85,14 @@ function OverviewTiles({ overview }: { overview: PlatformOverview }) {
   return (
     <>
       <Section title="Sites">
-        <div className="grid">
+        <StatGrid>
           <StatTile label="Total" value={formatCount(overview.sites.total)} />
           <StatTile label="Active" value={formatCount(overview.sites.active)} />
-        </div>
+        </StatGrid>
       </Section>
 
       <Section title="Consent">
-        <div className="grid">
+        <StatGrid>
           <StatTile
             label="Decisions"
             value={formatCount(overview.consent.total_decisions)}
@@ -105,11 +106,11 @@ function OverviewTiles({ overview }: { overview: PlatformOverview }) {
             value={formatCount(overview.consent.principals)}
             hint="Distinct people who decided at least once"
           />
-        </div>
+        </StatGrid>
       </Section>
 
       <Section title="Authorisations">
-        <div className="grid">
+        <StatGrid>
           <StatTile label="Total" value={formatCount(overview.authorisations.total)} />
           <StatTile label="Authorised" value={formatCount(overview.authorisations.authorised)} />
           <StatTile
@@ -118,20 +119,20 @@ function OverviewTiles({ overview }: { overview: PlatformOverview }) {
             hint="Single-use; spent on a transfer"
           />
           <StatTile label="Expired" value={formatCount(overview.authorisations.expired)} />
-        </div>
+        </StatGrid>
       </Section>
 
       <Section title="Transfers">
-        <div className="grid">
+        <StatGrid>
           <StatTile label="Total" value={formatCount(overview.transfers.total)} />
           <StatTile label="Recorded" value={formatCount(overview.transfers.recorded)} />
           <StatTile label="Delivered" value={formatCount(overview.transfers.delivered)} />
           <StatTile label="Failed" value={formatCount(overview.transfers.failed)} />
-        </div>
+        </StatGrid>
       </Section>
 
       <Section title="Activity">
-        <div className="grid">
+        <StatGrid>
           <StatTile
             label="Sessions"
             value={formatCount(overview.activity.sessions)}
@@ -139,7 +140,7 @@ function OverviewTiles({ overview }: { overview: PlatformOverview }) {
           />
           <StatTile label="Page views" value={formatCount(overview.activity.page_views)} />
           <StatTile label="Custom events" value={formatCount(overview.activity.custom_events)} />
-        </div>
+        </StatGrid>
       </Section>
     </>
   );

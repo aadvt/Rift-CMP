@@ -5,6 +5,7 @@ import {
   ErrorState,
   PageHeader,
   Section,
+  StatGrid,
   StatTile,
   TableWrap,
 } from "../_components/ui";
@@ -76,7 +77,7 @@ function Summary({ summary }: { summary: AnalyticsSummary }) {
       </p>
 
       <Section title="Totals">
-        <div className="grid">
+        <StatGrid>
           <StatTile
             label="Sessions"
             value={formatCount(totals.sessions)}
@@ -86,7 +87,7 @@ function Summary({ summary }: { summary: AnalyticsSummary }) {
           <StatTile label="Custom events" value={formatCount(totals.custom_events)} />
           <StatTile label="Total events" value={formatCount(totals.total_events)} />
           <StatTile label="Active sites" value={formatCount(totals.active_sites)} />
-        </div>
+        </StatGrid>
       </Section>
 
       <Section title="Top pages">
@@ -122,7 +123,7 @@ function Summary({ summary }: { summary: AnalyticsSummary }) {
       </Section>
 
       <Section title="Breakdowns">
-        <div className="grid">
+        <StatGrid>
           <Breakdown title="Devices" rows={summary.devices} total={totals.total_events} />
           <Breakdown title="Browsers" rows={summary.browsers} total={totals.total_events} />
           <Breakdown
@@ -130,7 +131,7 @@ function Summary({ summary }: { summary: AnalyticsSummary }) {
             rows={summary.operating_systems}
             total={totals.total_events}
           />
-        </div>
+        </StatGrid>
       </Section>
 
       <Section title="By site">

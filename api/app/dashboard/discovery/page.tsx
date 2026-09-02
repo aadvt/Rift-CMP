@@ -5,6 +5,7 @@ import {
   ErrorState,
   PageHeader,
   Section,
+  StatGrid,
   StatTile,
   TableWrap,
 } from "../_components/ui";
@@ -71,7 +72,7 @@ function Inventory({ inventory }: { inventory: DiscoveryInventory }) {
   return (
     <>
       <Section title="Summary">
-        <div className="grid">
+        <StatGrid>
           <StatTile label="Destinations" value={formatCount(totals.destinations)} />
           <StatTile
             label="Third party"
@@ -94,7 +95,7 @@ function Inventory({ inventory }: { inventory: DiscoveryInventory }) {
             value={formatCount(totals.open_violations)}
             hint="Fired while consent was not granted"
           />
-        </div>
+        </StatGrid>
       </Section>
 
       {violations.length > 0 ? (

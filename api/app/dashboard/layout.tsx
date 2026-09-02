@@ -36,8 +36,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     <div className="shell">
       <aside className="sidebar">
         <div className="brand">
-          Rift-CMP
-          <small>{organisation.ok ? organisation.data.name : "Organisation"}</small>
+          <span className="brand-mark" aria-hidden="true" />
+          <span className="brand-text">
+            Rift-CMP
+            <small>{organisation.ok ? organisation.data.name : "Organisation"}</small>
+          </span>
         </div>
 
         <DashboardNav />

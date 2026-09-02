@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { CountUp, Reveal, Stagger, StaggerItem } from "./motion";
 
 /**
  * Presentational primitives.
@@ -10,20 +11,42 @@ import type { ReactNode } from "react";
 
 export function PageHeader({ title, description }: { title: string; description: string }) {
   return (
-    <header className="page-header">
-      <h1>{title}</h1>
-      <p>{description}</p>
-    </header>
+    <Reveal>
+      <header className="page-header">
+        <h1>{title}</h1>
+        <p>{description}</p>
+      </header>
+    </Reveal>
   );
 }
 
-export function Section({ title, children }: { title?: string; children: ReactNode }) {
+export function Section({
+  title,
+  children,
+  delay = 0,
+}: {
+  title?: string;
+  children: ReactNode;
+  delay?: number;
+}) {
   return (
-    <section className="section">
-      {title ? <h2>{title}</h2> : null}
-      {children}
-    </section>
+    <Reveal delay={delay}>
+      <section className="section">
+        {title ? <h2>{title}</h2> : null}
+        {children}
+      </section>
+    </Reveal>
   );
+}
+
+/**
+ * A row of stat tiles that arrive in sequence.
+ *
+ * The stagger is the point: it gives the eye an order to read a row of numbers
+ * in, rather than presenting six of them simultaneously.
+ */
+export function StatGrid({ children }: { children: ReactNode }) {
+  return <Stagger className="grid">{children}</Stagger>;
 }
 
 export function StatTile({
@@ -35,13 +58,28 @@ export function StatTile({
   value: string | number;
   hint?: string;
 }) {
+  // Only a real number counts up. A formatted string may be a date or a label,
+  // and animating it would produce nonsense on the way to the final value.
+  const numeric = typeof value === "number" ? value : parseCount(value);
+
   return (
-    <div className="stat">
-      <div className="stat-label">{label}</div>
-      <div className="stat-value">{value}</div>
-      {hint ? <div className="stat-hint">{hint}</div> : null}
-    </div>
+    <StaggerItem>
+      <div className="stat">
+        <div className="stat-label">{label}</div>
+        <div className="stat-value">
+          {numeric === null ? value : <CountUp value={numeric} />}
+        </div>
+        {hint ? <div className="stat-hint">{hint}</div> : null}
+      </div>
+    </StaggerItem>
   );
+}
+
+/** Recovers the number behind an already-formatted count such as "1,234". */
+function parseCount(value: string): number | null {
+  if (!/^[\d,]+$/.test(value)) return null;
+  const parsed = Number(value.replace(/,/g, ""));
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 /**
