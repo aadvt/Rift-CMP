@@ -1,119 +1,139 @@
-# Phase 6B — Regulatory Research Methodology
+# Regulation Research Methodology
 
-## 1. Purpose
+## Purpose
 
-This document defines the methodology used for Phase 6B — Global Regulation Research.
+This methodology defines how privacy regulations are researched, verified, normalized, and represented in the Rift CMP regulation requirement matrix.
 
-The purpose of Phase 6B is to create a:
+This is a research/specification document, not legal advice.
 
-- verified
-- source-backed
-- versioned
-- auditable
-- machine-oriented
+## Research Principles
 
-regulatory specification for the privacy regimes selected for the MVP.
+1. Do not hallucinate legal requirements.
+2. Prefer official and primary legal sources.
+3. Cross-check important requirements with at least one independent authoritative source.
+4. Record source URLs and relevant publication, amendment, version, and effective dates.
+5. Preserve legal ambiguity instead of silently resolving it.
+6. Record conflicts between authoritative sources explicitly.
+7. Distinguish legal requirements from product assumptions or implementation decisions.
+8. Do not reduce a regulation to a single `consent_required` value.
 
-Phase 6B is **research and specification only**.
+## Source Priority
 
-The output of this phase will be used as an input to future engineering phases, including the Policy / Regulation Engine.
+Use sources in the following order:
 
-No runtime regulatory enforcement should be implemented from these documents during Phase 6B.
+1. Official legislation, regulations, government publications, and regulator guidance.
+2. Official regulatory authority guidance and enforcement decisions.
+3. Courts or other authoritative governmental/legal sources.
+4. Independent authoritative legal or standards sources.
+5. Reputable secondary sources for context only.
 
----
+Secondary sources must not override clear primary-source requirements.
 
-## 2. Scope
+## Requirement Extraction
 
-The MVP research scope currently includes:
+For each regulation, identify:
 
-### Tier 1
+- Applicability and territorial scope
+- Covered entities and roles
+- Covered data and processing
+- Legal bases or authorization mechanisms
+- Consent requirements
+- Consent withdrawal
+- Opt-out requirements
+- Sensitive or special-category data
+- Children's data
+- Transparency and notice
+- Individual rights
+- Retention requirements
+- International transfers
+- Cookies and tracking technologies
+- Sale, sharing, or targeted advertising
+- Controller/processor or equivalent roles
+- Vendor requirements
+- Enforcement and penalties
+- Effective dates and amendments
 
-1. EU General Data Protection Regulation (GDPR)
-2. EU ePrivacy / electronic communications privacy and cookie-related requirements
-3. India Digital Personal Data Protection Act
-4. India Digital Personal Data Protection Rules
-5. California Consumer Privacy Act (CCPA), as amended by the CPRA
-6. Brazil Lei Geral de Proteção de Dados Pessoais (LGPD)
+## Normalization
 
-### Generic US State Model
+Legal concepts are normalized into common internal categories while preserving jurisdiction-specific meaning.
 
-Selected additional US state privacy regimes may be reviewed to identify common structural concepts.
+Examples:
 
-The purpose is **not** to hard-code every US state individually during Phase 6B.
+- Legal basis
+- Consent
+- User choice
+- User right
+- Processing purpose
+- Data category
+- Applicability trigger
+- Exception
+- Condition
+- Retention rule
+- Transfer rule
+- Tracking rule
+- Vendor rule
 
-The goal is to determine which regulatory concepts can be represented generically and which remain jurisdiction-specific.
+Normalization must not imply that legally different concepts are equivalent.
 
----
+## Rule Representation
 
-## 3. Product Research, Not Legal Advice
+Requirements should support:
 
-The materials in this directory are product research and technical specification artifacts.
+- Multiple applicable regulations
+- Multiple legal bases
+- Multiple purposes
+- Data-category-specific rules
+- Context-specific rules
+- Region-specific rules
+- Exceptions and conditions
+- Effective dates
+- Policy versions
 
-They are not legal advice, legal opinions, compliance certifications, or guarantees of compliance.
+A rule may therefore be conditional rather than universally applicable.
 
-The research should describe what authoritative sources state and how those requirements may be represented in a software system.
+## Evidence Requirements
 
-Where legal interpretation is uncertain, the uncertainty must be recorded rather than presented as a definitive legal conclusion.
+Every researched requirement should have:
 
----
+- Regulation
+- Requirement description
+- Source reference
+- Source type
+- Publication/version date where available
+- Effective date where applicable
+- Confidence level
+- Notes on conditions or ambiguity
 
-## 4. Core Principle
+Important requirements should have independent authoritative cross-checking.
 
-A regulation must not be reduced to a single consent flag.
+## Conflicts and Ambiguity
 
-The regulatory model must be capable of representing:
+If authoritative sources conflict:
 
-- multiple applicable regimes
-- multiple legal bases or equivalent authorization mechanisms
-- purpose-specific requirements
-- data-category-specific requirements
-- processing-context-specific requirements
-- actor-specific requirements
-- territorial applicability
-- user choices
-- consent
-- withdrawal
-- objection
-- opt-out
-- rights
-- exceptions
-- conditions
-- retention requirements
-- transfer requirements
-- tracking requirements
-- vendor / processor requirements
-- enforcement consequences
-- effective dates
-- amendments
-- policy versions
-- source evidence
-- unresolved ambiguity
+1. Record each interpretation.
+2. Record the sources supporting each interpretation.
+3. Do not silently choose one.
+4. Mark the issue in `conflicts/conflicts.md`.
+5. Identify what additional legal interpretation or future research is required.
 
-The following model is therefore preferred:
+## Versioning
 
-```text
-Jurisdiction
-    ↓
-Applicability
-    ↓
-Actor / Role
-    ↓
-Data Category
-    ↓
-Processing Context
-    ↓
-Purpose
-    ↓
-Legal Basis / Legal Authorization / Applicable Mechanism
-    ↓
-User Choice or User Right
-    ↓
-Conditions
-    ↓
-Exceptions
-    ↓
-Required Action
-    ↓
-Effective Version
-    ↓
-Source Evidence
+Requirements must be associated with the relevant legal or policy version.
+
+Changes caused by amendments, regulations, guidance, court decisions, or effective-date transitions should be recorded as separate versions where necessary.
+
+Historical requirements must not be overwritten without preserving their previous state.
+
+## Product Boundary
+
+Phase 6B produces research artifacts and normalized requirements only.
+
+It does not implement:
+
+- Runtime consent enforcement
+- Cookie blocking
+- Policy evaluation
+- Automated legal decisions
+- User-facing legal advice
+
+Implementation decisions should be based on the completed research matrix and explicitly documented separately.
