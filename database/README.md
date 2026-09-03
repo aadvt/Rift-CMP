@@ -68,11 +68,21 @@ npm run validate          # validate schema.prisma
 - Never edit a migration that has been applied — add a new one.
 - Organisations are created through `createOrganisation()`, never by inserting a
   row directly, so a secret key is always hashed and never stored in plaintext.
-- `consent_records` is append-only. A `BEFORE UPDATE` trigger
-  (`consent_records_append_only`) rejects any `UPDATE` with SQLSTATE `23001`, so
-  changing a decision means appending a new row. `DELETE` stays permitted, because
-  tenant offboarding cascades from `organisations` and retention is a separate
-  concern from immutability.
+- `consent_records` is append-only. A trigger rejects any `UPDATE` with SQLSTATE
+  `23001`, so changing a decision means appending a new row.
+- `transfer_authorisations` and `transfer_records` are append-mostly: their
+  identity and payload columns are frozen, and `status` may only move forwards
+  along a declared state machine (`AUTHORISED → CONSUMED | EXPIRED`,
+  `RECORDED → DELIVERED | FAILED`). They cannot be strictly append-only, because
+  an authorisation is consumed and a transfer is delivered.
+- **Deleting history needs an explicit opt-in.** `DELETE` on all three tables is
+  refused unless the transaction has run `SET LOCAL rift.offboarding = 'on'`.
+  `deleteOrganisation()` in `tenancy.ts` is the only thing here that does; use it
+  for offboarding rather than `prisma.organisation.delete()`, which now fails as
+  soon as the cascade reaches a history table. A future retention job uses the
+  same flag.
+- `consent_sessions` and `dashboard_sessions` are exempt: they hold credentials,
+  not history, and nothing in any read model references one.
 - The seed's consent reference data is idempotent: existing purposes, policies and
   notices are left alone, so re-seeding never duplicates them or invalidates
   recorded consent. The seed provisions no recipients: a delivery key is shown

@@ -13,11 +13,45 @@ import { POST as recordConsentRoute } from "@/app/api/v1/consent/route";
 import {
   createTransferScenario,
   managementRequest,
+  openConsentSession,
   resetDatabase,
   siteRequest,
   type TransferScenario,
 } from "./helpers/fixtures";
 import { sealForAuthorisation, submissionBody } from "./helpers/fiduciaries";
+
+/**
+ * Withdraws consent through the real browser-facing route.
+ *
+ * Since Phase 6A that route needs a consent session as well as the site public
+ * key, so the withdrawal is preceded by opening one for this principal. That is
+ * exactly what a preference centre does, and going through it rather than
+ * writing the row directly keeps this file testing the lifecycle instead of a
+ * shortcut around it.
+ */
+async function withdrawConsent(scenario: TransferScenario): Promise<void> {
+  const session = await openConsentSession(scenario.siteA1.publicKey, {
+    siteId: scenario.siteA1.siteId,
+    principalExternalId: scenario.principalExternalId,
+  });
+
+  const response = await recordConsentRoute(
+    siteRequest("/api/v1/consent", {
+      key: scenario.siteA1.publicKey,
+      method: "POST",
+      sessionToken: session.sessionToken,
+      body: {
+        principal_external_id: scenario.principalExternalId,
+        purpose_code: scenario.consent.purposeCode,
+        status: "WITHDRAWN",
+      },
+    }),
+  );
+  if (response.status !== 201) {
+    throw new Error(`withdrawConsent failed: ${response.status} ${await response.text()}`);
+  }
+}
+
 
 beforeEach(resetDatabase);
 
@@ -208,17 +242,7 @@ describe("consent gates the transfer", () => {
 
     // A withdrawal after the grant. Effective consent is newest-wins, so the
     // transfer must now be refused even though a GRANTED record still exists.
-    await recordConsentRoute(
-      siteRequest("/api/v1/consent", {
-        key: scenario.siteA1.publicKey,
-        method: "POST",
-        body: {
-          principal_external_id: scenario.principalExternalId,
-          purpose_code: scenario.consent.purposeCode,
-          status: "WITHDRAWN",
-        },
-      }),
-    );
+    await withdrawConsent(scenario);
 
     const response = await authorise(
       managementRequest("/api/v1/authorisations", {

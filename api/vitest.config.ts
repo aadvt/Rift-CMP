@@ -18,6 +18,8 @@ const UNIT_TESTS = [
   "tests/secure-transfer-crypto.test.ts",
   "tests/dashboard-components.test.tsx",
   "tests/discovery-classification.test.ts",
+  "tests/rate-limit.test.ts",
+  "tests/origin-validation.test.ts",
 ];
 
 export default defineConfig({

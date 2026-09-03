@@ -9,6 +9,7 @@ import {
   createConsentFixture,
   createOwnershipTree,
   managementRequest,
+  openConsentSession,
   resetDatabase,
   siteRequest,
 } from "./helpers/fixtures";
@@ -17,11 +18,36 @@ beforeEach(resetDatabase);
 
 const PRINCIPAL = "shared-principal-id";
 
+/**
+ * A consent session per site, for the same external id.
+ *
+ * They are separate sessions because they are separate principals: the same
+ * `external_id` on two sites is two people as far as this system is concerned,
+ * and a session minted on one site is refused on the other. That refusal is
+ * asserted directly in `consent-authenticity.test.ts`.
+ */
+let sessionA1: string;
+let sessionB1: string;
+
 /** Both organisations get their own reference data, with distinct purpose codes. */
 async function setupBothTenants() {
   const tree = await createOwnershipTree();
   const consentA = await createConsentFixture(tree.orgA.organisationId);
   const consentB = await createConsentFixture(tree.orgB.organisationId, "b-");
+
+  sessionA1 = (
+    await openConsentSession(tree.siteA1.publicKey, {
+      siteId: tree.siteA1.siteId,
+      principalExternalId: PRINCIPAL,
+    })
+  ).sessionToken;
+  sessionB1 = (
+    await openConsentSession(tree.siteB1.publicKey, {
+      siteId: tree.siteB1.siteId,
+      principalExternalId: PRINCIPAL,
+    })
+  ).sessionToken;
+
   return { ...tree, consentA, consentB };
 }
 
@@ -86,6 +112,7 @@ describe("consent authentication", () => {
       siteRequest("/api/v1/consent", {
         key: siteA1.publicKey,
         method: "POST",
+        sessionToken: sessionA1,
         body: {
           principal_external_id: PRINCIPAL,
           purpose_code: consentA.purposeCode,
@@ -126,6 +153,7 @@ describe("cross-tenant reference data", () => {
       siteRequest("/api/v1/consent", {
         key: siteA1.publicKey,
         method: "POST",
+        sessionToken: sessionA1,
         body: {
           principal_external_id: PRINCIPAL,
           purpose_code: consentB.purposeCode,
@@ -146,6 +174,7 @@ describe("cross-tenant reference data", () => {
       siteRequest("/api/v1/consent", {
         key: siteA1.publicKey,
         method: "POST",
+        sessionToken: sessionA1,
         body: {
           principal_external_id: PRINCIPAL,
           purpose_code: consentA.purposeCode,
@@ -167,6 +196,7 @@ describe("cross-tenant reference data", () => {
       siteRequest("/api/v1/consent", {
         key: siteA1.publicKey,
         method: "POST",
+        sessionToken: sessionA1,
         body: {
           principal_external_id: PRINCIPAL,
           purpose_code: consentA.purposeCode,
@@ -201,6 +231,7 @@ describe("cross-tenant reference data", () => {
       siteRequest("/api/v1/consent", {
         key: siteA1.publicKey,
         method: "POST",
+        sessionToken: sessionA1,
         body: { principal_external_id: PRINCIPAL, purpose_code: "newsletter", status: "GRANTED" },
       }),
     );
@@ -208,6 +239,7 @@ describe("cross-tenant reference data", () => {
       siteRequest("/api/v1/consent", {
         key: siteB1.publicKey,
         method: "POST",
+        sessionToken: sessionB1,
         body: { principal_external_id: PRINCIPAL, purpose_code: "newsletter", status: "DENIED" },
       }),
     );
@@ -232,6 +264,7 @@ describe("cross-tenant reference data", () => {
       siteRequest("/api/v1/consent", {
         key: siteA1.publicKey,
         method: "POST",
+        sessionToken: sessionA1,
         body: {
           principal_external_id: PRINCIPAL,
           purpose_code: consentA.purposeCode,
@@ -254,6 +287,7 @@ describe("principal and record isolation", () => {
       siteRequest("/api/v1/consent", {
         key: siteA1.publicKey,
         method: "POST",
+        sessionToken: sessionA1,
         body: {
           principal_external_id: PRINCIPAL,
           purpose_code: consentA.purposeCode,
@@ -265,6 +299,7 @@ describe("principal and record isolation", () => {
       siteRequest("/api/v1/consent", {
         key: siteB1.publicKey,
         method: "POST",
+        sessionToken: sessionB1,
         body: {
           principal_external_id: PRINCIPAL,
           purpose_code: consentB.purposeCode,
@@ -287,6 +322,7 @@ describe("principal and record isolation", () => {
       siteRequest("/api/v1/consent", {
         key: siteB1.publicKey,
         method: "POST",
+        sessionToken: sessionB1,
         body: {
           principal_external_id: PRINCIPAL,
           purpose_code: consentB.purposeCode,
@@ -340,6 +376,7 @@ describe("audit trail isolation", () => {
       siteRequest("/api/v1/consent", {
         key: siteA1.publicKey,
         method: "POST",
+        sessionToken: sessionA1,
         body: {
           principal_external_id: PRINCIPAL,
           purpose_code: consentA.purposeCode,
@@ -351,6 +388,7 @@ describe("audit trail isolation", () => {
       siteRequest("/api/v1/consent", {
         key: siteB1.publicKey,
         method: "POST",
+        sessionToken: sessionB1,
         body: {
           principal_external_id: PRINCIPAL,
           purpose_code: consentB.purposeCode,

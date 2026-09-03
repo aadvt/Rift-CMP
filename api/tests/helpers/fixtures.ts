@@ -8,7 +8,14 @@ import {
   prisma,
   recordConsentDecision,
 } from "database";
-import type { AnalyticsEvent } from "@rift-cmp/shared";
+import type {
+  AnalyticsEvent,
+  ConsentSessionResponse,
+  TransferAuthorisationSummary,
+  TransferRecordSummary,
+} from "@rift-cmp/shared";
+import { CONSENT_SESSION_HEADER } from "@rift-cmp/shared";
+import { resetRateLimits } from "@/lib/rate-limit";
 import { TEST_SCHEMA } from "../setup/database-url";
 import { MockTargetFiduciary } from "./fiduciaries";
 
@@ -18,8 +25,16 @@ const BASE_URL = "http://localhost:3000";
  * Removes every row in a single round trip. Table names are schema-qualified
  * rather than relying on `search_path`, which the connection pooler can carry
  * over from an unrelated session.
+ *
+ * It also clears the in-process rate limiter. Every test file already calls this
+ * in `beforeEach`, and the limiter's pre-authentication bucket is keyed by client
+ * address alone — which for a `NextRequest` built in a test is always "unknown".
+ * Without the reset, a few hundred tests sharing one fork would eventually trip a
+ * limit that has nothing to do with what they are asserting. Tests that are
+ * *about* rate limiting drive `checkRateLimit` directly.
  */
 export async function resetDatabase() {
+  resetRateLimits();
   const tables = [
     "organisations",
     "websites",
@@ -32,9 +47,14 @@ export async function resetDatabase() {
     "notices",
     "notice_purposes",
     "consent_records",
+    "consent_sessions",
+    "dashboard_sessions",
     "data_recipients",
     "transfer_authorisations",
     "transfer_records",
+    "discovered_components",
+    "discovered_storage",
+    "discovery_violations",
   ]
     .map((table) => `"${TEST_SCHEMA}"."${table}"`)
     .join(", ");
@@ -61,16 +81,32 @@ export interface Site {
  * `createOrganisation` / `createWebsite` provisioning helpers are exercised
  * directly by `tenancy-model.test.ts`.
  */
-export async function createOwnershipTree() {
+export async function createOwnershipTree(options: { prefix?: string } = {}) {
+  // `slug` is unique across the whole table, so a test that needs two
+  // independent trees inside one `it` — a cross-tenant attack usually does —
+  // passes a prefix. The default is empty, so every existing caller and the
+  // assertion on `slug: "org-a"` are untouched.
+  const prefix = options.prefix ?? "";
+
   const organisations = [
-    { id: randomUUID(), name: "Organisation A", slug: "org-a", secretKey: generateSecretKey() },
-    { id: randomUUID(), name: "Organisation B", slug: "org-b", secretKey: generateSecretKey() },
+    {
+      id: randomUUID(),
+      name: "Organisation A",
+      slug: `${prefix}org-a`,
+      secretKey: generateSecretKey(),
+    },
+    {
+      id: randomUUID(),
+      name: "Organisation B",
+      slug: `${prefix}org-b`,
+      secretKey: generateSecretKey(),
+    },
   ];
 
   const sites = [
-    { id: randomUUID(), organisationId: organisations[0].id, name: "Site A1", domain: "a1.example.com" },
-    { id: randomUUID(), organisationId: organisations[0].id, name: "Site A2", domain: "a2.example.com" },
-    { id: randomUUID(), organisationId: organisations[1].id, name: "Site B1", domain: "b1.example.com" },
+    { id: randomUUID(), organisationId: organisations[0].id, name: "Site A1", domain: `${prefix}a1.example.com` },
+    { id: randomUUID(), organisationId: organisations[0].id, name: "Site A2", domain: `${prefix}a2.example.com` },
+    { id: randomUUID(), organisationId: organisations[1].id, name: "Site B1", domain: `${prefix}b1.example.com` },
   ].map((site) => ({ ...site, publicKey: generatePublicKey() }));
 
   await prisma.$transaction([
@@ -123,13 +159,22 @@ export function buildEvent(overrides: Partial<AnalyticsEvent> = {}): AnalyticsEv
 /** POST to the ingestion endpoint. `key` is sent as a bearer token. */
 export function ingestRequest(
   body: unknown,
-  options: { key?: string; queryKey?: string } = {},
+  options: {
+    key?: string;
+    queryKey?: string;
+    /** Consent session token, for sites that enforce consent server-side. */
+    sessionToken?: string;
+    /** Browser `Origin`. Omitted by default, as a non-browser caller would. */
+    origin?: string;
+  } = {},
 ): NextRequest {
   const url = new URL("/api/v1/events", BASE_URL);
   if (options.queryKey) url.searchParams.set("pk", options.queryKey);
 
   const headers = new Headers({ "Content-Type": "application/json" });
   if (options.key) headers.set("Authorization", `Bearer ${options.key}`);
+  if (options.sessionToken) headers.set(CONSENT_SESSION_HEADER, options.sessionToken);
+  if (options.origin) headers.set("Origin", options.origin);
 
   return new NextRequest(url, {
     method: "POST",
@@ -252,6 +297,10 @@ export function siteRequest(
     method?: string;
     body?: unknown;
     query?: Record<string, string>;
+    /** Consent session token, required by `POST /api/v1/consent` since 6A. */
+    sessionToken?: string;
+    /** Browser `Origin`. Omitted by default, as a non-browser caller would. */
+    origin?: string;
   } = {},
 ): NextRequest {
   const url = new URL(pathname, BASE_URL);
@@ -261,12 +310,82 @@ export function siteRequest(
 
   const headers = new Headers({ "Content-Type": "application/json" });
   if (options.key) headers.set("Authorization", `Bearer ${options.key}`);
+  if (options.sessionToken) headers.set(CONSENT_SESSION_HEADER, options.sessionToken);
+  if (options.origin) headers.set("Origin", options.origin);
 
   return new NextRequest(url, {
     method: options.method ?? "GET",
     headers,
     ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
   });
+}
+
+// --- Consent sessions (Phase 6A) ---------------------------------------------
+
+export interface OpenedConsentSession {
+  sessionToken: string;
+  principalExternalId: string;
+  principalSecret: string;
+}
+
+/**
+ * Opens a consent session through the real endpoint.
+ *
+ * Two shapes, because both are worth exercising:
+ *
+ *  - no `principalExternalId` — the server mints the principal and its secret,
+ *    which is what a first-time browser does;
+ *  - a `principalExternalId` — the principal row is created first with no
+ *    secret, and the session binds one. This is the trust-on-first-use path, and
+ *    it is also what lets the pre-6A tests keep their fixed, readable principal
+ *    identifiers instead of asserting against a random UUID.
+ */
+export async function openConsentSession(
+  publicKey: string,
+  options: {
+    siteId?: string;
+    principalExternalId?: string;
+    principalSecret?: string;
+    origin?: string;
+  } = {},
+): Promise<OpenedConsentSession> {
+  const { POST } = await import("@/app/api/v1/consent/session/route");
+
+  let body: Record<string, string> = {};
+  if (options.principalExternalId) {
+    if (!options.siteId) {
+      throw new Error("openConsentSession: siteId is required with principalExternalId");
+    }
+    const secret = options.principalSecret ?? `ps_${randomUUID().replace(/-/g, "")}`;
+    await prisma.principal.upsert({
+      where: {
+        siteId_externalId: { siteId: options.siteId, externalId: options.principalExternalId },
+      },
+      update: {},
+      create: { siteId: options.siteId, externalId: options.principalExternalId },
+    });
+    body = { principal_external_id: options.principalExternalId, principal_secret: secret };
+  }
+
+  const response = await POST(
+    siteRequest("/api/v1/consent/session", {
+      key: publicKey,
+      method: "POST",
+      body,
+      origin: options.origin,
+    }),
+  );
+
+  if (response.status !== 201) {
+    throw new Error(`openConsentSession failed: ${response.status} ${await response.text()}`);
+  }
+
+  const parsed = (await response.json()) as ConsentSessionResponse;
+  return {
+    sessionToken: parsed.session_token,
+    principalExternalId: parsed.principal_external_id,
+    principalSecret: parsed.principal_secret ?? body.principal_secret ?? "",
+  };
 }
 
 /** Route context for a dynamic `[policyId]` segment. */
@@ -301,9 +420,9 @@ export interface TransferScenario {
  * and must be testable separately.
  */
 export async function createTransferScenario(
-  options: { consent?: "GRANTED" | "DENIED" | "WITHDRAWN" | "none" } = {},
+  options: { consent?: "GRANTED" | "DENIED" | "WITHDRAWN" | "none"; prefix?: string } = {},
 ): Promise<TransferScenario> {
-  const tree = await createOwnershipTree();
+  const tree = await createOwnershipTree({ prefix: options.prefix });
   const consent = await createConsentFixture(tree.orgA.organisationId);
   const principalExternalId = "principal-transfer-1";
 
@@ -337,4 +456,60 @@ export async function createTransferScenario(
     deliveryKey: recipient.delivery_key,
     principalExternalId,
   };
+}
+
+/**
+ * Drives consent -> authorisation -> sealed transfer through the real routes.
+ *
+ * `lifecycle.test.ts` has its own copy that also returns the raw responses,
+ * because it asserts on statuses at every step. This one exists for tests that
+ * need a *completed* flow as a starting point rather than as the subject -
+ * `audit-immutability.test.ts` needs rows in all three tables before it can try
+ * to rewrite them.
+ */
+export async function runTransferFlow(
+  scenario: TransferScenario,
+  options: { plaintext?: string; submit?: boolean } = {},
+): Promise<{
+  authorisation: TransferAuthorisationSummary;
+  transfer: TransferRecordSummary | null;
+}> {
+  const { POST: authorise } = await import("@/app/api/v1/authorisations/route");
+  const { POST: submitTransfer } = await import("@/app/api/v1/transfers/route");
+  const { sealForAuthorisation, submissionBody } = await import("./fiduciaries");
+
+  const authResponse = await authorise(
+    managementRequest("/api/v1/authorisations", {
+      key: scenario.orgA.secretKey,
+      method: "POST",
+      body: {
+        site_id: scenario.siteA1.siteId,
+        principal_external_id: scenario.principalExternalId,
+        purpose_code: scenario.consent.purposeCode,
+        recipient_code: scenario.recipientCode,
+      },
+    }),
+  );
+  if (authResponse.status !== 201) {
+    throw new Error(`runTransferFlow: authorise failed ${authResponse.status}`);
+  }
+  const authorisation = (await authResponse.json()) as TransferAuthorisationSummary;
+
+  if (options.submit === false) {
+    return { authorisation, transfer: null };
+  }
+
+  const envelope = sealForAuthorisation(authorisation, options.plaintext ?? "test payload");
+  const submitted = await submitTransfer(
+    managementRequest("/api/v1/transfers", {
+      key: scenario.orgA.secretKey,
+      method: "POST",
+      body: submissionBody(authorisation, envelope),
+    }),
+  );
+  if (submitted.status !== 201) {
+    throw new Error(`runTransferFlow: submit failed ${submitted.status}`);
+  }
+
+  return { authorisation, transfer: (await submitted.json()) as TransferRecordSummary };
 }

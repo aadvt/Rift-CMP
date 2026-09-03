@@ -170,3 +170,59 @@ export function isPurposeGranted(
   const decision = effective.find((entry) => entry.purpose_code === purposeCode);
   return decision ? PERMISSIVE_STATUSES.includes(decision.status) : false;
 }
+
+// --- Consent sessions (Phase 6A) --------------------------------------------
+
+/**
+ * Prefix of the opaque token a browser presents to prove a consent decision is
+ * its own. Only its SHA-256 digest is ever stored, exactly like `sk_` and `rk_`.
+ */
+export const CONSENT_SESSION_PREFIX = "cs_";
+
+/**
+ * Prefix of the secret that binds a principal identifier to one browser.
+ *
+ * This is the durable half of the mechanism. The session token expires; the
+ * principal secret is what lets the same browser open the next session and stops
+ * anyone else opening one for that principal. It lives in `localStorage`
+ * alongside the identifier it protects.
+ */
+export const PRINCIPAL_SECRET_PREFIX = "ps_";
+
+/** How long a consent session stays usable. Short: it is re-minted silently. */
+export const CONSENT_SESSION_TTL_SECONDS = 30 * 60;
+
+/**
+ * How many decisions one session may record.
+ *
+ * Generous enough for a preference centre with many purposes, toggled a few
+ * times, and low enough that a stolen token cannot be used to bury a decision
+ * log under thousands of fabricated entries.
+ */
+export const CONSENT_SESSION_MAX_DECISIONS = 50;
+
+/** The HTTP header a consent session token travels in. */
+export const CONSENT_SESSION_HEADER = "x-rift-consent-session";
+
+/** Request body of `POST /api/v1/consent/session`. */
+export interface ConsentSessionRequest {
+  /** Omit on a browser's first visit; the server mints one. */
+  principal_external_id?: string;
+  /** Required whenever `principal_external_id` is sent. */
+  principal_secret?: string;
+}
+
+/** Response body of `POST /api/v1/consent/session`. */
+export interface ConsentSessionResponse {
+  site_id: string;
+  principal_external_id: string;
+  /**
+   * Returned only when the secret was minted (or bound) by this call. Store it:
+   * it is the only way to open a later session for this principal, and it is
+   * never shown again.
+   */
+  principal_secret: string | null;
+  session_token: string;
+  expires_at: string;
+  max_decisions: number;
+}

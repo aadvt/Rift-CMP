@@ -52,18 +52,21 @@ Phase 5 adds an aggregate read surface over the same three domains (`database/an
 - Uses `fetch(..., { keepalive: true })` on unload/hidden transitions to avoid dropping the final queue when a tab closes. `navigator.sendBeacon` cannot set request headers and therefore cannot send `Authorization: Bearer <public_key>`, so every beacon would be rejected with `401`; `keepalive` survives unload and does support headers. The queue is not cleared on this path, because the request cannot be awaited during unload — events stay in `localStorage` and are re-sent on the next load, where the API deduplicates them by `event_id`.
 - Sends payloads to the API using the canonical event envelope defined in [event-schema.md](event-schema.md).
 - Handles site and session context such as `site_id`, `session_id`, browser, OS, URL, title, and referrer.
-- Exposes `analytics.consent`, a **headless** consent client: it mints and stores an anonymous principal id, records `GRANTED`/`DENIED`/`WITHDRAWN` decisions, caches the effective state in `localStorage`, and notifies subscribers via `onChange()`. It renders no UI at all.
+- Exposes `analytics.consent`, a **headless** consent client: it obtains and stores a server-minted anonymous principal id and the secret that binds it to this browser, opens and renews consent sessions transparently, records `GRANTED`/`DENIED`/`WITHDRAWN` decisions, caches the effective state in `localStorage`, and notifies subscribers via `onChange()`. It renders no UI at all.
 - Does **not** wire consent into the event gate automatically. `setConsentCheck` keeps its permissive default until an integrator opts in with `analytics.setConsentCheck((purpose) => analytics.consent.isGranted(purpose))` — the SDK does not decide that analytics requires consent.
 
 ### API (`api/`)
 - Next.js App Router application under `app/api/`, exposing three separate planes.
-- **Ingestion plane** - `POST /api/v1/events` and `/api/v1/consent`, authenticated by
+- **Ingestion plane** - `POST /api/v1/events`, `/api/v1/consent`,
+  `/api/v1/consent/session` and `/api/v1/discovery`, authenticated by
   a site public key (`pk_...`). Open cross-origin with CORS and `OPTIONS` preflight,
   because customer websites call it from domains outside the API origin. Event
   ingestion accepts a single event or a batch `{ "events": [...] }`, deduplicates
   repeated `event_id` values, and is idempotent across retries. The consent route
-  appends one decision, or returns the effective state of the *one* principal whose
-  id the caller already knows.
+  appends one decision — with a consent session as well as the key, since Phase
+  6A — or returns the effective state of the *one* principal whose id the caller
+  already knows. Every route on this plane is rate limited and origin checked;
+  `lib/ingest-guard.ts` applies all of it in one place, in one order.
 - **Management plane** - `/api/v1/organisation`, `/api/v1/sites`,
   `/api/v1/consent/history`, `/api/v1/consent/effective`, `/api/v1/purposes`,
   `/api/v1/policies`, `/api/v1/notices`, `/api/v1/recipients`,
@@ -110,13 +113,15 @@ Phase 5 adds an aggregate read surface over the same three domains (`database/an
   key the dashboard does not hold, and re-deriving effective consent from a
   *paginated* history page would be silently wrong past the limit. Both planes
   reduce the same append-only log through the same `resolveEffectiveConsent`.
-- Sign-in is the **organisation secret key**, held in an httpOnly cookie
-  (`rift_dashboard_key`, `sameSite: strict`, eight hours, `secure` in
-  production) and read only on the server. The secret is attached to outgoing
-  requests in `apiGet`; the browser receives rendered HTML and never the
-  credential. This is an **MVP compromise**: a production system needs user
-  accounts, short-lived sessions and per-user roles instead of one shared
-  organisation secret standing in for all three.
+- Sign-in takes the **organisation secret key** and exchanges it for a revocable
+  session. The cookie (`rift_dashboard_session`, `httpOnly`, `sameSite: strict`,
+  60-minute idle timeout inside an eight-hour lifetime, `secure` in production)
+  holds an opaque token; the secret is sealed at rest in `dashboard_sessions`
+  under a key derived from that token, so neither the cookie nor the database is
+  enough alone. It is read only on the server and attached to outgoing requests
+  in `apiGet`; the browser receives rendered HTML and never the credential.
+  Still an **MVP compromise**: there are no user accounts and no roles, so any
+  live session speaks for the whole organisation. See [security.md](security.md).
 - The layout's redirect to `/signin` is **convenience, not security**. The API
   authenticates every request independently, so a page reached without a valid
   key renders nothing; the guard exists so an operator sees a form rather than a
@@ -153,7 +158,7 @@ secure-transfer/
 - Stores the canonical event record model plus tenant, website and session metadata, the consent domain, and the secure routing tables.
 - Analytics tables are `organisations`, `websites`, `sessions`, and `events`; consent tables are `principals`, `purposes`, `policies`, `policy_versions`, `notices`, `notice_purposes`, and `consent_records`; secure routing tables are `data_recipients`, `transfer_authorisations`, and `transfer_records`. All are described in [database-schema.md](database-schema.md).
 - The routing tables hold ciphertext, its digest and size, public keys, and routing metadata. There is deliberately **no plaintext column and no private-key column**, and a test asserts that a completed transfer's payload appears nowhere in any row of any table.
-- `consent_records` is **append-only**, enforced by a PostgreSQL trigger that rejects `UPDATE`. Current consent is derived as the newest record per `(principal, purpose)`, never stored as a mutable flag. `DELETE` stays permitted so tenant offboarding cascades still work.
+- `consent_records` is **append-only**, enforced by a PostgreSQL trigger that rejects `UPDATE`. Current consent is derived as the newest record per `(principal, purpose)`, never stored as a mutable flag. Since Phase 6A `DELETE` is guarded too — permitted only inside a transaction that has set `rift.offboarding = 'on'`, which `deleteOrganisation()` does and nothing else should. `transfer_authorisations` and `transfer_records` carry the same deletion guard plus a forward-only status state machine, so the audit timeline cannot be rewritten underneath itself.
 - There is no `api_keys` table: a site's public key lives on `websites`, and an
   organisation's hashed secret key lives on `organisations`.
 - Foreign keys - including a composite `(session_id, site_id)` key on `events` and

@@ -484,9 +484,14 @@ These are known and accepted for this phase:
   probing withdrawn consent. Recording refusals would mean writing on a read
   path, and designing it — retention, volume, what an unauthenticated probe
   should produce — is separate work.
-- **The audit trail is not itself append-only.** It is a projection over three
-  tables. `consent_records` is protected by a trigger; the routing tables are
-  not, and no trigger guards the timeline as a whole.
+- **The audit trail is guarded per table, not as a whole.** It is a projection
+  over three tables, and Phase 6A put a trigger on all three: `consent_records`
+  refuses every `UPDATE`, and `transfer_authorisations` and `transfer_records`
+  freeze the columns that record what happened while allowing `status` to move
+  only forwards along a declared state machine. Deleting from any of them needs
+  an explicit offboarding transaction. What still has no guard is the *timeline*
+  as an object — it is assembled at read time, and a superuser can drop a
+  trigger. See [security.md](security.md).
 - **There is no per-user identity or role model.** An organisation secret is
   all-or-nothing over that organisation's authorisations and audit trail, exactly
   as it is over its sites and consent data. There is no read-only auditor

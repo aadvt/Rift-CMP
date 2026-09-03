@@ -16,11 +16,45 @@ import { POST as recordConsentRoute } from "@/app/api/v1/consent/route";
 import {
   createTransferScenario,
   managementRequest,
+  openConsentSession,
   resetDatabase,
   siteRequest,
   type TransferScenario,
 } from "./helpers/fixtures";
 import { sealForAuthorisation, submissionBody } from "./helpers/fiduciaries";
+
+/**
+ * Withdraws consent through the real browser-facing route.
+ *
+ * Since Phase 6A that route needs a consent session as well as the site public
+ * key, so the withdrawal is preceded by opening one for this principal. That is
+ * exactly what a preference centre does, and going through it rather than
+ * writing the row directly keeps this file testing the lifecycle instead of a
+ * shortcut around it.
+ */
+async function withdrawConsent(scenario: TransferScenario): Promise<void> {
+  const session = await openConsentSession(scenario.siteA1.publicKey, {
+    siteId: scenario.siteA1.siteId,
+    principalExternalId: scenario.principalExternalId,
+  });
+
+  const response = await recordConsentRoute(
+    siteRequest("/api/v1/consent", {
+      key: scenario.siteA1.publicKey,
+      method: "POST",
+      sessionToken: session.sessionToken,
+      body: {
+        principal_external_id: scenario.principalExternalId,
+        purpose_code: scenario.consent.purposeCode,
+        status: "WITHDRAWN",
+      },
+    }),
+  );
+  if (response.status !== 201) {
+    throw new Error(`withdrawConsent failed: ${response.status} ${await response.text()}`);
+  }
+}
+
 
 /**
  * The product flow end to end:
@@ -195,17 +229,7 @@ describe("Scenario C - consent withdrawn", () => {
     // Granted first, so this is genuinely a withdrawal rather than a refusal.
     expect((await askDecision(scenario)).body.permitted).toBe(true);
 
-    await recordConsentRoute(
-      siteRequest("/api/v1/consent", {
-        key: scenario.siteA1.publicKey,
-        method: "POST",
-        body: {
-          principal_external_id: scenario.principalExternalId,
-          purpose_code: scenario.consent.purposeCode,
-          status: "WITHDRAWN",
-        },
-      }),
-    );
+    await withdrawConsent(scenario);
 
     const decision = await askDecision(scenario);
     expect(decision.body.permitted).toBe(false);
@@ -229,17 +253,7 @@ describe("Scenario C - consent withdrawn", () => {
     const scenario = await createTransferScenario();
     const { transfer } = await runFullFlow(scenario);
 
-    await recordConsentRoute(
-      siteRequest("/api/v1/consent", {
-        key: scenario.siteA1.publicKey,
-        method: "POST",
-        body: {
-          principal_external_id: scenario.principalExternalId,
-          purpose_code: scenario.consent.purposeCode,
-          status: "WITHDRAWN",
-        },
-      }),
-    );
+    await withdrawConsent(scenario);
 
     // The historical record stands, and still cites the consent that was in
     // force at the time. A withdrawal stops future transfers, it does not

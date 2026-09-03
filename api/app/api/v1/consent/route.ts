@@ -1,19 +1,40 @@
 import type { NextRequest } from "next/server";
 import { z } from "zod";
-import { getEffectiveConsent, prisma, recordConsentDecision } from "database";
+import {
+  consumeConsentSessionDecision,
+  getEffectiveConsent,
+  prisma,
+  recordConsentDecision,
+} from "database";
 import type { ConsentDecisionResponse, ConsentStateResponse } from "@rift-cmp/shared";
 import { CONSENT_STATUSES } from "@rift-cmp/shared";
 import { jsonError, setCorsHeaders } from "@/lib/cors";
-import { authenticateIngest } from "@/lib/auth";
+import { guardIngest, requireConsentSession } from "@/lib/ingest-guard";
 
 /**
- * The browser-facing consent plane, authenticated with the site public key -
+ * The browser-facing consent plane, authenticated with the site public key —
  * the same credential the SDK already uses for events.
  *
  * A public key can record decisions and read the state of *one* principal whose
  * high-entropy id the caller already knows. It deliberately cannot list
  * principals or read the audit trail; that is the management plane's job
  * (`/api/v1/consent/history`), which requires the organisation secret.
+ *
+ * ## Phase 6A: the public key is no longer sufficient to write
+ *
+ * `POST` additionally requires a **consent session** (see
+ * `app/api/v1/consent/session/route.ts`). This is a deliberate, documented
+ * breaking change to the contract, and the reason is that the previous contract
+ * did not hold up: the public key ships in page source, so authenticating a
+ * write with it alone meant anybody could append a permanent `GRANTED` for
+ * anybody. A session ties the decision to a principal whose secret the caller
+ * proved it holds.
+ *
+ * `GET` is unchanged. It still answers for one principal whose high-entropy
+ * identifier the caller already knows, which is the same exposure the endpoint
+ * has always had and is documented in docs/consent.md — a read cannot forge a
+ * decision, and requiring a session there would break every integrator that
+ * reads state without writing.
  */
 
 /**
@@ -57,15 +78,20 @@ export async function OPTIONS() {
 
 /** Appends one immutable consent decision for a principal on the authenticated site. */
 export async function POST(request: NextRequest) {
-  const auth = await authenticateIngest(request);
-  if (!auth.ok) return auth.response;
-  const { siteId, organisationId } = auth.caller;
+  const guard = await guardIngest(request, { limit: "consentWrite", route: "consent-write" });
+  if (!guard.ok) return guard.response;
+  const { caller, allowOrigin } = guard.guarded;
+  const { siteId, organisationId } = caller;
+
+  const sessionGuard = await requireConsentSession(request, caller, allowOrigin);
+  if (!sessionGuard.ok) return sessionGuard.response;
+  const session = sessionGuard.session;
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return jsonError("invalid_json", "Request body must be valid JSON.");
+    return jsonError("invalid_json", "Request body must be valid JSON.", [], 400, { allowOrigin });
   }
 
   const parsed = decisionSchema.safeParse(body);
@@ -77,14 +103,47 @@ export async function POST(request: NextRequest) {
         code: "invalid_request" as const,
         message: `${issue.path.join(".") || "body"}: ${issue.message}`,
       })),
+      400,
+      { allowOrigin },
     );
   }
 
   const input = parsed.data;
+
+  // The session decides whose decision this is. The body still carries the
+  // identifier — it keeps a stored request self-describing, and the contract
+  // unchanged — but it is checked against the session rather than trusted.
+  if (input.principal_external_id !== session.principalExternalId) {
+    return jsonError(
+      "principal_mismatch",
+      "This consent session does not speak for that principal.",
+      [],
+      403,
+      { allowOrigin },
+    );
+  }
+
+  // Charge the decision against the session *before* writing it. The log is
+  // append-only, so a write that turned out to exceed the cap could not be
+  // undone; refusing first is the only ordering that keeps the cap real.
+  const charged = await consumeConsentSessionDecision(prisma, {
+    sessionId: session.sessionId,
+    expectedDecisionCount: session.decisionCount,
+  });
+  if (!charged) {
+    return jsonError(
+      "session_exhausted",
+      "This consent session can record no further decisions. Open a new one.",
+      [],
+      429,
+      { allowOrigin },
+    );
+  }
+
   const result = await recordConsentDecision(prisma, {
     organisationId,
     siteId,
-    principalExternalId: input.principal_external_id,
+    principalExternalId: session.principalExternalId,
     principalKind: input.principal_kind,
     purposeCode: input.purpose_code,
     status: input.status,
@@ -100,13 +159,13 @@ export async function POST(request: NextRequest) {
   });
 
   if (!result.ok) {
-    return jsonError(result.code, result.message, [], 400);
+    return jsonError(result.code, result.message, [], 400, { allowOrigin });
   }
 
   // Return the resulting state alongside the record so a client needs one call.
   const state = await getEffectiveConsent(prisma, {
     siteId,
-    principalExternalId: input.principal_external_id,
+    principalExternalId: session.principalExternalId,
   });
 
   const responseBody: ConsentDecisionResponse = {
@@ -114,7 +173,7 @@ export async function POST(request: NextRequest) {
     effective: state?.effective ?? [],
   };
 
-  return setCorsHeaders(Response.json(responseBody, { status: 201 }));
+  return setCorsHeaders(Response.json(responseBody, { status: 201 }), allowOrigin);
 }
 
 /**
@@ -125,13 +184,20 @@ export async function POST(request: NextRequest) {
  * absence of a decision already means "not granted" to `isPurposeGranted`.
  */
 export async function GET(request: NextRequest) {
-  const auth = await authenticateIngest(request);
-  if (!auth.ok) return auth.response;
-  const { siteId } = auth.caller;
+  const guard = await guardIngest(request, { limit: "consentRead", route: "consent-read" });
+  if (!guard.ok) return guard.response;
+  const { caller, allowOrigin } = guard.guarded;
+  const { siteId } = caller;
 
   const principalExternalId = request.nextUrl.searchParams.get("principal_external_id")?.trim();
   if (!principalExternalId) {
-    return jsonError("invalid_request", "Query parameter `principal_external_id` is required.");
+    return jsonError(
+      "invalid_request",
+      "Query parameter `principal_external_id` is required.",
+      [],
+      400,
+      { allowOrigin },
+    );
   }
 
   const state = await getEffectiveConsent(prisma, { siteId, principalExternalId });
@@ -142,5 +208,5 @@ export async function GET(request: NextRequest) {
     purposes: state?.effective ?? [],
   };
 
-  return setCorsHeaders(Response.json(responseBody, { status: 200 }));
+  return setCorsHeaders(Response.json(responseBody, { status: 200 }), allowOrigin);
 }

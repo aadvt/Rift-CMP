@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { prisma } from "database";
+import { authoriseTransfer, prisma } from "database";
 import type {
   TransferAuthorisationSummary,
   TransferBindingWire,
@@ -405,26 +405,24 @@ describe("tampering, replay and misdelivery", () => {
 
   it("rejects an expired authorisation", async () => {
     const scenario = await createTransferScenario();
-    const response = await authorise(
-      managementRequest("/api/v1/authorisations", {
-        key: scenario.orgA.secretKey,
-        method: "POST",
-        body: {
-          site_id: scenario.siteA1.siteId,
-          principal_external_id: scenario.principalExternalId,
-          purpose_code: scenario.consent.purposeCode,
-          recipient_code: scenario.recipientCode,
-          ttl_seconds: 30,
-        },
-      }),
-    );
-    const authorisation = (await response.json()) as TransferAuthorisationSummary;
 
-    // Move the expiry into the past rather than waiting.
-    await prisma.transferAuthorisation.update({
-      where: { id: authorisation.authorisation_id },
-      data: { expiresAt: new Date(Date.now() - 1000) },
+    // Minted with an already-lapsed TTL rather than by editing `expires_at`
+    // afterwards. Phase 6A froze that column - extending an authorisation's life
+    // by rewriting the row is exactly the attack the guard exists to stop, and
+    // `audit-immutability.test.ts` asserts the refusal. The route's TTL floor is
+    // 30 seconds, so this goes through the service layer to reach the past, and
+    // the submission below still goes through the real HTTP surface, which is
+    // where the expiry check lives.
+    const minted = await authoriseTransfer(prisma, {
+      organisationId: scenario.orgA.organisationId,
+      siteId: scenario.siteA1.siteId,
+      principalExternalId: scenario.principalExternalId,
+      purposeCode: scenario.consent.purposeCode,
+      recipientCode: scenario.recipientCode,
+      ttlSeconds: -1,
     });
+    if (!minted.ok) throw new Error(`could not mint an authorisation: ${minted.message}`);
+    const authorisation: TransferAuthorisationSummary = minted.authorisation;
 
     const submitted = await submitTransfer(
       managementRequest("/api/v1/transfers", {
@@ -470,21 +468,35 @@ describe("tampering, replay and misdelivery", () => {
     expect(await prisma.transferRecord.count()).toBe(0);
   });
 
-  it("delivers ciphertext that fails to open if Rift altered it in storage", async () => {
+  it("cannot alter stored ciphertext at all, and could not do so undetectably", async () => {
     const scenario = await createTransferScenario();
     const { record } = await runTransfer(scenario);
 
-    // Simulate a compromised Rift (or corrupted storage) flipping one bit.
     const stored = await prisma.transferRecord.findUniqueOrThrow({
       where: { id: record.transfer_id },
     });
     const bytes = Buffer.from(stored.ciphertext, "base64");
     bytes[0] ^= 0x01;
-    await prisma.transferRecord.update({
-      where: { id: stored.id },
-      data: { ciphertext: bytes.toString("base64") },
-    });
 
+    // Phase 6A: the payload columns are immutable, so a compromised Rift cannot
+    // even record the alteration. This is new, and it is the stronger half.
+    await expect(
+      prisma.transferRecord.update({
+        where: { id: stored.id },
+        data: { ciphertext: bytes.toString("base64") },
+      }),
+    ).rejects.toThrow();
+
+    const untouched = await prisma.transferRecord.findUniqueOrThrow({
+      where: { id: record.transfer_id },
+    });
+    expect(untouched.ciphertext).toBe(stored.ciphertext);
+
+    // And the original claim still holds independently of that guard: even if a
+    // bit did flip - in storage, in transit, anywhere between the two
+    // fiduciaries - the target detects it, because AES-GCM authenticates. The
+    // corruption is applied to the delivered envelope, which models a hostile
+    // relay rather than a hostile database.
     const delivery = (await (
       await collectEnvelope(
         managementRequest(`/api/v1/transfers/${record.transfer_id}/envelope`, {
@@ -494,8 +506,14 @@ describe("tampering, replay and misdelivery", () => {
       )
     ).json()) as TransferDelivery;
 
-    // The target detects it. Rift cannot alter a payload undetectably.
-    expect(scenario.target.tryOpen(delivery.envelope, delivery.binding)).toBeNull();
+    const tampered = {
+      ...delivery.envelope,
+      ciphertext: bytes.toString("base64"),
+    };
+    expect(scenario.target.tryOpen(tampered, delivery.binding)).toBeNull();
+    // The untampered envelope still opens, so the null above is the tampering
+    // being caught rather than the test misconstructing the request.
+    expect(scenario.target.tryOpen(delivery.envelope, delivery.binding)).toBe(PII);
   });
 
   it("delivers metadata that fails to open if Rift re-labelled the transfer", async () => {

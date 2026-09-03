@@ -142,11 +142,16 @@ These are known and accepted for this phase:
   would necessarily be an unauthenticated write.
 - **A public key authorises anyone who holds it**, which for browser analytics
   means anyone who views the page source. This is inherent to client-side
-  telemetry. The `websites.domain` column exists but is not yet enforced against
-  the request `Origin`; adding that (plus rate limiting per site) is the natural
-  hardening step and belongs to a later phase.
+  telemetry, and Phase 6A narrowed what it authorises rather than pretending
+  otherwise: `websites.domain` is now checked against the request `Origin` (when
+  one is sent), every browser-facing route is rate limited, and recording a
+  consent decision needs a session bound to a principal whose secret the caller
+  holds. What a public key still does on its own is append analytics events and
+  read one principal's state. See [security.md](security.md), which is explicit
+  about which of those are enforced and which are defence in depth.
 - **There is no per-user identity or role model.** An organisation secret is
-  all-or-nothing over that organisation's sites.
+  all-or-nothing over that organisation's sites. Phase 6A made dashboard sessions
+  revocable and stopped the cookie carrying the secret; it did not add accounts.
 - **There is no read API for event data.** The analytics side still reads the
   database directly, so tenant scoping of *reads* is that consumer's
   responsibility until a read API exists.

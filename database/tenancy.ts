@@ -20,6 +20,8 @@ type WebsiteRow = {
   domain: string;
   publicKey: string;
   isActive: boolean;
+  analyticsConsentPurpose: string | null;
+  allowedOrigins: string[];
   createdAt: Date;
 };
 
@@ -40,6 +42,8 @@ export function toWebsiteSummary(row: WebsiteRow): WebsiteSummary {
     domain: row.domain,
     public_key: row.publicKey,
     is_active: row.isActive,
+    analytics_consent_purpose: row.analyticsConsentPurpose,
+    allowed_origins: row.allowedOrigins,
     created_at: row.createdAt.toISOString(),
   };
 }
@@ -69,7 +73,16 @@ export async function createOrganisation(
 /** Creates a website owned by `organisationId`, minting its public key. */
 export async function createWebsite(
   prisma: PrismaClient,
-  input: { organisationId: string; name: string; domain: string; id?: string; isActive?: boolean },
+  input: {
+    organisationId: string;
+    name: string;
+    domain: string;
+    id?: string;
+    isActive?: boolean;
+    /** Opt in to server-side consent enforcement for this site's analytics. */
+    analyticsConsentPurpose?: string | null;
+    allowedOrigins?: string[];
+  },
 ): Promise<WebsiteSummary> {
   const website = await prisma.website.create({
     data: {
@@ -79,8 +92,36 @@ export async function createWebsite(
       domain: input.domain,
       publicKey: generatePublicKey(),
       isActive: input.isActive ?? true,
+      analyticsConsentPurpose: input.analyticsConsentPurpose ?? null,
+      allowedOrigins: input.allowedOrigins ?? [],
     },
   });
 
   return toWebsiteSummary(website);
+}
+
+/**
+ * Offboards a tenant: the one supported way to destroy history.
+ *
+ * Phase 6A put deletion guards on `consent_records`, `transfer_authorisations`
+ * and `transfer_records`, so a plain `prisma.organisation.delete()` now fails
+ * the moment the cascade reaches any of them. That is the point: nothing should
+ * be able to erase an audit trail as a side effect of something else.
+ *
+ * Offboarding is still legitimate, so it gets an explicit opt-in rather than an
+ * exception. `SET LOCAL rift.offboarding = 'on'` lasts exactly as long as the
+ * surrounding transaction, so the permission cannot leak into a later query on
+ * the same pooled connection.
+ *
+ * The same mechanism is what a retention or erasure job would use when one is
+ * built. There is no such job today.
+ */
+export async function deleteOrganisation(
+  prisma: PrismaClient,
+  organisationId: string,
+): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    await tx.$executeRawUnsafe("SET LOCAL rift.offboarding = 'on'");
+    await tx.organisation.delete({ where: { id: organisationId } });
+  });
 }

@@ -46,6 +46,14 @@ function getClient(siteId?: string, publicKey?: string, options?: SDKOptions) {
     // A consent check registered before init() must also gate the automatic
     // session_start / page_view events that init() emits, not just track().
     state.client.setConsentCheck(state.consentCheck);
+    // Sites that enforce consent server-side need the batch to say which
+    // principal to look the decision up for. Neither of these mints an identity:
+    // a visitor who has never decided anything simply sends no token, and their
+    // events are refused, which is what enforcement means.
+    state.client.setConsentSessionProvider(
+      () => state.consent?.ensureSessionForKnownPrincipal() ?? Promise.resolve(null),
+      () => state.consent?.getSessionToken() ?? null,
+    );
   }
   return state.client;
 }
@@ -100,6 +108,10 @@ const uninitialisedConsent: ConsentApi = {
   },
   getPrincipalId() {
     warnUninitialised("getPrincipalId");
+    return null;
+  },
+  getSessionToken() {
+    warnUninitialised("getSessionToken");
     return null;
   },
   clear() {
@@ -263,7 +275,12 @@ const analytics = {
 export { analytics };
 export default analytics;
 
-export type { ConsentCheck, SDKOptions } from "./types";
+export type {
+  ConsentCheck,
+  ConsentSessionProvider,
+  SDKOptions,
+  SyncConsentSessionProvider,
+} from "./types";
 export { ConsentClient } from "./consent";
 export type { ConsentApi, ConsentChangeListener, ConsentRecordOptions } from "./consent";
 export type { ConsentStatus, EffectiveConsent } from "@rift-cmp/shared";

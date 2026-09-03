@@ -3,7 +3,7 @@ import { z } from "zod";
 import { Prisma, prisma } from "database";
 import type { AnalyticsEvent, ApiErrorDetail, IngestResponse } from "@rift-cmp/shared";
 import { jsonError, setCorsHeaders } from "@/lib/cors";
-import { authenticateIngest } from "@/lib/auth";
+import { enforceAnalyticsConsent, guardIngest } from "@/lib/ingest-guard";
 
 const eventSchema = z.object({
   event_id: z.string().uuid(),
@@ -38,15 +38,27 @@ export async function OPTIONS() {
 export async function POST(request: NextRequest) {
   // The public key alone determines which site this request may write to.
   // `site_id` in the body is checked against it, never used to select the site.
-  const auth = await authenticateIngest(request);
-  if (!auth.ok) return auth.response;
-  const { siteId } = auth.caller;
+  const guard = await guardIngest(request, {
+    limit: "events",
+    siteCeiling: "eventsPerSite",
+    route: "events",
+  });
+  if (!guard.ok) return guard.response;
+  const { caller, allowOrigin } = guard.guarded;
+  const { siteId } = caller;
+
+  // Server-side consent enforcement, for sites that have asked for it. The SDK
+  // gates events client-side too, and that gate is a convenience for honest
+  // integrators - it is not evidence, because the code enforcing it is code the
+  // caller controls. See `enforceAnalyticsConsent` for what is actually checked.
+  const consent = await enforceAnalyticsConsent(request, caller, allowOrigin);
+  if (!consent.ok) return consent.response;
 
   let payload: unknown;
   try {
     payload = await request.json();
   } catch {
-    return jsonError("invalid_json", "Request body must be valid JSON.");
+    return jsonError("invalid_json", "Request body must be valid JSON.", [], 400, { allowOrigin });
   }
 
   const rawEvents = Array.isArray((payload as { events?: unknown[] })?.events)
@@ -119,7 +131,9 @@ export async function POST(request: NextRequest) {
   });
 
   if (accepted.length === 0 && rejected.length > 0) {
-    return jsonError("invalid_request", "One or more events are invalid.", rejected);
+    return jsonError("invalid_request", "One or more events are invalid.", rejected, 400, {
+      allowOrigin,
+    });
   }
 
   if (accepted.length > 0) {
@@ -130,7 +144,7 @@ export async function POST(request: NextRequest) {
       // CORS headers - a browser would see an opaque CORS failure instead of a
       // server error, and the SDK could not read the status to decide on retry.
       console.error("[rift-cmp] failed to persist events", error);
-      return jsonError("ingest_failed", "Failed to persist events.", [], 500);
+      return jsonError("ingest_failed", "Failed to persist events.", [], 500, { allowOrigin });
     }
   }
 
@@ -140,7 +154,7 @@ export async function POST(request: NextRequest) {
     errors: rejected,
   };
 
-  return setCorsHeaders(Response.json(body, { status: 202 }));
+  return setCorsHeaders(Response.json(body, { status: 202 }), allowOrigin);
 }
 
 /**

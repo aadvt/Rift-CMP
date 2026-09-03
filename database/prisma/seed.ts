@@ -1,7 +1,7 @@
 import path from "node:path";
 import { config as loadEnv } from "dotenv";
 import { PrismaClient } from "../generated/client";
-import { createOrganisation } from "../tenancy";
+import { createOrganisation, deleteOrganisation } from "../tenancy";
 import { createNotice, createPolicy, createPurpose } from "../consent";
 
 loadEnv({ path: path.resolve(process.cwd(), ".env.local"), quiet: true });
@@ -112,7 +112,9 @@ async function main() {
     include: { _count: { select: { websites: true } } },
   });
   if (legacy && legacy._count.websites === 0) {
-    await prisma.organisation.delete({ where: { id: "org_legacy" } });
+    // Through the offboarding helper, because Phase 6A guards DELETE on the
+    // history tables and a plain delete would fail the moment one existed.
+    await deleteOrganisation(prisma, "org_legacy");
   }
 
   await printOwnershipTree();

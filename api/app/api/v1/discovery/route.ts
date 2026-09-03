@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma, recordDiscoveryReport } from "database";
 import { COMPONENT_KINDS, STORAGE_KINDS } from "@rift-cmp/shared";
 import { jsonError, setCorsHeaders } from "@/lib/cors";
-import { authenticateIngest } from "@/lib/auth";
+import { guardIngest } from "@/lib/ingest-guard";
 
 /**
  * The browser-facing discovery plane, authenticated with the site public key —
@@ -95,15 +95,21 @@ export async function OPTIONS() {
 
 /** Accepts one page view's worth of observations for the authenticated site. */
 export async function POST(request: NextRequest) {
-  const auth = await authenticateIngest(request);
-  if (!auth.ok) return auth.response;
-  const { siteId } = auth.caller;
+  // Discovery is deliberately *not* consent-gated. Its whole value is recording
+  // that something fired when consent said it should not, and a gate that
+  // dropped those reports would delete exactly the evidence the domain exists to
+  // capture. It is rate limited and origin checked like the other browser-facing
+  // routes. See docs/security.md.
+  const guard = await guardIngest(request, { limit: "discovery", route: "discovery" });
+  if (!guard.ok) return guard.response;
+  const { caller, allowOrigin } = guard.guarded;
+  const { siteId } = caller;
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return jsonError("invalid_json", "Request body must be valid JSON.");
+    return jsonError("invalid_json", "Request body must be valid JSON.", [], 400, { allowOrigin });
   }
 
   const parsed = reportSchema.safeParse(body);
@@ -115,6 +121,8 @@ export async function POST(request: NextRequest) {
         code: "invalid_request" as const,
         message: `${issue.path.join(".") || "body"}: ${issue.message}`,
       })),
+      400,
+      { allowOrigin },
     );
   }
 
@@ -125,9 +133,11 @@ export async function POST(request: NextRequest) {
       siteId,
       report: { ...parsed.data, site_id: siteId },
     });
-    return setCorsHeaders(Response.json(result, { status: 202 }));
+    return setCorsHeaders(Response.json(result, { status: 202 }), allowOrigin);
   } catch (error) {
     console.error("[rift-cmp] failed to record discovery report", error);
-    return jsonError("ingest_failed", "Failed to record discovery report.", [], 500);
+    return jsonError("ingest_failed", "Failed to record discovery report.", [], 500, {
+      allowOrigin,
+    });
   }
 }

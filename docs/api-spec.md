@@ -61,6 +61,19 @@ Secure data routing added these:
 | `authorisation_consumed` | A transfer has already been recorded against that authorisation |
 | `invalid_envelope` | The sealed envelope is malformed, empty, or over the size limit |
 
+Phase 6A's security hardening added these:
+
+| `code` | Meaning |
+| --- | --- |
+| `consent_session_required` | The endpoint needs a consent session and none was sent |
+| `invalid_session` | The session is unknown, revoked, or was minted on another site |
+| `session_expired` | The session is past its lifetime |
+| `session_exhausted` | The session has recorded as many decisions as it may |
+| `principal_mismatch` | The body names a principal the presented session does not speak for |
+| `consent_required` | The site enforces consent for analytics and the decision in force is not `GRANTED` |
+| `origin_not_allowed` | An `Origin` header was sent and the site does not accept it |
+| `rate_limited` | Too many requests; the response carries `Retry-After` and `RateLimit-*` |
+
 ### Decision reasons
 
 `POST /api/v1/authorisations/decision` reports a refusal in its **response body**,
@@ -85,9 +98,20 @@ reporting a failed request rather than answering a question. The mapping is in
 
 ## CORS
 
-The ingestion endpoints — `/api/v1/events` and `/api/v1/consent` — are called by
-browsers on arbitrary customer domains, so they return permissive CORS headers
-and handle `OPTIONS` preflight.
+The ingestion endpoints — `/api/v1/events`, `/api/v1/consent`,
+`/api/v1/consent/session` and `/api/v1/discovery` — are called by browsers on
+arbitrary customer domains, so they return CORS headers and handle `OPTIONS`
+preflight.
+
+Since Phase 6A, once a request has been authenticated and its `Origin` checked
+against the site's configuration, the response echoes that exact origin with
+`Vary: Origin` rather than `*`. Preflights and unauthenticated failures still
+answer `*`: a browser sends no `Authorization` header on an `OPTIONS`, so the
+site — and therefore its allowed origins — is genuinely unknown at that point.
+
+CORS is a browser policy, not an access control. It governs whether a *page* may
+read a response; it stops nothing that is not a browser. The access control is the
+credential, and for consent, the session.
 
 The management and delivery planes deliberately return **no** CORS headers: they
 are server-to-server APIs authenticated with secrets that must never be present
@@ -159,9 +183,30 @@ wins and later copies are ignored.
 | --- | --- | --- |
 | `401` | `unauthorized` | missing, malformed, unknown, or wrong-plane key |
 | `403` | `forbidden` | key is valid but the site is inactive |
+| `403` | `origin_not_allowed` | an `Origin` was sent and the site does not accept it |
+| `401` | `consent_session_required` | the site sets `analytics_consent_purpose` and no session was sent |
+| `401` | `invalid_session` / `session_expired` | the session is unknown, revoked, from another site, or expired |
+| `403` | `consent_required` | the site enforces consent and the decision in force is not `GRANTED` |
+| `429` | `rate_limited` | too many requests from this client or site; see `Retry-After` |
 | `400` | `invalid_json` | body is not valid JSON |
 | `400` | `invalid_request` | every event in the batch was rejected |
 | `202` | — | at least one event accepted; rejects listed in `errors[]` |
+
+#### Server-side consent enforcement
+
+Off by default. A site that sets `analytics_consent_purpose` (see
+`POST /api/v1/sites`) makes this endpoint require a consent session header and
+re-derive that purpose's effective consent from the append-only log on **every**
+batch:
+
+```http
+X-Rift-Consent-Session: cs_Yk3...
+```
+
+A withdrawal therefore takes effect on the next request rather than when a token
+expires. The principal behind the session is resolved in-request and never
+written onto a session or event row. Full model, and what it does not prove:
+[security.md](security.md).
 
 Per-event rejection codes reported in `errors[]`:
 
@@ -184,7 +229,13 @@ Nothing is ever updated: changing your mind appends a new record.
 
 ```http
 Authorization: Bearer pk_demo_12345
+X-Rift-Consent-Session: cs_Yk3...
 ```
+
+**Both are required.** The session header is new in Phase 6A and is a breaking
+change to this endpoint: a site public key ships in page source, so authenticating
+a permanent, append-only write with it alone let anybody record a decision for
+anybody. Open a session with [`POST /api/v1/consent/session`](#post-apiv1consentsession).
 
 `OPTIONS` preflight is handled. An `sk_...` key is rejected with `401`; an
 inactive site is `403`.
@@ -211,7 +262,7 @@ Only `principal_external_id`, `purpose_code` and `status` are required.
 
 | Field | Notes |
 | --- | --- |
-| `principal_external_id` | 1–200 chars. Opaque; the SDK sends a `crypto.randomUUID()`. The principal is created on first use and reused afterwards. |
+| `principal_external_id` | 1–200 chars. Opaque, and **minted by the server** when a session is first opened. It must equal the principal the presented session speaks for, or the request is `403 principal_mismatch`. |
 | `principal_kind` | Optional, defaults to `anonymous`. |
 | `purpose_code` | Must be a purpose of the authenticated site's organisation. |
 | `status` | One of `GRANTED`, `DENIED`, `WITHDRAWN`. |
@@ -266,6 +317,13 @@ call:
 | `403` | `forbidden` | key is valid but the site is inactive |
 | `400` | `invalid_json` | body is not valid JSON |
 | `400` | `invalid_request` | schema failure, unknown field, or `decided_at` in the future |
+| `401` | `consent_session_required` | no `X-Rift-Consent-Session` header |
+| `401` | `invalid_session` | session unknown, revoked, or minted on another site |
+| `401` | `session_expired` | session past its 30-minute lifetime |
+| `429` | `session_exhausted` | session has recorded its 50 decisions |
+| `403` | `principal_mismatch` | the body names a principal the session does not speak for |
+| `403` | `origin_not_allowed` | an `Origin` was sent and the site does not accept it |
+| `429` | `rate_limited` | too many requests from this client or site |
 | `400` | `unknown_purpose` | no such purpose in this organisation, **or** the given notice never disclosed it |
 | `400` | `unknown_notice` | no such notice in this organisation |
 | `400` | `unknown_policy` | no such policy version in this organisation |
@@ -315,7 +373,83 @@ oracle for whether a principal id exists.
 | --- | --- | --- |
 | `401` | `unauthorized` | missing, malformed, unknown, or wrong-plane key |
 | `403` | `forbidden` | key is valid but the site is inactive |
+| `403` | `origin_not_allowed` | an `Origin` was sent and the site does not accept it |
+| `429` | `rate_limited` | too many requests from this client or site |
 | `400` | `invalid_request` | `principal_external_id` missing or empty |
+
+This endpoint deliberately does **not** require a consent session. A read cannot
+forge a decision, requiring one would break integrators that read state without
+writing, and the exposure — anyone holding the site's public key can read the
+state of one principal whose high-entropy identifier they already know — is the
+one this endpoint has always had.
+
+### `POST /api/v1/consent/session`
+
+Opens a consent session: the thing `POST /api/v1/consent` requires in addition to
+the site public key.
+
+#### Authentication
+
+```http
+Authorization: Bearer pk_demo_12345
+```
+
+#### Request
+
+Strict schema. Both fields are optional, but they must be sent **together or not
+at all**:
+
+```json
+{ "principal_external_id": "p_3f9c", "principal_secret": "ps_9d41..." }
+```
+
+| Shape | Meaning |
+| --- | --- |
+| `{}` | A browser with no identity. The server mints a principal **and** its secret. |
+| both fields | A returning browser proving it controls that principal. |
+| one field | `400 invalid_request`. |
+
+#### Response
+
+`201 Created`, `Cache-Control: no-store`:
+
+```json
+{
+  "site_id": "site_demo",
+  "principal_external_id": "3f9c0a71-...",
+  "principal_secret": "ps_9d41...",
+  "session_token": "cs_Yk3...",
+  "expires_at": "2026-08-31T09:29:00.000Z",
+  "max_decisions": 50
+}
+```
+
+| Field | Notes |
+| --- | --- |
+| `principal_external_id` | Server-minted UUID on a first visit; echoed otherwise. A client cannot choose it. |
+| `principal_secret` | **Returned only when minted or bound by this call**, `null` otherwise. Store it: it is never shown again, and it is the only way to open a later session for this principal. |
+| `session_token` | Send as `X-Rift-Consent-Session` on `POST /api/v1/consent`, and on `POST /api/v1/events` for sites that enforce consent. |
+| `expires_at` | 30 minutes out. |
+| `max_decisions` | Decisions this session may record before it is exhausted. |
+
+Only SHA-256 digests of `principal_secret` and `session_token` are stored.
+
+#### Errors
+
+| Status | `code` | Cause |
+| --- | --- | --- |
+| `401` | `unauthorized` | bad site key **or** unknown principal **or** wrong principal secret — one response for all three, so the endpoint cannot be used to enumerate principals |
+| `403` | `forbidden` | key is valid but the site is inactive |
+| `403` | `origin_not_allowed` | an `Origin` was sent and the site does not accept it |
+| `429` | `rate_limited` | 20 per minute per site and client address; this is the tightest limit on the API, because it is the only anonymous endpoint that creates a row |
+| `400` | `invalid_request` | one of the two fields sent without the other |
+| `400` | `invalid_json` | body present and not valid JSON |
+
+**What a session proves, and what it does not.** It proves the caller holds that
+principal's secret, which is what stops one client recording decisions for
+another client's principal. It does not prove a human was involved: a scripted
+client can mint principals of its own all day. See [security.md](security.md),
+which sets out the boundary rather than glossing it.
 
 ---
 
@@ -360,6 +494,8 @@ Lists every site owned by the authenticated organisation, and only those.
       "domain": "demo.example.com",
       "public_key": "pk_demo_12345",
       "is_active": true,
+      "analytics_consent_purpose": null,
+      "allowed_origins": [],
       "created_at": "2026-08-31T12:00:00.000Z"
     }
   ]
@@ -369,6 +505,13 @@ Lists every site owned by the authenticated organisation, and only those.
 `public_key` is returned in plaintext on purpose: it is a public identifier its
 owner needs in order to install the SDK.
 
+The two Phase 6A fields are this site's security configuration:
+
+| Field | Notes |
+| --- | --- |
+| `analytics_consent_purpose` | Purpose code the ingestion plane must find `GRANTED` before accepting this site's events. `null` — the default — means no server-side gate, which is the pre-6A behaviour. |
+| `allowed_origins` | Browser origins accepted **in addition to** `domain`, as full origins (`https://app.example.com`). Defence in depth; see [security.md](security.md). |
+
 ### `POST /api/v1/sites`
 
 Creates a site owned by the authenticated organisation and mints its public key.
@@ -376,11 +519,17 @@ Creates a site owned by the authenticated organisation and mints its public key.
 Request body (strict — unknown fields are a `400`):
 
 ```json
-{ "name": "Acme Blog", "domain": "blog.acme.example" }
+{
+  "name": "Acme Blog",
+  "domain": "blog.acme.example",
+  "analytics_consent_purpose": "analytics",
+  "allowed_origins": ["https://checkout.acme.example"]
+}
 ```
 
-Responds `201` with the `WebsiteSummary` shape above. Ownership comes from the
-credential; sending `organisation_id` is a validation error, not a silent no-op.
+Only `name` and `domain` are required. Responds `201` with the `WebsiteSummary`
+shape above. Ownership comes from the credential; sending `organisation_id` is a
+validation error, not a silent no-op.
 
 ### `GET /api/v1/sites/{siteId}`
 
@@ -391,8 +540,18 @@ Returns one owned site, or `404` if it is not owned by the caller.
 Updates an owned site. Only these fields are accepted, under a strict schema:
 
 ```json
-{ "name": "New name", "domain": "new.example.com", "is_active": false }
+{
+  "name": "New name",
+  "domain": "new.example.com",
+  "is_active": false,
+  "analytics_consent_purpose": "analytics",
+  "allowed_origins": ["https://app.example.com"]
+}
 ```
+
+Send `"analytics_consent_purpose": null` to turn the ingestion consent gate off
+again; omitting the field leaves it unchanged. `allowed_origins` replaces the
+list rather than appending to it.
 
 `organisation_id`, `site_id` and `public_key` are **not** mutable; sending them
 returns `400`. Ownership and key material are server-assigned.

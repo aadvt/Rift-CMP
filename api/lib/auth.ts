@@ -30,6 +30,15 @@ import { jsonError, managementError } from "./cors";
 export interface SiteCaller {
   siteId: string;
   organisationId: string;
+  /** The registered domain, for the origin check in `lib/origin.ts`. */
+  domain: string;
+  /** Extra browser origins this site accepts, as full origins. */
+  allowedOrigins: string[];
+  /**
+   * Purpose code that must resolve to `GRANTED` before this site's analytics
+   * events are accepted. Null means the ingestion plane applies no consent gate.
+   */
+  analyticsConsentPurpose: string | null;
 }
 
 export interface OrganisationCaller {
@@ -94,11 +103,25 @@ export async function authenticateIngest(
     return { ok: false, response: unauthorized() };
   }
 
-  let website: { id: string; organisationId: string; isActive: boolean } | null;
+  let website: {
+    id: string;
+    organisationId: string;
+    isActive: boolean;
+    domain: string;
+    allowedOrigins: string[];
+    analyticsConsentPurpose: string | null;
+  } | null;
   try {
     website = await prisma.website.findUnique({
       where: { publicKey: token },
-      select: { id: true, organisationId: true, isActive: true },
+      select: {
+        id: true,
+        organisationId: true,
+        isActive: true,
+        domain: true,
+        allowedOrigins: true,
+        analyticsConsentPurpose: true,
+      },
     });
   } catch (error) {
     // A database outage must not surface as an uncaught throw: Next's default
@@ -124,7 +147,13 @@ export async function authenticateIngest(
 
   return {
     ok: true,
-    caller: { siteId: website.id, organisationId: website.organisationId },
+    caller: {
+      siteId: website.id,
+      organisationId: website.organisationId,
+      domain: website.domain,
+      allowedOrigins: website.allowedOrigins,
+      analyticsConsentPurpose: website.analyticsConsentPurpose,
+    },
   };
 }
 

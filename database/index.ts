@@ -21,6 +21,8 @@ if (process.env.NODE_ENV !== "production") {
 export * from "./keys";
 export * from "./tenancy";
 export * from "./consent";
+export * from "./consent-sessions";
+export * from "./dashboard-sessions";
 export * from "./transfers";
 export * from "./authorisation";
 export * from "./audit";

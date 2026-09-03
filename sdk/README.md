@@ -51,7 +51,8 @@ await analytics.consent.record("analytics", "GRANTED");
 analytics.consent.isGranted("analytics");   // sync, from cache
 await analytics.consent.getState();         // fetch and refresh the cache
 analytics.consent.getCachedState();         // sync, never throws
-analytics.consent.getPrincipalId();         // sync; null if none minted yet
+analytics.consent.getPrincipalId();         // sync; null if none established yet
+analytics.consent.getSessionToken();        // sync; null if no live session
 
 const unsubscribe = analytics.consent.onChange((state) => renderBanner(state));
 ```
@@ -74,6 +75,33 @@ declared. Purposes are reference data created on the management plane
 Nothing here is written on the analytics side: no consent flag is attached to
 events. See [`../docs/consent.md`](../docs/consent.md).
 
+### Consent sessions happen for you
+
+Recording a decision needs more than the site public key. That key ships in page
+source, so authenticating a permanent, append-only write with it alone let anyone
+record a decision for anyone; `POST /api/v1/consent` now also requires a **consent
+session**.
+
+The SDK handles this. `grant()` may make two requests on a cold start — one to
+open a session, one to record — and it is still a single `await` from your side.
+An expired session is renewed transparently, once, before a call is reported as
+failed, so nobody has to click Accept twice because a token aged out while they
+were reading the banner.
+
+What that means in practice:
+
+- **The server mints the principal identifier**, when the session is opened, and
+  returns a secret alongside it. The SDK stores both.
+- **Clearing browser storage makes this browser a new principal.** That was
+  already true; the server now agrees rather than accepting whatever identifier
+  the browser presents.
+- **You do not need to touch any of this.** `getSessionToken()` is exposed only
+  because the analytics client attaches it on sites that enforce consent
+  server-side.
+
+The mechanism, and what it deliberately does not prove, is in
+[`../docs/security.md`](../docs/security.md).
+
 ### Wiring consent to the event gate
 
 This is **not** automatic. The SDK does not decide that analytics requires
@@ -94,17 +122,33 @@ in `@rift-cmp/shared`, which the API calls too, so the two cannot disagree.
 blocked call returns `false` rather than throwing. Until `setConsentCheck` is
 called the default check is permissive.
 
+**This gate is a courtesy, not enforcement.** It runs in the browser, in code the
+caller controls. A site that wants the rule actually enforced sets
+`analytics_consent_purpose` on the site (`PATCH /api/v1/sites/{siteId}`); the API
+then re-derives the decision from the append-only log on every batch and refuses
+the events outright. The SDK attaches its session token so the server knows which
+principal to look up, never mints a principal just to send analytics, and drops a
+batch the server refuses on consent grounds rather than retrying it.
+
 If `getState()` cannot reach the API it returns the last known state rather than
 an empty list: a dropped request is not evidence that consent was revoked.
 
 ### Identity and storage
 
-A random `crypto.randomUUID()` principal id is minted the first time one is
-needed — by `record()` or `getState()` — and persisted in `localStorage` under
-`rift_cmp_principal_id`. It is independent of the analytics session id
-(`rift_cmp_session_id`, `sessionStorage`): a session ends after inactivity, a
-principal persists across visits. The last known effective state is cached under
-`rift_cmp_consent_state`.
+A principal id is established the first time a consent session is opened — by
+`record()` and its aliases — and persisted in `localStorage` under
+`rift_cmp_principal_id`, alongside the secret that proves this browser owns it
+(`rift_cmp_principal_secret`) and the current session token
+(`rift_cmp_consent_session`). The server mints the first two; a client that chose
+its own identifier could choose somebody else's.
+
+`getState()` no longer mints anything: a browser that has never decided anything
+has no state to read, and creating an identity for it would manufacture exactly
+the durable identifier this product exists without.
+
+All of that is independent of the analytics session id (`rift_cmp_session_id`,
+`sessionStorage`): a session ends after inactivity, a principal persists across
+visits. The last known effective state is cached under `rift_cmp_consent_state`.
 
 The id is opaque to the server, and it is scoped to one site: the same value
 presented on a different site is a different principal. There is no cross-site
@@ -113,9 +157,10 @@ identity.
 `getPrincipalId()` is a pure read — it does not mint an id, so `clear()` genuinely
 leaves no identifier behind until the next decision.
 
-`analytics.consent.clear()` forgets the cached state and the principal id
-locally. It does not call the API — the server-side decision log is append-only
-for audit, so this is "this browser forgets who it was", not erasure.
+`analytics.consent.clear()` forgets the cached state, the principal id, its
+secret and the session token, locally. It does not call the API — the server-side
+decision log is append-only for audit, so this is "this browser forgets who it
+was", not erasure. The next decision starts a new principal.
 
 Every method is safe before `init()` and safe when `localStorage` is unavailable
 (Safari private mode, disabled storage): it warns and returns an empty or falsy
