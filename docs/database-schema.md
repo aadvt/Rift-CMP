@@ -109,7 +109,7 @@ Normalised raw ingestion table for SDK events.
 | `properties` | `properties` | `Json?` | nullable |
 | `receivedAt` | `received_at` | `DateTime` | not null, default `now()` |
 
-Indexes: `@@index([siteId, eventTime])`, `@@index([siteId, eventType])`,
+Indexes: `@@index([siteId, eventTime])`, `@@index([siteId, eventType, eventTime])`,
 `@@index([sessionId])`.
 
 **Composite foreign key:** `events (session_id, site_id)` references
@@ -122,6 +122,12 @@ Notes:
   skipped rather than duplicated.
 - `event_type` is one of `page_view`, `session_start`, or `custom`.
 - `properties` stores arbitrary JSON for custom events; `null` for automatic ones.
+- Columns are unbounded `text` in Postgres, but the API bounds every one of them
+  at ingestion (`EVENT_LIMITS` in [`../shared/event.ts`](../shared/event.ts)). The
+  bound is deliberately at the boundary rather than in the column type: changing a
+  limit is then a deploy rather than a migration, and a rejected event never
+  reaches storage in the first place. Anything already stored predates the bounds
+  and is not retrospectively constrained.
 
 ## Consent domain models
 
@@ -510,7 +516,12 @@ The event table supports the access patterns the analytics side needs, all of
 which are tenant-scoped by design:
 
 - filtering by `site_id` + `event_time` → `events_site_id_event_time_idx`
-- filtering by `site_id` + `event_type` → `events_site_id_event_type_idx`
+- filtering by `site_id` + `event_type`, over a time range →
+  `events_site_id_event_type_event_time_idx`. The trailing `event_time` matters:
+  a two-column `(site_id, event_type)` index existed briefly and was restored to
+  three columns in migration `20260901150000_restore_event_type_time_index`,
+  because every real query filters a type *within a window* and the two-column
+  form left the range predicate to a filter step.
 - joining on `session_id` → `events_session_id_idx`
 - listing a tenant's sites → `websites_organisation_id_idx`
 - session recency per site → `sessions_site_id_last_activity_idx`

@@ -9,7 +9,8 @@
     ".": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsup src/index.ts --format iife --global-name analytics --target es2022 --out-dir dist --minify",
+    "build": "tsup src/index.ts --format iife --global-name __riftCmpBundle --target es2022 --out-dir dist --minify && npm run verify",
+    "verify": "node scripts/verify-global.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

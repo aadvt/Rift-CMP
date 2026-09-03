@@ -43,6 +43,7 @@ const DEFAULT_STATUS: Partial<Record<ApiErrorCode, number>> = {
   consent_required: 403,
   origin_not_allowed: 403,
   rate_limited: 429,
+  payload_too_large: 413,
 };
 
 export function jsonError(

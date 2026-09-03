@@ -2,32 +2,69 @@ import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { Prisma, prisma } from "database";
 import type { AnalyticsEvent, ApiErrorDetail, IngestResponse } from "@rift-cmp/shared";
+import { EVENT_LIMITS } from "@rift-cmp/shared";
 import { jsonError, setCorsHeaders } from "@/lib/cors";
 import { enforceAnalyticsConsent, guardIngest } from "@/lib/ingest-guard";
 
+const utf8Bytes = (value: string) => new TextEncoder().encode(value).length;
+
+/**
+ * `payload.properties` is the one part of the envelope a customer's developer
+ * fills in freely, so it is the one part that cannot be bounded by naming the
+ * fields. It is bounded by shape instead: how many keys, how long a key may be,
+ * and how large the whole object serialises to.
+ *
+ * The serialised-size check is what actually protects the JSONB column — a
+ * hundred keys is harmless, a hundred keys each holding a megabyte of base64 is
+ * not, and only the byte count catches the second.
+ */
+const propertiesSchema = z
+  .record(z.string(), z.unknown())
+  .refine((value) => Object.keys(value).length <= EVENT_LIMITS.propertyKeys, {
+    message: `properties may contain at most ${EVENT_LIMITS.propertyKeys} keys`,
+  })
+  .refine(
+    (value) => Object.keys(value).every((key) => key.length <= EVENT_LIMITS.propertyKeyLength),
+    { message: `each properties key may be at most ${EVENT_LIMITS.propertyKeyLength} characters` },
+  )
+  .refine(
+    (value) => {
+      // A property value containing a BigInt or a circular reference cannot be
+      // serialised, and would throw inside Prisma rather than here. Failing it
+      // as invalid input is the honest answer: we cannot store what we cannot
+      // serialise, and a 400 says so where a 500 would not.
+      try {
+        return utf8Bytes(JSON.stringify(value) ?? "") <= EVENT_LIMITS.propertiesBytes;
+      } catch {
+        return false;
+      }
+    },
+    { message: `properties must be serialisable and at most ${EVENT_LIMITS.propertiesBytes} bytes` },
+  );
+
 const eventSchema = z.object({
   event_id: z.string().uuid(),
-  site_id: z.string().min(1),
-  session_id: z.string().min(1),
+  site_id: z.string().min(1).max(EVENT_LIMITS.identifier),
+  session_id: z.string().min(1).max(EVENT_LIMITS.identifier),
   event_type: z.enum(["page_view", "session_start", "custom"]),
-  name: z.string().optional(),
+  name: z.string().max(EVENT_LIMITS.name).optional(),
   event_time: z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
     message: "event_time must be a valid RFC3339 timestamp",
   }),
   schema_version: z.number().int().min(1),
-  source: z.string().min(1),
+  source: z.string().min(1).max(EVENT_LIMITS.source),
   payload: z.object({
     page: z.object({
-      url: z.string().min(1),
-      title: z.string().min(1),
+      url: z.string().min(1).max(EVENT_LIMITS.url),
+      title: z.string().min(1).max(EVENT_LIMITS.title),
     }),
     device: z.object({
-      type: z.string().min(1),
-      browser: z.string().min(1),
-      os: z.string().min(1),
+      type: z.string().min(1).max(EVENT_LIMITS.deviceField),
+      browser: z.string().min(1).max(EVENT_LIMITS.deviceField),
+      os: z.string().min(1).max(EVENT_LIMITS.deviceField),
     }),
-    referrer: z.string().nullable().optional(),
-    properties: z.record(z.string(), z.any()).optional(),
+    referrer: z.string().max(EVENT_LIMITS.url).nullable().optional(),
+    properties: propertiesSchema.optional(),
   }),
 });
 
@@ -54,9 +91,31 @@ export async function POST(request: NextRequest) {
   const consent = await enforceAnalyticsConsent(request, caller, allowOrigin);
   if (!consent.ok) return consent.response;
 
+  // Read as text rather than JSON so the body can be measured before it is
+  // parsed. `Content-Length` is not checked instead of this: it is a claim made
+  // by the caller, and the caller here holds a key that ships in page source.
+  // Parsing first and measuring after would mean already having done the work
+  // the limit exists to avoid.
+  let raw: string;
+  try {
+    raw = await request.text();
+  } catch {
+    return jsonError("invalid_json", "Request body could not be read.", [], 400, { allowOrigin });
+  }
+
+  if (utf8Bytes(raw) > EVENT_LIMITS.bodyBytes) {
+    return jsonError(
+      "payload_too_large",
+      `Request body exceeds ${EVENT_LIMITS.bodyBytes} bytes.`,
+      [],
+      413,
+      { allowOrigin },
+    );
+  }
+
   let payload: unknown;
   try {
-    payload = await request.json();
+    payload = JSON.parse(raw);
   } catch {
     return jsonError("invalid_json", "Request body must be valid JSON.", [], 400, { allowOrigin });
   }
@@ -64,6 +123,19 @@ export async function POST(request: NextRequest) {
   const rawEvents = Array.isArray((payload as { events?: unknown[] })?.events)
     ? (payload as { events: unknown[] }).events
     : [payload];
+
+  // Rejecting the whole batch rather than truncating it: silently dropping the
+  // tail would report `accepted` for events that were never looked at, and the
+  // SDK would have no way to tell that from success.
+  if (rawEvents.length > EVENT_LIMITS.batchSize) {
+    return jsonError(
+      "invalid_request",
+      `A batch may contain at most ${EVENT_LIMITS.batchSize} events; received ${rawEvents.length}.`,
+      [],
+      400,
+      { allowOrigin },
+    );
+  }
 
   const candidates: AnalyticsEvent[] = [];
   const rejected: ApiErrorDetail[] = [];

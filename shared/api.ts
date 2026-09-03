@@ -38,7 +38,10 @@ export type ApiErrorCode =
   | "consent_required"
   /** The browser `Origin` is not one this site is configured to accept. */
   | "origin_not_allowed"
-  | "rate_limited";
+  | "rate_limited"
+  // --- Phase 7A: ingestion input bounds --------------------------------------
+  /** The request body is larger than the endpoint accepts. */
+  | "payload_too_large";
 
 export interface ApiErrorDetail {
   code: ApiErrorCode;

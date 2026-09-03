@@ -43,6 +43,39 @@ Every event shares the same top-level structure:
 | `referrer` | string or null | yes | Page referrer or null |
 | `properties` | object | no | Arbitrary JSON object; populated for custom events and empty for automatic events |
 
+## Field bounds
+
+Every field has a maximum, defined once as `EVENT_LIMITS` in
+[`../shared/event.ts`](../shared/event.ts) and enforced by the API.
+
+The constants live in `shared/` so that the SDK and any other client are held to
+the same numbers. The SDK reads them in `track()` and refuses an over-limit
+custom event locally, before it is queued; see
+[sdk-api.md](sdk-api.md#local-validation).
+
+That client-side check is a **diagnostic, not enforcement** — it runs in the
+caller's browser and can be skipped, so the API re-checks every bound and is the
+authority. Automatic `page_view` and `session_start` events are not pre-checked,
+because their fields come from the browser rather than from a developer.
+
+| Field | Maximum |
+| --- | --- |
+| `site_id`, `session_id` | 200 characters |
+| `name` | 120 characters |
+| `source` | 80 characters |
+| `payload.page.url`, `payload.referrer` | 2048 characters |
+| `payload.page.title` | 300 characters |
+| `payload.device.type`, `.browser`, `.os` | 120 characters |
+| `payload.properties` | 100 keys, each key ≤ 100 characters, 8192 bytes serialised |
+
+A whole request is additionally capped at 1 MiB and 100 events. Exceeding a field
+bound rejects that event with `invalid_event`; exceeding a request bound rejects
+the request. See [api-spec.md](api-spec.md#input-bounds).
+
+`properties` must also be JSON-serialisable. A value that is not — a `BigInt`, a
+circular reference — is rejected as invalid input rather than failing at the
+database.
+
 ## Event types
 
 ### `session_start` (automatic)

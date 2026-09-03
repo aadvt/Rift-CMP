@@ -74,6 +74,12 @@ Phase 6A's security hardening added these:
 | `origin_not_allowed` | An `Origin` header was sent and the site does not accept it |
 | `rate_limited` | Too many requests; the response carries `Retry-After` and `RateLimit-*` |
 
+Phase 7A's ingestion input bounds added one:
+
+| `code` | Meaning |
+| --- | --- |
+| `payload_too_large` | The request body is larger than the endpoint accepts (`413`) |
+
 ### Decision reasons
 
 `POST /api/v1/authorisations/decision` reports a refusal in its **response body**,
@@ -189,7 +195,8 @@ wins and later copies are ignored.
 | `403` | `consent_required` | the site enforces consent and the decision in force is not `GRANTED` |
 | `429` | `rate_limited` | too many requests from this client or site; see `Retry-After` |
 | `400` | `invalid_json` | body is not valid JSON |
-| `400` | `invalid_request` | every event in the batch was rejected |
+| `400` | `invalid_request` | every event in the batch was rejected, or the batch holds more than 100 events |
+| `413` | `payload_too_large` | request body is over 1 MiB |
 | `202` | — | at least one event accepted; rejects listed in `errors[]` |
 
 #### Server-side consent enforcement
@@ -212,10 +219,52 @@ Per-event rejection codes reported in `errors[]`:
 
 | `code` | Meaning |
 | --- | --- |
-| `invalid_event` | failed schema validation |
+| `invalid_event` | failed schema validation, including any length bound below |
 | `duplicate_event` | `event_id` repeated within the same batch |
 | `site_mismatch` | `site_id` is not the authenticated site |
 | `session_conflict` | `session_id` belongs to a different site |
+
+#### Input bounds
+
+Added in Phase 7A. Every other write endpoint bounded its inputs; this one — the
+highest-volume route, authenticated with a key that ships in page source — did
+not, so an unbounded string, property object or batch reached Postgres.
+
+The values are defined once, in `EVENT_LIMITS` in
+[`../shared/event.ts`](../shared/event.ts), so every client can be held to the
+same numbers. The API is the enforcer. The SDK pre-checks the subset it can see
+in `track()` and refuses locally, which is a diagnostic rather than a control:
+the code doing it runs in the caller's browser and can be skipped.
+
+| Bound | Value | Exceeded → |
+| --- | --- | --- |
+| Request body | 1 MiB | `413 payload_too_large` |
+| Events per batch | 100 | `400 invalid_request` |
+| `site_id`, `session_id` | 200 chars | `invalid_event` |
+| `name` | 120 chars | `invalid_event` |
+| `source` | 80 chars | `invalid_event` |
+| `payload.page.url`, `payload.referrer` | 2048 chars | `invalid_event` |
+| `payload.page.title` | 300 chars | `invalid_event` |
+| `payload.device.*` | 120 chars | `invalid_event` |
+| `payload.properties` keys | 100, each ≤ 100 chars | `invalid_event` |
+| `payload.properties` serialised | 8192 bytes | `invalid_event` |
+
+Three details are deliberate:
+
+- **The body is measured before it is parsed.** `Content-Length` is a claim made
+  by the caller, so the body is read as text, its UTF-8 length checked, and only
+  then parsed. Parsing first would mean doing the work the limit exists to avoid.
+- **An oversized batch is refused whole, not truncated.** Silently dropping the
+  tail would report `accepted` for events nobody looked at, which the SDK cannot
+  distinguish from success.
+- **`properties` that cannot be serialised is invalid input, not a server
+  error.** A value containing a `BigInt` or a circular reference would otherwise
+  throw inside the database layer and surface as a `500`. It is a `400`: we
+  cannot store what we cannot serialise, and saying so is more useful than a
+  server error.
+
+Authentication still runs before the body is read at all, so an anonymous caller
+sending an oversized body gets `401` and learns nothing about the limits.
 
 Authentication is checked **before** the body is read, so an unauthenticated
 request with a malformed body still returns `401`.

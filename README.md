@@ -89,6 +89,7 @@ Start with the first one; it is the entry point and links to the rest.
 - [Lifecycle: Consent to Transfer to Audit](docs/lifecycle.md)
 - [Event Schema](docs/event-schema.md)
 - [API Spec](docs/api-spec.md)
+- [SDK API](docs/sdk-api.md) — the public interface a customer's developer calls
 - [Database Schema](docs/database-schema.md)
 - [Discovery](docs/discovery.md)
 - [Security Model](docs/security.md) — what is enforced, what is defence in depth, what is not done
@@ -403,6 +404,7 @@ Keep the following aligned when making changes:
 
 - [docs/event-schema.md](docs/event-schema.md)
 - [docs/api-spec.md](docs/api-spec.md)
+- [docs/sdk-api.md](docs/sdk-api.md)
 - [docs/tenancy.md](docs/tenancy.md)
 - [docs/consent.md](docs/consent.md)
 - [docs/secure-transfer.md](docs/secure-transfer.md)

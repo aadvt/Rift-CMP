@@ -20,6 +20,7 @@ const UNIT_TESTS = [
   "tests/discovery-classification.test.ts",
   "tests/rate-limit.test.ts",
   "tests/origin-validation.test.ts",
+  "tests/sdk-limits.test.ts",
 ];
 
 export default defineConfig({

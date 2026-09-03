@@ -3,6 +3,7 @@ import { ConsentClient } from "./consent";
 import type { ConsentApi } from "./consent";
 import { DiscoveryClient } from "./discovery";
 import type { ConsentCheck, SDKOptions } from "./types";
+import { validateTrackInput } from "./validate";
 
 const state = {
   client: null as AnalyticsClient | null,
@@ -258,10 +259,31 @@ const analytics = {
       return false;
     }
   },
+  /**
+   * Queues a custom event.
+   *
+   * Returns `false` synchronously when the event is refused before it is built —
+   * the consent gate denied it, or it failed the bounds in `EVENT_LIMITS` — and
+   * a `Promise<boolean>` once it reaches the client. That split is pre-existing
+   * (the consent gate has always returned a bare `false`) and is preserved here
+   * rather than smoothed over, because changing it would be a breaking change to
+   * every caller that branches on the result. `await` handles both.
+   */
   track(name: string, properties?: Record<string, unknown>) {
     try {
       const client = getClient();
       if (!state.consentCheck("analytics")) {
+        return false;
+      }
+      // Checked before queueing, so an over-limit event is not persisted to
+      // localStorage, not retried, and not counted against the batch. The API
+      // re-checks all of it: this is a diagnostic, not the enforcement.
+      const validation = validateTrackInput(name, properties);
+      if (!validation.ok) {
+        console.warn(
+          `[rift-cmp] analytics.track() rejected locally: ${validation.reason}. ` +
+            "The event was not queued. Bounds are in shared/event.ts (EVENT_LIMITS).",
+        );
         return false;
       }
       return client.track(name, properties);
@@ -287,6 +309,20 @@ export type { ConsentStatus, EffectiveConsent } from "@rift-cmp/shared";
 export { DiscoveryClient } from "./discovery";
 export type { DiscoveryOptions } from "./discovery";
 
+/**
+ * Publishes the callable SDK as `window.analytics`.
+ *
+ * This is the **only** thing that may claim the name `analytics`. The IIFE build
+ * is deliberately given an internal global name (`__riftCmpBundle` in
+ * `package.json`) rather than `analytics`, because a bundler's `--global-name`
+ * emits `var <name> = (() => { … })()` at script top level, and under classic
+ * `<script>` semantics that assignment runs *after* this module body and would
+ * overwrite the line below with the module namespace — leaving `analytics.init`
+ * undefined and breaking the install snippet the dashboard hands operators.
+ *
+ * So the two must not share a name. Renaming the build global is the fix;
+ * `docs/sdk-api.md` records why.
+ */
 if (typeof window !== "undefined") {
   (window as typeof window & { analytics?: typeof analytics }).analytics = analytics;
 }
