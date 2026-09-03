@@ -44,8 +44,34 @@ regulations/
 │   └── source-register.md
 ├── conflicts/
 │   └── conflicts.md
-└── schemas/
-    ├── requirement.schema.json
-    ├── source.schema.json
-    ├── applicability.schema.json
-    └── policy-version.schema.json
+├── schemas/
+│   ├── requirement.schema.json
+│   ├── source.schema.json
+│   ├── applicability.schema.json
+│   ├── policy-version.schema.json
+│   └── vocabulary.json          # controlled vocabulary; every enum resolves here
+├── generated/                   # GENERATED - do not edit
+│   ├── requirements.ts          # typed matrix data for a future engine
+│   └── vocabulary.ts            # vocabulary as TypeScript union types
+└── tools/
+    ├── README.md
+    ├── normalise.mjs            # canonicalise + fill derived fields
+    ├── build.mjs                # regenerate csv + typescript
+    ├── validate.mjs             # structural + referential checks
+    └── promote-csv.mjs          # one-off csv -> json reconciliation
+```
+
+## Machine-readable artifacts
+
+`matrix/requirements.json` is the single source of truth. `matrix/requirements.csv`
+and everything under `generated/` are produced from it by
+[`tools/build.mjs`](tools/README.md) and must not be hand-edited.
+
+```bash
+node docs/regulations/tools/validate.mjs   # exits non-zero on any inconsistency
+```
+
+Current state, and an honest account of what has and has not been converted, is
+in [`matrix/coverage.md`](matrix/coverage.md). The largest remaining gap is
+**EU-ePrivacy**, which has the longest regime document and only three structured
+requirements — and is the regime that actually governs cookies.

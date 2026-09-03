@@ -1,8 +1,83 @@
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.com/rift-cmp/regulations/matrix/requirements.json",
+// GENERATED FILE - DO NOT EDIT.
+// Produced by docs/regulations/tools/build.mjs from matrix/requirements.json.
+// Edit the JSON and re-run the build; edits here are overwritten.
+//
+// Research artifact, not legal advice. See docs/regulations/README.md.
+
+import type {
+  AuthorityLevel,
+  CanonicalDataCategory,
+  LegalBasis,
+  Regime,
+  Region,
+  RequirementType,
+  Topic,
+} from "./vocabulary";
+
+/**
+ * Whether consent is required.
+ *
+ * Deliberately not a boolean. `"conditional"` is a real and common answer - the
+ * requirement depends on facts the matrix does not hold - and flattening it to
+ * true or false would assert something no source says. A consumer that cannot
+ * handle `"conditional"` should surface it for a human, not coerce it.
+ */
+export type ConsentRequirement = {
+  required: boolean | "conditional";
+  conditions?: string[];
+  withdrawal_required?: boolean;
+};
+
+export interface Applicability {
+  applies: boolean;
+  triggers: string[];
+  covered_actors: string[];
+  covered_actors_canonical?: string[];
+}
+
+export interface Requirement {
+  requirement_id: string;
+  regime: Regime;
+  /** The regime's own term. */
+  topic: string;
+  /** Canonical topic, for cross-regime queries. */
+  topic_canonical?: Topic;
+  requirement: string;
+  requirement_type?: RequirementType;
+  authority_level?: AuthorityLevel;
+  applicability: Applicability;
+  legal_bases: string[];
+  legal_bases_canonical?: LegalBasis[];
+  purposes: string[];
+  /** Regime terms, preserved verbatim. */
+  data_categories: string[];
+  data_categories_canonical?: CanonicalDataCategory[];
+  contexts: string[];
+  regions: Region[];
+  consent?: ConsentRequirement;
+  opt_out?: Record<string, unknown>;
+  children?: Record<string, unknown>;
+  exceptions: string[];
+  /** ISO date. Null where the source states no start date. */
+  effective_from: string | null;
+  /** ISO date, or null where the requirement is still in force. */
+  effective_to: string | null;
+  policy_version: string | null;
+  source_ids: string[];
+  notes?: string;
+}
+
+export interface RequirementMatrix {
+  schema_version: string;
+  vocabulary_version?: string;
+  research_status: string;
+  legal_advice: false;
+  requirements: Requirement[];
+}
+
+export const REQUIREMENT_MATRIX = {
   "schema_version": "1.2.0",
-  "description": "Machine-readable privacy regulation requirement matrix for Rift-CMP.",
+  "vocabulary_version": "1.0.0",
   "research_status": "research",
   "legal_advice": false,
   "requirements": [
@@ -3904,7 +3979,7 @@
       ],
       "notes": "Model only. Individual state laws must be separately sourced."
     }
-  ],
-  "vocabulary_version": "1.0.0",
-  "normalised_at": "2026-09-03"
-}
+  ]
+} as const satisfies RequirementMatrix;
+
+export const REQUIREMENTS: readonly Requirement[] = REQUIREMENT_MATRIX.requirements;

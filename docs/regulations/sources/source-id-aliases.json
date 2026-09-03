@@ -1,0 +1,63 @@
+{
+  "$id": "https://rift-cmp.dev/schemas/regulations/source-id-aliases.json",
+  "schema_version": "1.0.0",
+  "description": "Reconciles the source identifiers used by requirements.csv with the identifiers in the source register.",
+  "research_status": "research",
+  "legal_advice": false,
+
+  "why_this_exists": [
+    "requirements.csv was authored against an earlier source-identifier scheme",
+    "(SRC-EU-GDPR-001) which the register later replaced with descriptive ids",
+    "(SRC-GDPR-EURLEX). The two were never reconciled, so every one of the 11",
+    "source ids in the CSV was dangling: the rows looked cited, and none of the",
+    "citations resolved. Nothing failed, because nothing checked.",
+    "",
+    "The mapping is recorded here as data rather than inside a script so that the",
+    "resolution of each identifier is reviewable by someone checking the law, and",
+    "so an unresolved one is visible instead of being quietly dropped."
+  ],
+
+  "resolution_basis": {
+    "exact": "The CSV id and the registered id name the same instrument; matched on the instrument, not on the id string.",
+    "by_provision": "Resolved using the row's own `source_provision` value, which names the instrument explicitly.",
+    "assumed_current": "Two registered versions exist and the row does not say which. Mapped to the version the register marks current, and listed under `requires_human_confirmation`."
+  },
+
+  "aliases": {
+    "SRC-EU-GDPR-001": { "resolves_to": "SRC-GDPR-EURLEX", "basis": "exact", "note": "GDPR primary text." },
+    "SRC-EU-EP-001": { "resolves_to": "SRC-EP-EURLEX", "basis": "exact", "note": "ePrivacy Directive primary text." },
+    "SRC-IN-DPDP-ACT-001": { "resolves_to": "SRC-IN-DPDP-ACT", "basis": "exact", "note": "DPDP Act 2023 primary text." },
+    "SRC-IN-DPDP-RULES-001": { "resolves_to": "SRC-IN-DPDP-RULES", "basis": "exact", "note": "DPDP Rules 2025 primary text." },
+    "SRC-BR-LGPD-001": { "resolves_to": "SRC-BR-LGPD", "basis": "exact", "note": "LGPD primary text." },
+    "SRC-US-STATE-MODEL-001": { "resolves_to": "SRC-US-STATE-MODEL", "basis": "exact", "note": "Generic state model. Not an authority; requirements resting on it are marked authority_level 'derived'." },
+    "SRC-CA-CCPA-001": { "resolves_to": "SRC-CA-CCPA-STATUTE-2026", "basis": "exact", "note": "CCPA/CPRA statutory text as published by the CPPA." },
+
+    "SRC-BR-LGPD-003": {
+      "resolves_to": "SRC-BR-ANPD-TRANSFERS-19-2024",
+      "basis": "by_provision",
+      "note": "Row names 'Resolution CD/ANPD n 19/2024', which is the registered international-transfer resolution."
+    },
+    "SRC-BR-LGPD-004": {
+      "resolves_to": "SRC-BR-ANPD-SANCTIONS-4-2023",
+      "basis": "by_provision",
+      "note": "Row names 'Resolution CD/ANPD n 4/2023', which is the registered sanctions resolution."
+    },
+    "SRC-CA-CCPA-004": {
+      "resolves_to": "SRC-CA-CCPA-REGS-2026",
+      "basis": "by_provision",
+      "note": "Row names the 2025 CPPA amendments and concerns automated decision-making technology, which the register records as introduced by the regulations effective 2026-01-01."
+    },
+
+    "SRC-CA-CCPA-003": {
+      "resolves_to": "SRC-CA-CCPA-REGS-2026",
+      "basis": "assumed_current",
+      "note": "Row cites only 'CCPA Regulations'. Both the 2023 and the 2026 regulations are registered, and the register marks 2023 historical and 2026 current. Mapped to current; the underlying rows (universal opt-out, retention) exist in both versions, so the choice affects which version the citation points at rather than whether the requirement exists."
+    }
+  },
+
+  "requires_human_confirmation": [
+    "SRC-CA-CCPA-003"
+  ],
+
+  "unresolved": []
+}

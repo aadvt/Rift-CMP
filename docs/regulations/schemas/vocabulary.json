@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rift-cmp.dev/schemas/regulations/vocabulary.json",
+  "schema_version": "1.0.0",
+  "description": "Controlled vocabulary for the regulation requirement matrix. Every enumerated value used by a requirement record resolves to a canonical concept here.",
+  "research_status": "research",
+  "legal_advice": false,
+
+  "design_note": [
+    "Regime terms are NOT merged into canonical ones. `personal_information` (CCPA),",
+    "`digital_personal_data` (DPDP) and `personal_data` (GDPR/LGPD) describe overlapping",
+    "but legally distinct scopes, and collapsing them would silently assert an",
+    "equivalence no source states. Instead each regime term keeps its own identity and",
+    "declares the canonical concept it maps to, so a query can ask either",
+    "'what does CCPA call this' or 'show me every regime's equivalent' without the data",
+    "having decided the answer.",
+    "",
+    "`maps_to` therefore means 'is this regime's expression of', not 'is identical to'.",
+    "Where a regime term is genuinely narrower or broader than the canonical concept,",
+    "`relation` records which."
+  ],
+
+  "topics": {
+    "description": "Canonical subject of a requirement. Replaces the free-text topic field, which had grown 45 values containing synonym clusters (international_transfer/international_transfers, children/minors/children_and_adolescents, notice/privacy_notice/privacy_policy/transparency, and others) that made topic-based lookup unreliable.",
+    "canonical": {
+      "applicability": { "label": "Applicability and territorial scope", "aliases": ["scope", "territorial_scope"] },
+      "lawful_basis": { "label": "Lawful basis for processing", "aliases": ["lawful_processing"] },
+      "consent": { "label": "Consent requirements", "aliases": ["notice_and_consent"] },
+      "withdrawal": { "label": "Withdrawal of consent", "aliases": [] },
+      "notice": { "label": "Transparency and notice", "aliases": ["privacy_notice", "privacy_policy", "notice_at_collection", "transparency"] },
+      "rights": { "label": "Individual rights", "aliases": ["data_subject_rights", "consumer_rights", "right_to_know", "right_to_delete", "appeals"] },
+      "sensitive_data": { "label": "Sensitive / special-category data", "aliases": ["special_categories", "sensitive_personal_information"] },
+      "children": { "label": "Children and minors", "aliases": ["minors", "children_and_adolescents"] },
+      "retention": { "label": "Retention and erasure", "aliases": ["data_minimization"] },
+      "international_transfer": { "label": "International transfers", "aliases": ["international_transfers"] },
+      "tracking_and_storage": { "label": "Cookies, terminal equipment and tracking", "aliases": ["terminal_equipment", "communications_confidentiality"] },
+      "direct_marketing": { "label": "Direct marketing", "aliases": [] },
+      "sale_and_sharing": { "label": "Sale, sharing and targeted advertising", "aliases": ["sale_opt_out", "sharing_opt_out", "sale_targeted_advertising"] },
+      "opt_out_signals": { "label": "Opt-out preference signals", "aliases": ["opt_out_preference_signals"] },
+      "non_discrimination": { "label": "Non-discrimination for exercising rights", "aliases": [] },
+      "automated_decision_making": { "label": "Automated decision-making and profiling", "aliases": [] },
+      "security": { "label": "Security safeguards and breach", "aliases": ["security_and_breach"] },
+      "vendor_relationship": { "label": "Processor / service provider relationships", "aliases": ["processor_relationship"] },
+      "accountability": { "label": "Governance, assessments and audits", "aliases": ["risk_assessments", "cybersecurity_audit", "significant_data_fiduciary"] },
+      "enforcement": { "label": "Enforcement and penalties", "aliases": [] },
+      "effective_dates": { "label": "Effective dates and commencement", "aliases": ["commencement"] }
+    }
+  },
+
+  "legal_bases": {
+    "description": "Grounds on which processing may lawfully occur. Regimes differ on which exist at all: CCPA has no general lawful-basis regime, and DPDP frames its non-consent grounds as 'legitimate uses' rather than as bases equivalent to GDPR Article 6.",
+    "canonical": {
+      "consent": { "label": "Consent", "aliases": [] },
+      "contract": { "label": "Performance of a contract", "aliases": [] },
+      "legal_obligation": { "label": "Compliance with a legal obligation", "aliases": ["legal_or_regulatory_obligation"] },
+      "vital_interests": { "label": "Vital interests / protection of life", "aliases": ["life_protection", "physical_safety"] },
+      "public_task": { "label": "Public interest or official authority", "aliases": ["public_administration"] },
+      "legitimate_interests": { "label": "Legitimate interests", "aliases": ["legitimate_interest"] },
+      "legitimate_use": { "label": "Legitimate use (DPDP)", "aliases": [], "note": "DPDP-specific. Deliberately not merged with legitimate_interests: the Act does not adopt the GDPR balancing test and the categories are enumerated rather than open-ended." },
+      "health": { "label": "Health and medical grounds", "aliases": [] },
+      "credit_protection": { "label": "Credit protection", "aliases": [] },
+      "fraud_prevention": { "label": "Fraud and security prevention", "aliases": ["security"] },
+      "exercise_of_rights": { "label": "Exercise of rights in proceedings", "aliases": [] },
+      "research": { "label": "Research, archiving and statistics", "aliases": [] },
+      "state_specific_consent": { "label": "State-specific consent requirement", "aliases": [], "note": "Placeholder used by the generic US state model, resolved per state." },
+      "state_specific_exception": { "label": "State-specific exception", "aliases": [], "note": "Placeholder used by the generic US state model, resolved per state." }
+    }
+  },
+
+  "data_categories": {
+    "description": "Categories of data a requirement applies to. Regime terms are preserved and mapped, never merged - see design_note.",
+    "canonical": {
+      "personal_data": { "label": "Personal data (canonical)" },
+      "sensitive_data": { "label": "Sensitive / special-category data (canonical)" },
+      "child_data": { "label": "Data concerning children or minors (canonical)" },
+      "communications_data": { "label": "Electronic communications data (canonical)" },
+      "device_data": { "label": "Terminal-equipment and device-stored information (canonical)" },
+      "contact_data": { "label": "Contact details used for marketing (canonical)" }
+    },
+    "regime_terms": {
+      "personal_data": { "regimes": ["GDPR", "Brazil-LGPD"], "maps_to": "personal_data", "relation": "equivalent" },
+      "personal_information": { "regimes": ["California-CCPA-CPRA", "US-State-Model"], "maps_to": "personal_data", "relation": "equivalent_in_scope_but_defined_separately" },
+      "digital_personal_data": { "regimes": ["India-DPDP-Act", "India-DPDP-Rules"], "maps_to": "personal_data", "relation": "narrower", "note": "DPDP covers personal data in digital form, and non-digital data subsequently digitised. Non-digital-only processing is outside its scope, so this is narrower than the canonical concept." },
+      "special_category_data": { "regimes": ["GDPR"], "maps_to": "sensitive_data", "relation": "equivalent" },
+      "sensitive_personal_data": { "regimes": ["Brazil-LGPD"], "maps_to": "sensitive_data", "relation": "equivalent" },
+      "sensitive_personal_information": { "regimes": ["California-CCPA-CPRA"], "maps_to": "sensitive_data", "relation": "differs", "note": "CPRA's SPI list is not the same set as GDPR Article 9, and the CPRA right is to limit use rather than a prohibition with conditions. Treating the two as interchangeable would be wrong." },
+      "child_personal_data": { "regimes": ["India-DPDP-Act", "India-DPDP-Rules"], "maps_to": "child_data", "relation": "equivalent" },
+      "child_or_minor_data": { "regimes": ["California-CCPA-CPRA", "US-State-Model", "GDPR"], "maps_to": "child_data", "relation": "equivalent" },
+      "adolescent_personal_data": { "regimes": ["Brazil-LGPD"], "maps_to": "child_data", "relation": "narrower", "note": "LGPD addresses children and adolescents as distinct groups; this term is the adolescent half and does not carry the child-specific conditions." },
+      "communications_content": { "regimes": ["EU-ePrivacy"], "maps_to": "communications_data", "relation": "narrower" },
+      "traffic_data": { "regimes": ["EU-ePrivacy"], "maps_to": "communications_data", "relation": "narrower" },
+      "terminal_equipment_information": { "regimes": ["EU-ePrivacy"], "maps_to": "device_data", "relation": "equivalent" },
+      "contact_data": { "regimes": ["EU-ePrivacy"], "maps_to": "contact_data", "relation": "equivalent" }
+    }
+  },
+
+  "covered_actors": {
+    "description": "The role a requirement binds. Preserved per regime because the roles are not interchangeable: a CCPA service provider is not a GDPR processor, and DPDP has no controller/processor split of the GDPR kind.",
+    "canonical": {
+      "determines_purpose": { "label": "Party deciding purpose and means", "regime_terms": ["controller", "business", "data_fiduciary", "state_specific_covered_entity", "significant_data_fiduciary"] },
+      "acts_on_instruction": { "label": "Party processing on another's behalf", "regime_terms": ["processor", "data_processor", "service_provider", "contractor"] },
+      "third_party": { "label": "Third party", "regime_terms": ["third_party"] },
+      "service_operator": { "label": "Operator of the service or network", "regime_terms": ["electronic_communications_provider", "website_operator", "marketer"] },
+      "intermediary": { "label": "Consent intermediary", "regime_terms": ["consent_manager"], "note": "DPDP-specific role with no equivalent in the other Tier 1 regimes." }
+    }
+  },
+
+  "requirement_types": {
+    "description": "What kind of obligation the record expresses. Populated during normalisation because the schema declared the field but nothing set it, leaving the engine unable to distinguish a hard obligation from a scope statement.",
+    "values": {
+      "scope": "States when the regime applies at all. Not itself an obligation.",
+      "obligation": "Something the covered actor must do.",
+      "prohibition": "Something the covered actor must not do.",
+      "condition": "A precondition qualifying another requirement.",
+      "right": "An entitlement of the individual that the actor must honour.",
+      "definition": "Defines a term or category used by other requirements.",
+      "enforcement": "Consequence, penalty or supervisory power.",
+      "timing": "Effective date, commencement or phasing."
+    }
+  },
+
+  "authority_levels": {
+    "description": "How directly the requirement is stated by the cited source. Lets the engine separate what a statute says from what an interpretation adds, which the methodology requires be kept distinct.",
+    "values": {
+      "statute": "Stated in primary legislation.",
+      "delegated": "Stated in rules, regulations or delegated instruments.",
+      "regulator_guidance": "Stated in official regulator guidance rather than binding text.",
+      "derived": "Not stated verbatim; assembled from the cited provisions during research. Must be reviewed before being relied upon."
+    }
+  },
+
+  "regions": {
+    "description": "ISO-style region identifiers used by applicability. Kept coarse deliberately: the matrix records where a regime asserts application, not a resolved geolocation policy.",
+    "values": {
+      "EU": "European Union / EEA where applicable",
+      "India": "Republic of India",
+      "California": "State of California, United States",
+      "US": "United States (generic state model)",
+      "Brazil": "Federative Republic of Brazil"
+    }
+  }
+}
