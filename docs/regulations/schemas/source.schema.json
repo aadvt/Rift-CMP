@@ -1,8 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://example.com/rift-cmp/schemas/source.schema.json",
-    "title": "Regulation Source",
-    "description": "Schema for legal and authoritative sources used in Rift-CMP regulation research.",
+    "$id": "https://example.com/rift-cmp/regulations/schemas/source.schema.json",
+    "title": "Privacy Regulation Source",
     "type": "object",
     "required": [
         "source_id",
@@ -10,7 +9,9 @@
         "title",
         "source_type",
         "authority",
-        "url"
+        "publisher",
+        "url",
+        "retrieved_date"
     ],
     "properties": {
         "source_id": {
@@ -29,12 +30,11 @@
             "type": "string",
             "enum": [
                 "primary",
-                "primary_official",
                 "primary_regulatory",
-                "official_guidance",
                 "official_information",
-                "derived_model",
-                "secondary_authoritative"
+                "official_guidance",
+                "independent_authoritative",
+                "derived_model"
             ]
         },
         "authority": {
@@ -42,10 +42,8 @@
             "minLength": 1
         },
         "publisher": {
-            "type": [
-                "string",
-                "null"
-            ]
+            "type": "string",
+            "minLength": 1
         },
         "publication_date": {
             "type": [
@@ -82,10 +80,7 @@
             "format": "uri"
         },
         "retrieved_date": {
-            "type": [
-                "string",
-                "null"
-            ],
+            "type": "string",
             "format": "date"
         },
         "notes": {

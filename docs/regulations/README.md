@@ -1,24 +1,23 @@
-# Regulation Research
+# Privacy Regulations Research
 
-This directory contains the research and specification layer for privacy and data-protection regulations used by Rift-CMP.
+## Purpose
 
-## Status
+This directory contains Rift-CMP's privacy regulation research, legal requirement modeling, source registry, comparison matrices, schemas, and documented conflicts.
 
-**Phase:** 6B — Global Regulation Research & Requirement Matrix
+This is a research and product-specification artifact. It is not legal advice.
 
-**Status:** Research/specification only.
+## MVP Tier 1 Regimes
 
-The contents of this directory are not legal advice and must not be treated as final legal determinations.
+The initial research scope covers:
 
-## MVP Regimes
+1. GDPR
+2. EU ePrivacy
+3. India Digital Personal Data Protection Act, 2023
+4. India Digital Personal Data Protection Rules, 2025
+5. California CCPA/CPRA
+6. Brazil LGPD
 
-- GDPR
-- EU ePrivacy
-- India DPDP Act
-- India DPDP Rules
-- California CCPA/CPRA
-- Brazil LGPD
-- Generic US State Privacy Model
+A generic US state privacy model is also maintained for future state-specific research.
 
 ## Directory Structure
 

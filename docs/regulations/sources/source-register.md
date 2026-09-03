@@ -1,119 +1,233 @@
-# Source Register
+# Regulation Source Register
 
 ## Purpose
 
-This register records the authoritative and supporting sources used for the regulation research and requirement matrix.
+This register identifies the authoritative sources used for Phase 6B regulation research.
 
-Each requirement in the product should be traceable to one or more registered sources.
+## Source Hierarchy
 
----
+1. Primary legislation
+2. Primary regulations / regulatory decisions
+3. Official regulator guidance
+4. Official government information
+5. Authoritative secondary sources
+6. Internal derived models
 
-## Source Record Format
+Primary sources take precedence when interpreting binding legal requirements.
 
-| Field | Description |
+## GDPR
+
+### SRC-GDPR-EURLEX
+
+**Authority:** European Union / EUR-Lex  
+**Type:** Primary  
+**Title:** Regulation (EU) 2016/679 (General Data Protection Regulation)  
+**Application date:** 25 May 2018  
+**Source:** https://eur-lex.europa.eu/eli/reg/2016/679/oj
+
+Primary binding GDPR text.
+
+### SRC-GDPR-EC
+
+**Authority:** European Commission  
+**Type:** Official information  
+**Title:** Data protection under GDPR  
+**Source:** https://commission.europa.eu/law/law-topic/data-protection/data-protection-eu_en
+
+Official explanatory material. Not a substitute for the Regulation.
+
+### SRC-GDPR-EDPB-LAWFUL-BASIS
+
+**Authority:** European Data Protection Board  
+**Type:** Official guidance  
+**Title:** Lawfulness of processing  
+**Source:** https://www.edpb.europa.eu/sme-data-protection-guide/principles-processing-personal-data/lawfulness-processing_en
+
+Supports interpretation of GDPR legal bases.
+
+## EU ePrivacy
+
+### SRC-EP-EURLEX
+
+**Authority:** European Union / EUR-Lex  
+**Type:** Primary  
+**Title:** Directive 2002/58/EC concerning privacy and electronic communications  
+**Source:** https://eur-lex.europa.eu/eli/dir/2002/58/oj
+
+Primary EU ePrivacy Directive.
+
+National implementing legislation must be considered because the instrument is a Directive.
+
+### SRC-EP-EC
+
+**Authority:** European Commission  
+**Type:** Official information  
+**Title:** Privacy and electronic communications  
+**Source:** https://digital-strategy.ec.europa.eu/en/policies/privacy-electronic-communications
+
+Official contextual information.
+
+## India DPDP Act
+
+### SRC-IN-DPDP-ACT
+
+**Authority:** Government of India / MeitY  
+**Type:** Primary  
+**Title:** Digital Personal Data Protection Act, 2023  
+**Publication date:** 11 August 2023  
+**Source:** https://www.meity.gov.in/dpdp-act-2023
+
+Primary statutory source.
+
+### SRC-IN-DPDP-ACT-COMMENCEMENT
+
+**Authority:** Government of India / MeitY  
+**Type:** Primary  
+**Title:** Notification regarding commencement of provisions of the Digital Personal Data Protection Act, 2023  
+**Date:** 13 November 2025  
+**Reference:** G.S.R. 843(E)
+
+Establishes phased commencement of specified Act provisions.
+
+## India DPDP Rules
+
+### SRC-IN-DPDP-RULES
+
+**Authority:** Government of India / MeitY  
+**Type:** Primary regulatory  
+**Title:** Digital Personal Data Protection Rules, 2025  
+**Date:** 13 November 2025  
+**Reference:** G.S.R. 846(E)  
+**Source:** https://www.meity.gov.in/documents/act-and-policies/digital-personal-data-protection-rules-2025-gDOxUjMtQWa
+
+Final notified Rules.
+
+### SRC-IN-DPDP-RULES-CORRIGENDUM
+
+**Authority:** Government of India / MeitY  
+**Type:** Primary regulatory  
+**Date:** 16 December 2025
+
+Official corrigendum to the final Rules.
+
+### Commencement
+
+The Rules use phased commencement:
+
+| Rules | Commencement |
 |---|---|
-| `source_id` | Unique stable identifier |
-| `regime` | Regulation/jurisdiction |
-| `source_type` | Statute, regulation, official guidance, regulator guidance, secondary authority |
-| `title` | Official source title |
-| `publisher` | Issuing authority |
-| `identifier` | Law/regulation/document number |
-| `publication_date` | Publication/adoption date |
-| `effective_date` | Effective/application date |
-| `version` | Version/amendment identifier |
-| `authority_level` | Primary / Secondary |
-| `notes` | Scope, limitations, or interpretation notes |
+| Rules 1, 2, 17–21 | 13 November 2025 |
+| Rule 4 | 13 November 2026 |
+| Rules 3, 5–16, 22–23 | 13 May 2027 |
 
----
+## California CCPA / CPRA
 
-## Registered Sources
+### SRC-CA-CCPA-STATUTE-2026
 
-### GDPR
+**Authority:** California Privacy Protection Agency  
+**Type:** Primary  
+**Title:** California Consumer Privacy Act — Effective January 1, 2026  
+**Source:** https://cppa.ca.gov/regulations/pdf/ccpa_statute_eff_20260101.pdf
 
-| Source ID | Source | Authority | Identifier / Version | Status |
-|---|---|---|---|---|
-| `SRC-EU-GDPR-001` | General Data Protection Regulation | EU / European Parliament & Council | Regulation (EU) 2016/679 | Primary |
-| `SRC-EU-GDPR-002` | European Commission — Legal Framework for EU Data Protection | European Commission | Current guidance | Secondary / Official Guidance |
-| `SRC-EU-GDPR-003` | EDPB — Legal Framework | European Data Protection Board | Current guidance | Secondary / Official Guidance |
+Current statutory reference used for Phase 6B.
 
----
+### SRC-CA-CCPA-REGS-2026
 
-### EU ePrivacy
+**Authority:** California Privacy Protection Agency  
+**Type:** Primary regulatory  
+**Effective date:** 1 January 2026  
+**Source:** https://cppa.ca.gov/regulations/
 
-| Source ID | Source | Authority | Identifier / Version | Status |
-|---|---|---|---|---|
-| `SRC-EU-EP-001` | Directive on privacy and electronic communications | European Parliament & Council | Directive 2002/58/EC | Primary |
-| `SRC-EU-EP-002` | National implementing legislation | EU Member States | State-specific | Primary |
-| `SRC-EU-EP-003` | EDPB / national DPA guidance on electronic communications and tracking | EDPB / National DPAs | Current guidance | Secondary / Official Guidance |
+Current regulatory framework.
 
-**Important:** ePrivacy is a Directive. National implementation must be tracked separately from the EU Directive.
+### SRC-CA-CCPA-REGS-2023
 
----
+**Authority:** California Privacy Protection Agency  
+**Type:** Primary regulatory  
+**Effective date:** 29 March 2023  
+**Source:** https://cppa.ca.gov/regulations/consumer_privacy_act.html
 
-### India — DPDP Act
+Historical regulatory version retained for version tracking.
 
-| Source ID | Source | Authority | Identifier / Version | Status |
-|---|---|---|---|---|
-| `SRC-IN-DPDP-ACT-001` | Digital Personal Data Protection Act| 2023 | Government of India / Parliament | Act No. 22 of 2023 | Primary |
-| `SRC-IN-DPDP-ACT-002` | DPDP Act commencement notification | Government of India / MeitY | G.S.R. 843(E), 13 Nov 2025 | Primary |
-| `SRC-IN-DPDP-ACT-003` | MeitY DPDP implementation material | MeitY | Current official material | Secondary / Official Guidance |
+### SRC-CA-OAG-CCPA
 
----
+**Authority:** California Attorney General  
+**Type:** Official information  
+**Title:** California Consumer Privacy Act  
+**Source:** https://oag.ca.gov/privacy/ccpa
 
-### India — DPDP Rules
+Official explanatory material.
 
-| Source ID | Source | Authority | Identifier / Version | Status |
-|---|---|---|---|---|
-| `SRC-IN-DPDP-RULES-001` | Digital Personal Data Protection Rules, 2025 | Government of India / MeitY | G.S.R. 846(E), 13 Nov 2025 | Primary |
-| `SRC-IN-DPDP-RULES-002` | DPDP Rules explanatory note | MeitY | 2025 | Secondary / Official Explanation |
-| `SRC-IN-DPDP-RULES-003` | DPDP Rules corrigendum | Government of India / MeitY | 16 Dec 2025 | Primary |
+## Brazil LGPD
 
-**Important:** The explanatory note is not itself part of the Rules and must not be treated as controlling legal text.
+### SRC-BR-LGPD
 
----
+**Authority:** Government of Brazil  
+**Type:** Primary  
+**Title:** Lei Geral de Proteção de Dados Pessoais — Lei No. 13.709/2018  
+**Date:** 14 August 2018  
+**Source:** https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm
 
-### California — CCPA / CPRA
+Primary LGPD statutory text.
 
-| Source ID | Source | Authority | Identifier / Version | Status |
-|---|---|---|---|---|
-| `SRC-CA-CCPA-001` | California Consumer Privacy Act | State of California | Cal. Civ. Code §§ 1798.100–1798.199 | Primary |
-| `SRC-CA-CCPA-002` | California Privacy Rights Act | State of California / Proposition 24 | 2020 amendments | Primary |
-| `SRC-CA-CCPA-003` | CCPA Regulations | California Privacy Protection Agency | Title 11, Division 6 | Primary |
-| `SRC-CA-CCPA-004` | CPPA regulatory amendments | California Privacy Protection Agency | Effective Jan. 1, 2026 | Primary |
-| `SRC-CA-CCPA-005` | CCPA guidance | California Attorney General | Current guidance | Secondary / Official Guidance |
+### SRC-BR-ANPD-REGULATIONS
 
----
+**Authority:** ANPD  
+**Type:** Official information  
+**Title:** ANPD Regulations  
+**Source:** https://www.gov.br/anpd/pt-br/acesso-a-informacao/institucional/atos-normativos/regulamentacoes_anpd
 
-### Brazil — LGPD
+Official repository of ANPD regulatory acts.
 
-| Source ID | Source | Authority | Identifier / Version | Status |
-|---|---|---|---|---|
-| `SRC-BR-LGPD-001` | Lei Geral de Proteção de Dados Pessoais | Government of Brazil | Lei nº 13.709/2018 | Primary |
-| `SRC-BR-LGPD-002` | ANPD regulations and resolutions | ANPD | Current regulations | Primary |
-| `SRC-BR-LGPD-003` | Regulation on International Transfers | ANPD | Resolution CD/ANPD nº 19/2024 | Primary |
-| `SRC-BR-LGPD-004` | Administrative Sanctions and Dosimetry Regulation | ANPD | Resolution CD/ANPD nº 4/2023 | Primary |
-| `SRC-BR-LGPD-005` | EU adequacy recognition | ANPD | Resolution CD/ANPD nº 32/2026 | Primary |
+### SRC-BR-ANPD-TRANSFERS-19-2024
 
----
+**Authority:** ANPD  
+**Type:** Primary regulatory  
+**Title:** Resolution CD/ANPD No. 19 — International Data Transfers  
+**Date:** 23 August 2024  
+**Source:** https://www.gov.br/anpd/pt-br/acesso-a-informacao/institucional/atos-normativos/regulamentacoes_anpd/resolucao-cd-anpd-no-19-de-23-de-agosto-de-2024
 
-## U.S. State Privacy Model
+Regulates international data transfers and standard contractual clauses.
 
-The generic U.S. state model must not rely on one source.
+A corrigendum dated 18 August 2025 must also be considered.
 
-Each state should receive its own source records.
+### SRC-BR-ANPD-SANCTIONS-4-2023
 
-Minimum fields:
+**Authority:** ANPD  
+**Type:** Primary regulatory  
+**Title:** Resolution No. 4 — Administrative Sanctions and Dosimetry  
+**Date:** 24 February 2023  
+**Source:** https://www.gov.br/anpd/pt-br/acesso-a-informacao/institucional/atos-normativos/regulamentacoes_anpd
 
-```text
-state
-law_name
-statute_identifier
-regulation_identifier
-regulator
-publication_date
-effective_date
-enforcement_date
-amendment_version
-official_source
-guidance_sources
-last_verified
+Primary sanctions and dosimetry framework.
+
+### SRC-BR-ANPD-SMALL-AGENTS-2-2022
+
+**Authority:** ANPD  
+**Type:** Primary regulatory  
+**Title:** Resolution CD/ANPD No. 2 — Small Processing Agents  
+**Date:** 27 January 2022  
+**Source:** https://www.gov.br/anpd/pt-br/acesso-a-informacao/institucional/atos-normativos/regulamentacoes_anpd
+
+Framework concerning small processing agents.
+
+## US State Privacy Model
+
+### SRC-US-STATE-MODEL
+
+**Authority:** Rift-CMP Research  
+**Type:** Derived model
+
+This is **not a legal source**.
+
+It represents common modeling dimensions across US state privacy regimes. Individual state laws must be separately researched and sourced before any state-specific enforcement is implemented.
+
+## Source Usage Rules
+
+- Every matrix requirement must reference one or more `source_id` values.
+- Primary legal text should be used for binding requirements.
+- Official guidance must be distinguished from binding law.
+- Internal models must never be represented as legal authority.
+- Historical sources must remain available when needed for version comparison.
+- Effective dates must be recorded at the requirement or provision level where applicable.
+- Conflicts between sources must be recorded in `conflicts/conflicts.md`.

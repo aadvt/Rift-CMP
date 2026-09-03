@@ -1,8 +1,7 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://rift-cmp.local/schemas/requirement.schema.json",
+    "$id": "https://example.com/rift-cmp/regulations/schemas/requirement.schema.json",
     "title": "Privacy Regulation Requirement",
-    "description": "Machine-readable schema for a privacy regulation requirement in Rift-CMP.",
     "type": "object",
     "required": [
         "requirement_id",
@@ -16,6 +15,7 @@
         "contexts",
         "exceptions",
         "effective_from",
+        "effective_to",
         "policy_version",
         "source_ids"
     ],
@@ -36,10 +36,30 @@
             "type": "string",
             "minLength": 1
         },
+        "requirement_type": {
+            "type": "string",
+            "enum": [
+                "statutory",
+                "regulatory",
+                "official_guidance",
+                "derived_model"
+            ]
+        },
+        "authority_level": {
+            "type": "string",
+            "enum": [
+                "binding_law",
+                "regulation",
+                "official_guidance",
+                "research_model"
+            ]
+        },
         "applicability": {
             "type": "object",
             "required": [
-                "applies"
+                "applies",
+                "triggers",
+                "covered_actors"
             ],
             "properties": {
                 "applies": {
@@ -52,6 +72,30 @@
                     }
                 },
                 "covered_actors": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "thresholds": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "territorial_triggers": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "sector_conditions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "data_subject_conditions": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -129,12 +173,6 @@
             },
             "additionalProperties": false
         },
-        "exceptions": {
-            "type": "array",
-            "items": {
-                "type": "string"
-            }
-        },
         "children": {
             "type": "object",
             "properties": {
@@ -149,6 +187,12 @@
                 }
             },
             "additionalProperties": false
+        },
+        "exceptions": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
         },
         "effective_from": {
             "type": [
@@ -172,8 +216,7 @@
             "type": "array",
             "minItems": 1,
             "items": {
-                "type": "string",
-                "minLength": 1
+                "type": "string"
             }
         },
         "notes": {

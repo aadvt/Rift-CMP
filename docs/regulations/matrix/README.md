@@ -1,57 +1,48 @@
 # Regulation Requirement Matrix
 
-This directory contains the machine-readable privacy regulation requirement matrix used by Rift-CMP.
+## Purpose
+
+This directory contains the machine-readable comparison matrix for privacy regulation requirements researched by Rift-CMP.
+
+The matrix is a research and specification artifact, not legal advice.
 
 ## Files
 
-- `requirements.csv` — tabular representation for review and analysis.
-- `requirements.json` — structured representation for application and validation.
+- `requirements.csv` — tabular representation for inspection, analysis, and spreadsheet workflows.
+- `requirements.json` — structured representation for programmatic processing.
+- `../schemas/requirement.schema.json` — schema for individual requirement records.
 
-## Purpose
+## Design Principles
 
-The matrix maps privacy requirements across multiple regimes without reducing regulatory obligations to a single consent flag.
+The matrix must support requirements that vary by:
 
-Each requirement may depend on:
+- regulation
+- jurisdiction
+- effective date
+- legal version
+- policy interpretation version
+- applicability trigger
+- covered actor
+- entity type
+- processing purpose
+- data category
+- processing context
+- legal basis
+- consent conditions
+- withdrawal requirements
+- opt-out rights
+- sensitive/special data
+- children or age conditions
+- exceptions
+- sector conditions
+- international transfers
+- vendor/controller/processor relationships
+- sale, sharing, and targeted advertising
+- enforcement requirements
 
-- Regulation or regime
-- Applicability triggers
-- Covered actors
-- Region
-- Legal basis
-- Processing purpose
-- Data category
-- Processing context
-- Consent requirements
-- Opt-out requirements
-- Exceptions and conditions
-- Effective dates
-- Policy versions
-- Source references
+## No Boolean-Only Legal Model
 
-## MVP Regimes
-
-- GDPR
-- EU ePrivacy
-- India DPDP Act
-- India DPDP Rules
-- California CCPA/CPRA
-- Generic US State Privacy Model
-- Brazil LGPD
-
-## Research Rules
-
-1. Requirements must be traceable to source IDs.
-2. Primary sources should be preferred.
-3. Important requirements should be cross-checked with authoritative independent sources where available.
-4. Legal ambiguity must not be silently resolved.
-5. National implementation differences must remain distinguishable from EU-level requirements.
-6. Effective dates and policy versions must be preserved.
-7. Generic US-state entries are modeling abstractions, not statements of individual state law.
-8. The matrix is research/specification data and is not legal advice.
-
-## Architectural Constraint
-
-Do not implement regulatory logic as:
+Do not interpret a requirement using only:
 
 ```text
-consent_required = true|false
+consent_required = true
