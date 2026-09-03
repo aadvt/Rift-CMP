@@ -79,8 +79,25 @@ export interface JurisdictionResolution {
   readonly signals: readonly ResolvedSignal[];
   /** The union, sorted. Empty is a valid answer and means "we do not know". */
   readonly jurisdictions: readonly Jurisdiction[];
-  /** Regimes the matrix carries for those jurisdictions. */
+  /**
+   * Regimes the evaluator will consider for those jurisdictions by default.
+   *
+   * Excludes any regime whose every rule rests on `derived` authority, because
+   * the evaluator holds those back unless a caller asks for them. Reporting a
+   * regime here that the decision then never cites would be the resolver and the
+   * evaluator disagreeing - the same self-contradiction that made a single
+   * `actor` wrong.
+   */
   readonly regimes: readonly Regime[];
+  /**
+   * Regimes in scope that rest on a research model rather than a published
+   * instrument, and are evaluated only when `includeDerivedModels` is set.
+   *
+   * Separated rather than dropped: a Californian visitor really is covered by
+   * the generic US state model, and losing that silently would be worse than
+   * the contradiction it is avoiding.
+   */
+  readonly derivedRegimes: readonly Regime[];
   /**
    * Best confidence supporting each jurisdiction.
    *
@@ -107,13 +124,24 @@ export interface JurisdictionResolution {
 function regimesFor(
   jurisdictions: readonly Jurisdiction[],
   rules: readonly Rule[],
-): readonly Regime[] {
+): { regimes: readonly Regime[]; derivedRegimes: readonly Regime[] } {
   const wanted = new Set(jurisdictions);
-  const found = new Set<Regime>();
+  const inScope = new Map<Regime, boolean>();
   for (const rule of rules) {
-    if (rule.regions.some((r) => wanted.has(r))) found.add(rule.regime);
+    if (!rule.regions.some((r) => wanted.has(r))) continue;
+    // A regime counts as derived only when *every* rule reaching these
+    // jurisdictions is derived. One statutory rule is enough to make the regime
+    // something the evaluator will consider without being asked.
+    const derived = rule.authorityLevel === "derived";
+    const previous = inScope.get(rule.regime);
+    inScope.set(rule.regime, previous === undefined ? derived : previous && derived);
   }
-  return [...found].sort();
+  const regimes: Regime[] = [];
+  const derivedRegimes: Regime[] = [];
+  for (const [regime, derived] of inScope) {
+    (derived ? derivedRegimes : regimes).push(regime);
+  }
+  return { regimes: regimes.sort(), derivedRegimes: derivedRegimes.sort() };
 }
 
 /**
@@ -260,7 +288,7 @@ export function resolveJurisdictions(
   return {
     signals,
     jurisdictions,
-    regimes: regimesFor(jurisdictions, ruleSet),
+    ...regimesFor(jurisdictions, ruleSet),
     confidenceByJurisdiction,
     overallConfidence,
     reasons,

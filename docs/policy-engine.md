@@ -302,11 +302,11 @@ Each is a thing the engine genuinely does not do.
 ## Verification
 
 ```bash
-npm run test:unit    # 263 tests, 155 of them the policy package, no database
+npm run test:unit    # 270 tests, 162 of them the policy package, no database
 npm run typecheck
 npm run lint
 node docs/regulations/tools/validate.mjs
 ```
 
 The engine's tests are in the `unit` project because they touch no database —
-they are pure functions over a static matrix, and all 155 run in about 300ms.
+they are pure functions over a static matrix, and all 162 run in about 300ms.

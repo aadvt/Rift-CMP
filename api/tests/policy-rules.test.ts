@@ -31,7 +31,7 @@ const AS_OF = new Date("2026-09-04T00:00:00.000Z");
 function ctx(over: Partial<ProcessingContext> = {}): ProcessingContext {
   return {
     jurisdictions: ["EU"],
-    actor: "determines_purpose",
+    actors: ["determines_purpose"],
     asOf: AS_OF,
     ...over,
   };
@@ -164,7 +164,7 @@ describe("selection", () => {
   });
 
   it("excludes rules that bind a different actor", () => {
-    const { selected } = selectRules(ctx({ actor: "intermediary" }));
+    const { selected } = selectRules(ctx({ actors: ["intermediary"] }));
     for (const rule of selected) {
       expect(rule.actors, rule.id).toContain("intermediary");
     }

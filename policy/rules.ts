@@ -199,8 +199,13 @@ export function selectRules(
     }
 
     // A record that binds no canonical actor binds everyone; one that names
-    // actors binds only those.
-    if (rule.actors.length > 0 && !rule.actors.includes(context.actor)) {
+    // actors binds only those. The caller matches if it holds *any* of them,
+    // because the roles are not exclusive and a party wearing two hats is
+    // bound by the requirements attaching to both.
+    if (
+      rule.actors.length > 0 &&
+      !rule.actors.some((a) => context.actors.includes(a))
+    ) {
       excluded.set(rule.id, "actor");
       continue;
     }

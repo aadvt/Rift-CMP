@@ -18,7 +18,7 @@
  *
  * const decision = evaluate({
  *   jurisdictions: ["EU"],
- *   actor: "determines_purpose",
+ *   actors: WEBSITE_OPERATOR_ROLES,
  *   asOf: new Date("2026-09-04"),
  *   processingContexts: ["cookies"],
  * });
@@ -78,6 +78,7 @@ export {
 } from "./disposition";
 export {
   VERDICT_SEVERITY,
+  WEBSITE_OPERATOR_ROLES,
   type ActorRole,
   type AuthorityLevel,
   type CanonicalDataCategory,

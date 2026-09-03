@@ -24,14 +24,14 @@ Research artifact, not legal advice.
 | `policy/location.ts` | The evidence model: `DetectedLocation`, `LocationSource`, `Confidence`, `VisitorContext` |
 | `policy/jurisdiction-rules.ts` | The versioned region → jurisdiction mapping. Configuration, not law |
 | `policy/resolve.ts` | `resolveJurisdictions` and `resolveContext` |
-| `api/tests/jurisdiction-resolution.test.ts` | 44 tests, one per scenario the brief names |
+| `api/tests/jurisdiction-resolution.test.ts` | 51 tests, one per scenario the brief names |
 
 No table, no migration, no endpoint, no dependency. Nothing imports it.
 
 ## Using it
 
 ```ts
-import { resolveContext } from "@rift-cmp/policy";
+import { resolveContext, WEBSITE_OPERATOR_ROLES } from "@rift-cmp/policy";
 
 const { resolution, decision } = resolveContext(
   {
@@ -40,7 +40,7 @@ const { resolution, decision } = resolveContext(
       { region: "IN", source: "business_target_market" },
     ],
   },
-  { actor: "determines_purpose", asOf: new Date("2026-09-04") },
+  { actors: WEBSITE_OPERATOR_ROLES, asOf: new Date("2026-09-04") },
 );
 
 resolution.jurisdictions;             // ["EU", "India"]
@@ -172,6 +172,49 @@ unchanged, and the evaluator already refuses to guess — it returns `REVIEW` wi
 know where they are" cannot become "nothing is required" at the seam.** That is
 the single most important property of the integration, and it is tested.
 
+## Two self-contradictions this phase exposed
+
+Both were found by running the brief's own worked examples and reading the
+output, not by a failing test. Both are the same shape: the resolver saying a
+regime is in scope while the evaluator cited nothing from it. That is the worst
+kind of wrong, because each half looks correct on its own.
+
+**A party holds more than one role.** `ProcessingContext.actor` was singular.
+Every terminal-equipment requirement binds `service_operator`; the GDPR's consent
+and notice duties bind `determines_purpose`. A company running its own website is
+*both* — but asking as a controller returned the resolver reporting ePrivacy in
+scope and the decision containing **no ePrivacy obligation at all**. Exactly the
+cookie rules a CMP exists for, silently missing.
+
+`actors` is now a list, a rule matches if the caller holds any of its roles, and
+`WEBSITE_OPERATOR_ROLES` names the common pair so getting it wrong takes effort.
+The brief's first worked example now returns GDPR and ePrivacy obligations
+together, which is what it asks for.
+
+**Derived-authority regimes were reported as if they would be evaluated.**
+`US-CA` maps to `California` and to the generic `US` model, so `regimes` listed
+`US-State-Model` — which the evaluator holds back unless `includeDerivedModels`
+is set. In scope, never cited. `derivedRegimes` is now a separate field:
+separated rather than dropped, because a Californian visitor really is covered by
+the model and losing that silently would be worse than the contradiction.
+
+A test now asserts the general invariant across every jurisdiction: **no regime
+appears in `regimes` unless the decision cites at least one rule from it.**
+
+## What "no obligations" can mean
+
+Worth reading before concluding the engine is broken, because it looks identical
+to a failure and usually is not.
+
+An Indian visitor today resolves to `India`, reports both DPDP regimes in scope,
+and returns **zero obligations**. That is correct: the research records most of
+the DPDP Act's substantive provisions as commencing `2027-05-13`, so at an `asOf`
+before that they are excluded as `not_yet_effective`. Move `asOf` past it and the
+consent, notice, withdrawal and rights obligations all appear. Both are tested.
+
+A hard-coded rule engine would have got this wrong in both directions — asserting
+DPDP consent duties that have not commenced, or forgetting them once they do.
+
 ## Limitations
 
 - **Region-level only.** `EU`, `India`, `California`, `US`, `Brazil` — the grain
@@ -188,6 +231,9 @@ the single most important property of the integration, and it is tested.
 - **Confidence is a three-value label, not a probability.** It is not calibrated
   against anything, does not compose across signals beyond taking the strongest,
   and no geolocation provider's own accuracy score is consumed.
+- **A role list is the caller's claim, and nothing checks it.** Saying you are a
+  `service_operator` makes terminal-equipment requirements apply to you; omitting
+  it makes them vanish. The engine cannot verify what a caller is.
 - **`service_context` is modelled but unused by the default rules.** It exists so
   a service confined to one market can say so; nothing in the matrix reads it
   differently from any other signal yet.
@@ -202,7 +248,7 @@ the single most important property of the integration, and it is tested.
 ## Verification
 
 ```bash
-npm run test:unit    # 263 tests; 44 are jurisdiction resolution
+npm run test:unit    # 270 tests; 51 are jurisdiction resolution
 npm run typecheck
 npm run lint
 ```

@@ -36,7 +36,7 @@ const AS_OF = new Date("2026-09-04T00:00:00.000Z");
 function ctx(over: Partial<ProcessingContext> = {}): ProcessingContext {
   return {
     jurisdictions: ["EU"],
-    actor: "determines_purpose",
+    actors: ["determines_purpose"],
     asOf: AS_OF,
     ...over,
   };
@@ -551,7 +551,7 @@ describe("unknown rules do not silently become ALLOW", () => {
             const decision = evaluate(
               ctx({
                 jurisdictions: [j],
-                actor,
+                actors: [actor],
                 processingContexts: c ? [c] : undefined,
                 purpose: p,
                 // Assert everything: even maximally generous, nothing allows.
@@ -649,7 +649,7 @@ describe("records that state an absence", () => {
     expect(absence, "REQ-EP-023 missing from the matrix").toBeDefined();
     expect(absence!.applies).toBe(false);
 
-    const decision = evaluate(ctx({ actor: "service_operator" }), [absence!]);
+    const decision = evaluate(ctx({ actors: ["service_operator"] }), [absence!]);
     expect(decision.considered.map((c) => c.ruleId)).toEqual(["REQ-EP-023"]);
     expect(decision.obligations).toHaveLength(0);
     expect(decision.openQuestions.some((q) => q.reason === "children")).toBe(false);

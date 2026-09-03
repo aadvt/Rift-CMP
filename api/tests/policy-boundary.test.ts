@@ -41,7 +41,7 @@ const AS_OF = new Date("2026-09-04T00:00:00.000Z");
 function ctx(over: Partial<ProcessingContext> = {}): ProcessingContext {
   return {
     jurisdictions: ["EU"],
-    actor: "determines_purpose",
+    actors: ["determines_purpose"],
     asOf: AS_OF,
     ...over,
   };
@@ -375,7 +375,7 @@ describe("ALLOW cannot be obtained by degenerate input", () => {
     for (const j of regions) {
       for (const actor of actors) {
         const d = evaluate(
-          ctx({ jurisdictions: [j], actor, includeDerivedModels: true }),
+          ctx({ jurisdictions: [j], actors: [actor], includeDerivedModels: true }),
         );
         expect(d.outcome, `${j}/${actor}`).not.toBe("ALLOW");
       }

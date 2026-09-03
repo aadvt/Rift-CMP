@@ -68,6 +68,19 @@ export type {
 };
 
 /**
+ * The roles a company running its own website holds.
+ *
+ * Offered as a named constant because getting it wrong is silent: a site that
+ * asks only as `determines_purpose` is told nothing about cookies, since every
+ * terminal-equipment requirement binds the operator of the service rather than
+ * the party deciding the purposes. Both are true of the same company.
+ */
+export const WEBSITE_OPERATOR_ROLES: readonly ActorRole[] = [
+  "determines_purpose",
+  "service_operator",
+];
+
+/**
  * A place whose law may apply.
  *
  * Region-level, because that is the grain the matrix carries. There is no
@@ -177,8 +190,21 @@ export interface Vendor {
 export interface ProcessingContext {
   /** Which regimes' laws to consider. Empty is an error, not "all". */
   readonly jurisdictions: readonly Jurisdiction[];
-  /** The role the *caller* plays. Requirements binding other roles are excluded. */
-  readonly actor: ActorRole;
+  /**
+   * Every role the caller plays. Requirements binding none of them are excluded.
+   *
+   * Plural because one legal person routinely holds several at once, and
+   * treating the roles as exclusive silently loses requirements. A company
+   * running its own website is the ordinary case: it decides the purposes of the
+   * processing *and* operates the service, so it is both `determines_purpose`
+   * and `service_operator`. Asking only as the first returns no terminal-equipment
+   * requirements at all - those bind the operator - while the jurisdiction
+   * resolver is still, correctly, reporting that ePrivacy is in scope. The
+   * engine would be disagreeing with itself.
+   *
+   * An empty list matches only rules that bind no role in particular.
+   */
+  readonly actors: readonly ActorRole[];
   readonly asOf: Date;
 
   readonly purpose?: Purpose;

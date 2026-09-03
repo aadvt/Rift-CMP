@@ -18,6 +18,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_JURISDICTION_RULES,
+  WEBSITE_OPERATOR_ROLES,
   DEFAULT_SOURCE_CONFIDENCE,
   SOURCE_IS_RESIDENCE_CLAIM,
   looksLikeIpAddress,
@@ -42,7 +43,7 @@ function visitor(over: Partial<VisitorContext> = {}): VisitorContext {
 }
 
 const ACTIVITY: ActivityContext = {
-  actor: "determines_purpose",
+  actors: ["determines_purpose"],
   asOf: AS_OF,
 };
 
@@ -70,7 +71,10 @@ describe("the scenarios the brief names", () => {
     const r = resolveJurisdictions(visitor({ signals: [geo("US-CA")] }));
     expect(r.jurisdictions).toEqual(["California", "US"]);
     expect(r.regimes).toContain("California-CCPA-CPRA");
-    expect(r.regimes).toContain("US-State-Model");
+    // The generic US state model is in scope but rests on derived authority, so
+    // it is reported separately - the evaluator holds it back unless asked.
+    expect(r.regimes).not.toContain("US-State-Model");
+    expect(r.derivedRegimes).toEqual(["US-State-Model"]);
   });
 
   it("Brazil", () => {
@@ -439,6 +443,125 @@ describe("resolveContext carries the answer into the policy engine", () => {
       const { decision } = resolveContext(v, ACTIVITY);
       expect(decision.outcome).not.toBe("ALLOW");
     }
+  });
+});
+
+// ─── The website operator's own question ─────────────────────────────────────
+
+describe("a website operator gets the whole legal context", () => {
+  /**
+   * The end the phase exists for: a company running its own site asks what
+   * applies to it, and gets an answer that does not contradict itself.
+   *
+   * This caught a real defect. Every terminal-equipment requirement binds
+   * `service_operator`, while the GDPR's consent and notice duties bind
+   * `determines_purpose`. Asking as one role returned the resolver saying
+   * "ePrivacy is in scope" and the evaluator returning no ePrivacy obligation
+   * whatsoever - the two halves disagreeing in a way nothing would have caught.
+   * One company holds both roles, so the context takes a list.
+   */
+  it("returns GDPR and ePrivacy obligations together for an EU cookie banner", () => {
+    const { resolution, decision } = resolveContext(
+      {
+        signals: [
+          { region: "DE", source: "ip_geolocation" },
+          { region: "DE", source: "business_target_market" },
+        ],
+      },
+      {
+        actors: WEBSITE_OPERATOR_ROLES,
+        asOf: AS_OF,
+        processingContexts: ["cookies"],
+      },
+    );
+
+    expect(resolution.jurisdictions).toEqual(["EU"]);
+    const regimes = new Set(decision.obligations.map((o) => o.citation.regime));
+    expect(regimes).toContain("GDPR");
+    expect(regimes).toContain("EU-ePrivacy");
+  });
+
+  it("never reports a regime as in scope while citing nothing from it", () => {
+    // The invariant behind the bug above, asserted directly across every
+    // jurisdiction the rules carry.
+    for (const region of ["DE", "IN", "BR", "US-CA"]) {
+      const { resolution, decision } = resolveContext(
+        { signals: [{ region, source: "business_target_market" }] },
+        { actors: WEBSITE_OPERATOR_ROLES, asOf: new Date("2028-01-01") },
+      );
+      const cited = new Set(decision.considered.map((c) => c.regime));
+      for (const regime of resolution.regimes) {
+        expect(cited, `${region}: ${regime} in scope but never cited`).toContain(
+          regime,
+        );
+      }
+    }
+  });
+
+  it("asking as one role only is what loses the terminal-equipment rules", () => {
+    const cookies = { asOf: AS_OF, processingContexts: ["cookies"] };
+    const visitorContext = { signals: [{ region: "DE", source: "ip_geolocation" as const }] };
+
+    const controllerOnly = resolveContext(visitorContext, {
+      ...cookies,
+      actors: ["determines_purpose"],
+    });
+    const both = resolveContext(visitorContext, {
+      ...cookies,
+      actors: WEBSITE_OPERATOR_ROLES,
+    });
+
+    const ep = (d: typeof both.decision) =>
+      d.obligations.filter((o) => o.citation.regime === "EU-ePrivacy").length;
+
+    expect(ep(controllerOnly.decision)).toBe(0);
+    expect(ep(both.decision)).toBeGreaterThan(0);
+  });
+});
+
+describe("derived-authority regimes are reported apart", () => {
+  it("keeps them out of `regimes` so the decision cannot contradict it", () => {
+    const r = resolveJurisdictions(visitor({ signals: [geo("US-CA")] }));
+    expect(r.derivedRegimes).toEqual(["US-State-Model"]);
+    expect(r.regimes).toEqual(["California-CCPA-CPRA"]);
+  });
+
+  it("the evaluator cites them once they are asked for", () => {
+    const { decision } = resolveContext(visitor({ signals: [geo("US-CA")] }), {
+      ...ACTIVITY,
+      includeDerivedModels: true,
+    });
+    expect(decision.regimes).toContain("US-State-Model");
+  });
+});
+
+describe("commencement dates are respected end to end", () => {
+  /**
+   * India is the live example. Most of the DPDP Act's substantive provisions
+   * carry `effective_from: 2027-05-13` in the research, so an Indian visitor
+   * today yields no obligation at all - which is an answer, not a gap, and one
+   * a hard-coded rule engine would have got wrong in both directions.
+   */
+  it("yields no DPDP obligation before commencement", () => {
+    const { decision } = resolveContext(
+      { signals: [{ region: "IN", source: "ip_geolocation" }] },
+      { actors: WEBSITE_OPERATOR_ROLES, asOf: new Date("2026-09-04") },
+    );
+    expect(decision.obligations).toHaveLength(0);
+    expect(decision.outcome).toBe("REVIEW");
+  });
+
+  it("yields them once it has commenced", () => {
+    const { decision } = resolveContext(
+      { signals: [{ region: "IN", source: "ip_geolocation" }] },
+      { actors: WEBSITE_OPERATOR_ROLES, asOf: new Date("2027-06-01") },
+    );
+    const verdicts = decision.obligations.map((o) => o.verdict);
+    expect(verdicts).toContain("REQUIRE_CONSENT");
+    expect(verdicts).toContain("REQUIRE_NOTICE");
+    expect(
+      decision.obligations.some((o) => o.citation.ruleId === "REQ-IN-DPDP-ACT-003"),
+    ).toBe(true);
   });
 });
 
