@@ -3903,6 +3903,1064 @@
         "SRC-US-STATE-MODEL"
       ],
       "notes": "Model only. Individual state laws must be separately sourced."
+    },
+    {
+      "requirement_id": "REQ-EP-004",
+      "regime": "EU-ePrivacy",
+      "topic": "scope",
+      "topic_canonical": "applicability",
+      "requirement": "Directive 2002/58/EC applies to the processing of personal data in connection with the provision of publicly available electronic communications services in public communications networks in the Union.",
+      "requirement_type": "scope",
+      "authority_level": "statute",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "publicly_available_electronic_communications_service",
+          "public_communications_network"
+        ],
+        "covered_actors": [
+          "electronic_communications_provider"
+        ],
+        "covered_actors_canonical": [
+          "service_operator"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [],
+      "contexts": [
+        "electronic_communications"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "exceptions": [],
+      "effective_from": "2002-07-31",
+      "effective_to": null,
+      "policy_version": "Directive-2002-58-EC",
+      "source_ids": [
+        "SRC-EP-EURLEX"
+      ],
+      "notes": "Article 3. Directive-level scope; the applicable Member State transposition determines the operative national rule."
+    },
+    {
+      "requirement_id": "REQ-EP-005",
+      "regime": "EU-ePrivacy",
+      "topic": "scope",
+      "topic_canonical": "applicability",
+      "requirement": "Article 5(3) concerns storing information in, or gaining access to information already stored in, the terminal equipment of a subscriber or user, and is technology-neutral. Applicability must be assessed from what information is involved, where it is stored, whose terminal equipment is involved, whether information is being stored or accessed, whether an Article 5(3) exception applies, and which Member State's transposition law applies.",
+      "requirement_type": "scope",
+      "authority_level": "statute",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "terminal_equipment_storage",
+          "terminal_equipment_access"
+        ],
+        "covered_actors": [
+          "website_operator",
+          "service_provider",
+          "third_party"
+        ],
+        "covered_actors_canonical": [
+          "service_operator",
+          "acts_on_instruction",
+          "third_party"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "terminal_equipment_information"
+      ],
+      "data_categories_canonical": [
+        "device_data"
+      ],
+      "contexts": [
+        "terminal_equipment",
+        "cookies",
+        "tracking"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "exceptions": [],
+      "effective_from": "2002-07-31",
+      "effective_to": null,
+      "policy_version": "Directive-2002-58-EC",
+      "source_ids": [
+        "SRC-EP-EURLEX",
+        "SRC-EP-EURLEX-2009-136",
+        "SRC-EP-EDPB-TECHNICAL-SCOPE"
+      ],
+      "notes": "Article 5(3) is not limited to information that qualifies as personal data under the GDPR. The current Article 5(3) wording is that introduced by Directive 2009/136/EC."
+    },
+    {
+      "requirement_id": "REQ-EP-006",
+      "regime": "EU-ePrivacy",
+      "topic": "terminal_equipment",
+      "topic_canonical": "tracking_and_storage",
+      "requirement": "Article 5(3) is not limited to HTTP cookies. Depending on their technical operation, mechanisms including local storage, session storage, IndexedDB, tracking pixels, URL-based tracking, local processing, device or unique identifiers, some IoT mechanisms and some IP-based tracking techniques may fall within Article 5(3). Each technology must be assessed on how it actually operates and must not be automatically classified as requiring consent.",
+      "requirement_type": "obligation",
+      "authority_level": "statute",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "terminal_equipment_storage",
+          "terminal_equipment_access"
+        ],
+        "covered_actors": [
+          "website_operator",
+          "service_provider",
+          "third_party"
+        ],
+        "covered_actors_canonical": [
+          "service_operator",
+          "acts_on_instruction",
+          "third_party"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "terminal_equipment_information"
+      ],
+      "data_categories_canonical": [
+        "device_data"
+      ],
+      "contexts": [
+        "cookies",
+        "tracking",
+        "terminal_equipment"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "exceptions": [],
+      "effective_from": "2002-07-31",
+      "effective_to": null,
+      "policy_version": "Directive-2002-58-EC",
+      "source_ids": [
+        "SRC-EP-EURLEX",
+        "SRC-EP-EURLEX-2009-136",
+        "SRC-EP-EDPB-TECHNICAL-SCOPE"
+      ],
+      "notes": "EDPB Guidelines 2/2023 provide the technical analysis for determining whether a particular mechanism falls within Article 5(3). Cookie compliance cannot be reduced to a cookie-name list."
+    },
+    {
+      "requirement_id": "REQ-EP-007",
+      "regime": "EU-ePrivacy",
+      "topic": "consent",
+      "topic_canonical": "consent",
+      "requirement": "Consent for storage of, or access to, information on terminal equipment cannot be obtained through a pre-ticked checkbox; valid consent requires active user participation.",
+      "requirement_type": "obligation",
+      "authority_level": "statute",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "terminal_equipment_storage",
+          "terminal_equipment_access"
+        ],
+        "covered_actors": [
+          "website_operator",
+          "service_provider"
+        ],
+        "covered_actors_canonical": [
+          "service_operator",
+          "acts_on_instruction"
+        ]
+      },
+      "legal_bases": [
+        "consent"
+      ],
+      "legal_bases_canonical": [
+        "consent"
+      ],
+      "purposes": [],
+      "data_categories": [
+        "terminal_equipment_information"
+      ],
+      "data_categories_canonical": [
+        "device_data"
+      ],
+      "contexts": [
+        "cookies",
+        "consent_interface"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "consent": {
+        "required": true,
+        "conditions": [
+          "pre_ticked_boxes_invalid",
+          "active_user_participation_required"
+        ]
+      },
+      "exceptions": [],
+      "effective_from": "2002-07-31",
+      "effective_to": null,
+      "policy_version": "Directive-2002-58-EC",
+      "source_ids": [
+        "SRC-EP-EURLEX",
+        "SRC-EP-CURIA-PLANET49"
+      ],
+      "notes": "CJEU C-673/17 Planet49, judgment of 1 October 2019. The same judgment holds that information relevant to informed consent includes the duration of cookies and whether third parties may access them. FLAG: the authority_levels vocabulary has no value for binding judicial interpretation, so this record derives 'statute' from the cited Directive rather than recording the judgment's own status."
+    },
+    {
+      "requirement_id": "REQ-EP-008",
+      "regime": "EU-ePrivacy",
+      "topic": "consent",
+      "topic_canonical": "consent",
+      "requirement": "Where GDPR consent standards apply to an ePrivacy operation, consent must be freely given, specific, informed, unambiguous and based on a clear affirmative action.",
+      "requirement_type": "obligation",
+      "authority_level": "statute",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "consent_relied_on"
+        ],
+        "covered_actors": [
+          "website_operator",
+          "service_provider",
+          "controller"
+        ],
+        "covered_actors_canonical": [
+          "service_operator",
+          "acts_on_instruction",
+          "determines_purpose"
+        ]
+      },
+      "legal_bases": [
+        "consent"
+      ],
+      "legal_bases_canonical": [
+        "consent"
+      ],
+      "purposes": [],
+      "data_categories": [
+        "terminal_equipment_information"
+      ],
+      "data_categories_canonical": [
+        "device_data"
+      ],
+      "contexts": [
+        "consent_interface"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "consent": {
+        "required": true,
+        "conditions": [
+          "freely_given",
+          "specific",
+          "informed",
+          "unambiguous",
+          "clear_affirmative_action"
+        ]
+      },
+      "exceptions": [],
+      "effective_from": "2002-07-31",
+      "effective_to": null,
+      "policy_version": "Directive-2002-58-EC",
+      "source_ids": [
+        "SRC-EP-EURLEX",
+        "SRC-GDPR-EURLEX"
+      ],
+      "notes": "GDPR consent requirements are relevant when consent is the legal condition for an ePrivacy operation. The GDPR must not be treated as replacing Article 5(3). EDPB Guidelines 05/2020 on consent are named by the research but are not registered in the source register."
+    },
+    {
+      "requirement_id": "REQ-EP-009",
+      "regime": "EU-ePrivacy",
+      "topic": "consent",
+      "topic_canonical": "consent",
+      "requirement": "For technologies requiring Article 5(3) consent, the consent decision must occur before the relevant storage or access operation.",
+      "requirement_type": "obligation",
+      "authority_level": "statute",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "terminal_equipment_storage",
+          "terminal_equipment_access"
+        ],
+        "covered_actors": [
+          "website_operator",
+          "service_provider"
+        ],
+        "covered_actors_canonical": [
+          "service_operator",
+          "acts_on_instruction"
+        ]
+      },
+      "legal_bases": [
+        "consent"
+      ],
+      "legal_bases_canonical": [
+        "consent"
+      ],
+      "purposes": [],
+      "data_categories": [
+        "terminal_equipment_information"
+      ],
+      "data_categories_canonical": [
+        "device_data"
+      ],
+      "contexts": [
+        "cookies",
+        "consent_interface"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "consent": {
+        "required": true,
+        "conditions": [
+          "prior_to_storage_or_access"
+        ]
+      },
+      "exceptions": [],
+      "effective_from": "2002-07-31",
+      "effective_to": null,
+      "policy_version": "Directive-2002-58-EC",
+      "source_ids": [
+        "SRC-EP-EURLEX",
+        "SRC-EP-EURLEX-2009-136"
+      ]
+    },
+    {
+      "requirement_id": "REQ-EP-010",
+      "regime": "EU-ePrivacy",
+      "topic": "terminal_equipment",
+      "topic_canonical": "tracking_and_storage",
+      "requirement": "Consent is not required under Article 5(3) where the storage or access is used for the sole purpose of carrying out the transmission of a communication over an electronic communications network.",
+      "requirement_type": "obligation",
+      "authority_level": "statute",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "terminal_equipment_storage",
+          "terminal_equipment_access"
+        ],
+        "covered_actors": [
+          "website_operator",
+          "service_provider",
+          "electronic_communications_provider"
+        ],
+        "covered_actors_canonical": [
+          "service_operator",
+          "acts_on_instruction"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [
+        "communication_transmission"
+      ],
+      "data_categories": [
+        "terminal_equipment_information"
+      ],
+      "data_categories_canonical": [
+        "device_data"
+      ],
+      "contexts": [
+        "terminal_equipment"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "consent": {
+        "required": false,
+        "conditions": [
+          "sole_purpose_communication_transmission"
+        ]
+      },
+      "exceptions": [
+        "communication_transmission"
+      ],
+      "effective_from": "2002-07-31",
+      "effective_to": null,
+      "policy_version": "Directive-2002-58-EC",
+      "source_ids": [
+        "SRC-EP-EURLEX",
+        "SRC-EP-EURLEX-2009-136"
+      ]
+    },
+    {
+      "requirement_id": "REQ-EP-011",
+      "regime": "EU-ePrivacy",
+      "topic": "terminal_equipment",
+      "topic_canonical": "tracking_and_storage",
+      "requirement": "Consent is not required under Article 5(3) where the storage or access is strictly necessary for the provider to provide an information society service explicitly requested by the subscriber or user.",
+      "requirement_type": "obligation",
+      "authority_level": "statute",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "terminal_equipment_storage",
+          "terminal_equipment_access"
+        ],
+        "covered_actors": [
+          "website_operator",
+          "service_provider"
+        ],
+        "covered_actors_canonical": [
+          "service_operator",
+          "acts_on_instruction"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "terminal_equipment_information"
+      ],
+      "data_categories_canonical": [
+        "device_data"
+      ],
+      "contexts": [
+        "terminal_equipment"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "consent": {
+        "required": false,
+        "conditions": [
+          "strictly_necessary",
+          "explicitly_requested_information_society_service"
+        ]
+      },
+      "exceptions": [
+        "strictly_necessary_requested_service"
+      ],
+      "effective_from": "2002-07-31",
+      "effective_to": null,
+      "policy_version": "Directive-2002-58-EC",
+      "source_ids": [
+        "SRC-EP-EURLEX",
+        "SRC-EP-EURLEX-2009-136",
+        "SRC-EP-EDPB-TECHNICAL-SCOPE"
+      ],
+      "notes": "The research lists user authentication, session management, shopping-cart functionality, security and user-requested functionality as mechanisms that may potentially be exempt; each must be assessed against its actual purpose and technical necessity. It also states explicitly that no EU-wide rule may be encoded making every analytics technology either exempt or consent-requiring: analytics must be assessed against Article 5(3), the applicable national implementation and relevant national regulator guidance."
+    },
+    {
+      "requirement_id": "REQ-EP-012",
+      "regime": "EU-ePrivacy",
+      "topic": "retention",
+      "topic_canonical": "retention",
+      "requirement": "Traffic data must generally be erased or made anonymous when it is no longer needed for the transmission of a communication. Additional processing is permitted only under the conditions specified in the Directive, including billing, interconnection payments, certain value-added services, and marketing of electronic communications services subject to the Directive's conditions.",
+      "requirement_type": "obligation",
+      "authority_level": "statute",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "traffic_data_processing"
+        ],
+        "covered_actors": [
+          "electronic_communications_provider"
+        ],
+        "covered_actors_canonical": [
+          "service_operator"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "traffic_data"
+      ],
+      "data_categories_canonical": [
+        "communications_data"
+      ],
+      "contexts": [
+        "electronic_communications"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "exceptions": [],
+      "effective_from": "2002-07-31",
+      "effective_to": null,
+      "policy_version": "Directive-2002-58-EC",
+      "source_ids": [
+        "SRC-EP-EURLEX"
+      ],
+      "notes": "Article 6."
+    },
+    {
+      "requirement_id": "REQ-EP-013",
+      "regime": "EU-ePrivacy",
+      "topic": "consent",
+      "topic_canonical": "consent",
+      "requirement": "Location data other than traffic data may generally be processed where it is anonymised, or with consent for the duration necessary for a value-added service. Users must be informed of the type of location data, the purposes and the duration of processing, and must be able to withdraw consent or temporarily suspend processing easily and free of charge.",
+      "requirement_type": "obligation",
+      "authority_level": "statute",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "location_data_processing"
+        ],
+        "covered_actors": [
+          "electronic_communications_provider"
+        ],
+        "covered_actors_canonical": [
+          "service_operator"
+        ]
+      },
+      "legal_bases": [
+        "consent"
+      ],
+      "legal_bases_canonical": [
+        "consent"
+      ],
+      "purposes": [],
+      "data_categories": [
+        "location_data"
+      ],
+      "data_categories_canonical": [
+        "communications_data"
+      ],
+      "contexts": [
+        "electronic_communications",
+        "value_added_service"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "consent": {
+        "required": "conditional",
+        "conditions": [
+          "anonymisation_alternative",
+          "value_added_service_duration"
+        ],
+        "withdrawal_required": true
+      },
+      "exceptions": [],
+      "effective_from": "2002-07-31",
+      "effective_to": null,
+      "policy_version": "Directive-2002-58-EC",
+      "source_ids": [
+        "SRC-EP-EURLEX"
+      ],
+      "notes": "Article 9."
+    },
+    {
+      "requirement_id": "REQ-EP-014",
+      "regime": "EU-ePrivacy",
+      "topic": "direct_marketing",
+      "topic_canonical": "direct_marketing",
+      "requirement": "Article 13 establishes rules for unsolicited communications for direct marketing. For certain electronic communications, prior consent is required.",
+      "requirement_type": "obligation",
+      "authority_level": "statute",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "electronic_direct_marketing"
+        ],
+        "covered_actors": [
+          "marketer"
+        ],
+        "covered_actors_canonical": [
+          "service_operator"
+        ]
+      },
+      "legal_bases": [
+        "consent"
+      ],
+      "legal_bases_canonical": [
+        "consent"
+      ],
+      "purposes": [
+        "direct_marketing"
+      ],
+      "data_categories": [
+        "contact_data"
+      ],
+      "data_categories_canonical": [
+        "contact_data"
+      ],
+      "contexts": [
+        "electronic_marketing"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "consent": {
+        "required": "conditional",
+        "conditions": [
+          "depends_on_communication_type",
+          "subject_to_national_transposition"
+        ]
+      },
+      "exceptions": [],
+      "effective_from": "2002-07-31",
+      "effective_to": null,
+      "policy_version": "Directive-2002-58-EC",
+      "source_ids": [
+        "SRC-EP-EURLEX"
+      ],
+      "notes": "GAP: the research does not enumerate which communication types under Article 13(1) require prior consent. That must be resolved against the Directive text and applicable national implementation before this is turned into a technical rule."
+    },
+    {
+      "requirement_id": "REQ-EP-015",
+      "regime": "EU-ePrivacy",
+      "topic": "direct_marketing",
+      "topic_canonical": "direct_marketing",
+      "requirement": "Article 13(2) provides a limited exception where the contact details were obtained in the context of a sale of a product or service, the marketing concerns the provider's own similar products or services, and the customer was given a clear and free opportunity to object when the details were collected and with each subsequent communication.",
+      "requirement_type": "obligation",
+      "authority_level": "statute",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "electronic_direct_marketing",
+          "existing_customer_relationship"
+        ],
+        "covered_actors": [
+          "marketer"
+        ],
+        "covered_actors_canonical": [
+          "service_operator"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [
+        "direct_marketing"
+      ],
+      "data_categories": [
+        "contact_data"
+      ],
+      "data_categories_canonical": [
+        "contact_data"
+      ],
+      "contexts": [
+        "electronic_marketing"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "consent": {
+        "required": "conditional",
+        "conditions": [
+          "contact_details_obtained_in_sale",
+          "own_similar_products_or_services",
+          "opportunity_to_object_at_collection_and_each_communication"
+        ]
+      },
+      "exceptions": [
+        "existing_customer_similar_products_conditions"
+      ],
+      "effective_from": "2002-07-31",
+      "effective_to": null,
+      "policy_version": "Directive-2002-58-EC",
+      "source_ids": [
+        "SRC-EP-EURLEX"
+      ],
+      "notes": "Member State law may contain additional implementation details."
+    },
+    {
+      "requirement_id": "REQ-EP-016",
+      "regime": "EU-ePrivacy",
+      "topic": "notice",
+      "topic_canonical": "notice",
+      "requirement": "Users must receive the information required by the applicable ePrivacy and GDPR provisions. For Article 5(3), the information should allow users to understand the relevant storage or access operations and their purpose.",
+      "requirement_type": "obligation",
+      "authority_level": "statute",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "terminal_equipment_storage",
+          "terminal_equipment_access"
+        ],
+        "covered_actors": [
+          "website_operator",
+          "service_provider",
+          "controller"
+        ],
+        "covered_actors_canonical": [
+          "service_operator",
+          "acts_on_instruction",
+          "determines_purpose"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "terminal_equipment_information"
+      ],
+      "data_categories_canonical": [
+        "device_data"
+      ],
+      "contexts": [
+        "terminal_equipment",
+        "consent_interface"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "exceptions": [],
+      "effective_from": "2002-07-31",
+      "effective_to": null,
+      "policy_version": "Directive-2002-58-EC",
+      "source_ids": [
+        "SRC-EP-EURLEX",
+        "SRC-EP-EURLEX-2009-136"
+      ],
+      "notes": "Where the GDPR applies it may additionally require information such as controller identity, processing purposes, legal basis, recipients, retention and data-subject rights, and international-transfer information where applicable. A GDPR Article 13/14 disclosure must not be represented as itself being an ePrivacy Directive requirement."
+    },
+    {
+      "requirement_id": "REQ-EP-017",
+      "regime": "EU-ePrivacy",
+      "topic": "withdrawal",
+      "topic_canonical": "withdrawal",
+      "requirement": "Where storage, access or processing is based on consent, withdrawal must be possible under the applicable consent rules. Under GDPR Article 7(3), withdrawal of GDPR consent must be as easy as giving consent.",
+      "requirement_type": "obligation",
+      "authority_level": "statute",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "consent_relied_on"
+        ],
+        "covered_actors": [
+          "website_operator",
+          "service_provider",
+          "controller"
+        ],
+        "covered_actors_canonical": [
+          "service_operator",
+          "acts_on_instruction",
+          "determines_purpose"
+        ]
+      },
+      "legal_bases": [
+        "consent"
+      ],
+      "legal_bases_canonical": [
+        "consent"
+      ],
+      "purposes": [],
+      "data_categories": [
+        "terminal_equipment_information"
+      ],
+      "data_categories_canonical": [
+        "device_data"
+      ],
+      "contexts": [
+        "consent_interface"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "consent": {
+        "required": true,
+        "withdrawal_required": true
+      },
+      "exceptions": [],
+      "effective_from": "2002-07-31",
+      "effective_to": null,
+      "policy_version": "Directive-2002-58-EC",
+      "source_ids": [
+        "SRC-EP-EURLEX",
+        "SRC-GDPR-EURLEX"
+      ],
+      "notes": "ePrivacy consent, GDPR consent, GDPR objection, marketing opt-out and withdrawal of consent are distinct concepts and must not be treated as interchangeable; the applicable rule depends on the processing operation and legal framework. GDPR Article 21 provides an unconditional right to object to processing for direct marketing."
+    },
+    {
+      "requirement_id": "REQ-EP-018",
+      "regime": "EU-ePrivacy",
+      "topic": "vendor_relationship",
+      "topic_canonical": "vendor_relationship",
+      "requirement": "Third-party technologies must be assessed on their actual role, which may be processor, controller, joint controller or independent third party. The ePrivacy Directive itself must not be interpreted as automatically making every cookie or vendor relationship a processor relationship.",
+      "requirement_type": "obligation",
+      "authority_level": "statute",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "third_party_technology"
+        ],
+        "covered_actors": [
+          "third_party",
+          "processor",
+          "controller"
+        ],
+        "covered_actors_canonical": [
+          "third_party",
+          "acts_on_instruction",
+          "determines_purpose"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [],
+      "contexts": [
+        "vendors",
+        "cookies"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "exceptions": [],
+      "effective_from": "2002-07-31",
+      "effective_to": null,
+      "policy_version": "Directive-2002-58-EC",
+      "source_ids": [
+        "SRC-EP-EURLEX"
+      ],
+      "notes": "Where the GDPR applies and a provider is a processor, GDPR Article 28 requirements may apply."
+    },
+    {
+      "requirement_id": "REQ-EP-019",
+      "regime": "EU-ePrivacy",
+      "topic": "enforcement",
+      "topic_canonical": "enforcement",
+      "requirement": "Because the ePrivacy Directive is implemented through national law, enforcement powers and penalties are primarily determined through Member State implementation. Where the GDPR applies, national supervisory authorities may enforce applicable GDPR requirements, and CJEU judgments must be considered when interpreting EU-law requirements.",
+      "requirement_type": "enforcement",
+      "authority_level": "statute",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "national_transposition"
+        ],
+        "covered_actors": [
+          "electronic_communications_provider",
+          "website_operator",
+          "controller"
+        ],
+        "covered_actors_canonical": [
+          "service_operator",
+          "determines_purpose"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [],
+      "contexts": [
+        "enforcement"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "exceptions": [],
+      "effective_from": "2002-07-31",
+      "effective_to": null,
+      "policy_version": "Directive-2002-58-EC",
+      "source_ids": [
+        "SRC-EP-EURLEX"
+      ]
+    },
+    {
+      "requirement_id": "REQ-EP-020",
+      "regime": "EU-ePrivacy",
+      "topic": "scope",
+      "topic_canonical": "applicability",
+      "requirement": "Because the ePrivacy Directive applies through national transposition, national implementing laws and national regulator guidance must be recorded and evaluated separately from EU-level requirements, rather than assuming that one EU-wide technical rule answers every national-law question.",
+      "requirement_type": "scope",
+      "authority_level": "statute",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "national_transposition"
+        ],
+        "covered_actors": [
+          "website_operator",
+          "service_provider",
+          "electronic_communications_provider"
+        ],
+        "covered_actors_canonical": [
+          "service_operator",
+          "acts_on_instruction"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [],
+      "contexts": [
+        "national_implementation"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "exceptions": [],
+      "effective_from": "2002-07-31",
+      "effective_to": null,
+      "policy_version": "Directive-2002-58-EC",
+      "source_ids": [
+        "SRC-EP-EURLEX"
+      ],
+      "notes": "The research names CNIL and the German data protection authorities as examples of national regulators whose rules would be recorded separately. National regulator guidance must not automatically be generalised across the EU."
+    },
+    {
+      "requirement_id": "REQ-EP-021",
+      "regime": "EU-ePrivacy",
+      "topic": "scope",
+      "topic_canonical": "applicability",
+      "requirement": "The ePrivacy Directive and the GDPR operate together. ePrivacy contains specific rules for electronic communications and access to information stored on terminal equipment; where information obtained through an ePrivacy-covered technology is personal data, GDPR obligations may additionally apply. The GDPR does not replace Article 5(3).",
+      "requirement_type": "scope",
+      "authority_level": "statute",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "personal_data_processing",
+          "terminal_equipment_access"
+        ],
+        "covered_actors": [
+          "website_operator",
+          "service_provider",
+          "controller"
+        ],
+        "covered_actors_canonical": [
+          "service_operator",
+          "acts_on_instruction",
+          "determines_purpose"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [],
+      "contexts": [
+        "terminal_equipment",
+        "electronic_communications"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "exceptions": [],
+      "effective_from": "2002-07-31",
+      "effective_to": null,
+      "policy_version": "Directive-2002-58-EC",
+      "source_ids": [
+        "SRC-EP-EURLEX",
+        "SRC-GDPR-EURLEX"
+      ],
+      "notes": "Implementation rule from the research: ePrivacy compliance must not be represented as a single GDPR consent_required flag."
+    },
+    {
+      "requirement_id": "REQ-EP-022",
+      "regime": "EU-ePrivacy",
+      "topic": "scope",
+      "topic_canonical": "applicability",
+      "requirement": "Member States may adopt restrictions under Article 15 for specified purposes. Those restrictions, and other provisions concerning emergency, security, law-enforcement and regulatory requirements, must be checked against national implementation before being converted into a technical rule.",
+      "requirement_type": "scope",
+      "authority_level": "statute",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "national_transposition",
+          "article_15_restriction"
+        ],
+        "covered_actors": [
+          "electronic_communications_provider",
+          "website_operator"
+        ],
+        "covered_actors_canonical": [
+          "service_operator"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [],
+      "contexts": [
+        "national_implementation"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "exceptions": [
+        "article_15_member_state_restrictions",
+        "emergency_security_law_enforcement_regulatory"
+      ],
+      "effective_from": "2002-07-31",
+      "effective_to": null,
+      "policy_version": "Directive-2002-58-EC",
+      "source_ids": [
+        "SRC-EP-EURLEX"
+      ]
+    },
+    {
+      "requirement_id": "REQ-EP-023",
+      "regime": "EU-ePrivacy",
+      "topic": "children",
+      "topic_canonical": "children",
+      "requirement": "The ePrivacy Directive does not establish a standalone general children's-data regime equivalent to GDPR Article 8. Where personal data is processed, GDPR children's-data and special-category requirements may apply, and these must not be represented as independent ePrivacy rules.",
+      "requirement_type": "condition",
+      "authority_level": "statute",
+      "applicability": {
+        "applies": false,
+        "triggers": [
+          "child_data_processing"
+        ],
+        "covered_actors": [
+          "website_operator",
+          "service_provider",
+          "controller"
+        ],
+        "covered_actors_canonical": [
+          "service_operator",
+          "acts_on_instruction",
+          "determines_purpose"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "child_or_minor_data"
+      ],
+      "data_categories_canonical": [
+        "child_data"
+      ],
+      "contexts": [
+        "children"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "exceptions": [],
+      "effective_from": "2002-07-31",
+      "effective_to": null,
+      "policy_version": "Directive-2002-58-EC",
+      "source_ids": [
+        "SRC-EP-EURLEX",
+        "SRC-GDPR-EURLEX"
+      ],
+      "notes": "Recorded with applicability.applies = false so that an engine reads the absence of an ePrivacy children's rule as an answer rather than as a missing requirement."
+    },
+    {
+      "requirement_id": "REQ-EP-024",
+      "regime": "EU-ePrivacy",
+      "topic": "commencement",
+      "topic_canonical": "effective_dates",
+      "requirement": "The EU Directive, its amendments, national transposition and regulator guidance must be stored as separate versioned sources.",
+      "requirement_type": "timing",
+      "authority_level": "statute",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "source_versioning"
+        ],
+        "covered_actors": [
+          "website_operator",
+          "controller"
+        ],
+        "covered_actors_canonical": [
+          "service_operator",
+          "determines_purpose"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [],
+      "contexts": [
+        "versioning"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "exceptions": [],
+      "effective_from": "2002-07-31",
+      "effective_to": null,
+      "policy_version": "Directive-2002-58-EC",
+      "source_ids": [
+        "SRC-EP-EURLEX",
+        "SRC-EP-EURLEX-2009-136"
+      ],
+      "notes": "Dates recorded by the research: Directive 2002/58/EC adopted 12 July 2002 and published 31 July 2002; national transposition from 2003 onward; Directive 2009/136/EC of 25 November 2009 amended Article 5(3) with a Member-State transposition deadline of 25 May 2011; CJEU Planet49 (C-673/17) decided 1 October 2019; EDPB Guidelines 2/2023 final version adopted 16 October 2024."
     }
   ],
   "vocabulary_version": "1.0.0",

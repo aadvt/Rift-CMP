@@ -62,8 +62,18 @@ rather than coerce it to a boolean.
 ### `validate.mjs`
 
 Checks required fields, id uniqueness and format, controlled-vocabulary
-conformance, source resolution, ISO dates, `effective_from <= effective_to`, and
-CSV/JSON agreement.
+conformance, source resolution, ISO dates, `effective_from <= effective_to`,
+CSV/JSON agreement, and that `schemas/requirement.schema.json` still describes
+the data.
+
+That last check was added in Phase 6C after the schema was found to have gone
+stale: it declared `additionalProperties: false` while `normalise.mjs` added
+four canonical fields, and re-declared enums for `requirement_type` and
+`authority_level` that had drifted from the vocabulary. Every record was invalid
+against its own schema and nothing said so, because only the schema's `required`
+list was ever read. The vocabulary is now the sole authority for enumerated
+values, and the validator fails if the schema re-declares one or if a record
+carries a field the schema does not declare.
 
 It validates **structure and internal consistency only**. It cannot check that
 the law is stated correctly; that needs a human with the sources open.

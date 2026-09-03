@@ -56,6 +56,18 @@
       "notes": "Primary EU ePrivacy Directive. National transposition and applicable Member State law must be considered."
     },
     {
+      "source_id": "SRC-EP-EURLEX-2009-136",
+      "regime": "EU-ePrivacy",
+      "title": "Directive 2009/136/EC amending Directive 2002/58/EC",
+      "source_type": "primary",
+      "authority": "European Union / EUR-Lex",
+      "publisher": "European Union",
+      "publication_date": "2009-11-25",
+      "version": "Directive 2009/136/EC",
+      "url": "https://eur-lex.europa.eu/eli/dir/2009/136/oj",
+      "notes": "Amendment containing the current Article 5(3) wording. Registered during the Phase 6C conversion because the ePrivacy research already names it as a primary source (regimes/eu-eprivacy.md 2.1, 18, 23) but the register did not carry it, so Article 5(3) requirements could not cite the instrument that produced the wording they restate. Member-State transposition deadline 25 May 2011. No retrieved_date: the entry records a reference the research already made and the document was not re-retrieved during conversion."
+    },
+    {
       "source_id": "SRC-EP-EC",
       "regime": "EU-ePrivacy",
       "title": "Privacy and electronic communications",

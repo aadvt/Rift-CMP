@@ -58,6 +58,17 @@ Primary EU ePrivacy Directive.
 
 National implementing legislation must be considered because the instrument is a Directive.
 
+### SRC-EP-EURLEX-2009-136
+
+**Authority:** European Union / EUR-Lex  
+**Type:** Primary  
+**Title:** Directive 2009/136/EC amending Directive 2002/58/EC  
+**Source:** https://eur-lex.europa.eu/eli/dir/2009/136/oj
+
+Amendment containing the current Article 5(3) wording. Member-State transposition deadline 25 May 2011.
+
+No retrieved date: the entry records a reference the ePrivacy research had already made, and the document was not re-retrieved when it was registered.
+
 ### SRC-EP-EC
 
 **Authority:** European Commission  
@@ -65,7 +76,27 @@ National implementing legislation must be considered because the instrument is a
 **Title:** Privacy and electronic communications  
 **Source:** https://digital-strategy.ec.europa.eu/en/policies/privacy-electronic-communications
 
-Official contextual information.
+Official contextual information. No requirement cites it, by design: the research rests no proposition on it.
+
+### SRC-EP-EDPB-TECHNICAL-SCOPE
+
+**Authority:** European Data Protection Board  
+**Type:** Official guidance  
+**Title:** Guidelines 2/2023 on Technical Scope of Article 5(3) of the ePrivacy Directive  
+**Source:** https://www.edpb.europa.eu/our-work-tools/our-documents/guidelines/guidelines-22023-technical-scope-art-53-eprivacy-directive_en
+
+Final version adopted 16 October 2024. Technical analysis of which mechanisms fall within Article 5(3).
+
+### SRC-EP-CURIA-PLANET49
+
+**Authority:** Court of Justice of the European Union  
+**Type:** Independent authoritative  
+**Title:** Judgment in Case C-673/17, Planet49  
+**Source:** https://infocuria.curia.europa.eu/tabs/redirect/juris/liste.jsf?language=en&num=C-673%2F17
+
+Judgment of 1 October 2019 on consent for cookies and pre-ticked checkboxes.
+
+This register and `sources.json` had drifted: these two entries existed only in the JSON. The JSON is the machine-readable record and takes precedence; this file is the human-readable view of it.
 
 ## India DPDP Act
 

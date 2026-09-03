@@ -89,6 +89,7 @@
       "adolescent_personal_data": { "regimes": ["Brazil-LGPD"], "maps_to": "child_data", "relation": "narrower", "note": "LGPD addresses children and adolescents as distinct groups; this term is the adolescent half and does not carry the child-specific conditions." },
       "communications_content": { "regimes": ["EU-ePrivacy"], "maps_to": "communications_data", "relation": "narrower" },
       "traffic_data": { "regimes": ["EU-ePrivacy"], "maps_to": "communications_data", "relation": "narrower" },
+      "location_data": { "regimes": ["EU-ePrivacy"], "maps_to": "communications_data", "relation": "narrower", "note": "Article 9 location data is defined as location data other than traffic data, and is governed by its own conditions. Added during the Phase 6C ePrivacy conversion because Article 9 had no term; it is deliberately not merged with traffic_data, which Article 6 governs differently." },
       "terminal_equipment_information": { "regimes": ["EU-ePrivacy"], "maps_to": "device_data", "relation": "equivalent" },
       "contact_data": { "regimes": ["EU-ePrivacy"], "maps_to": "contact_data", "relation": "equivalent" }
     }

@@ -38,21 +38,11 @@
         },
         "requirement_type": {
             "type": "string",
-            "enum": [
-                "statutory",
-                "regulatory",
-                "official_guidance",
-                "derived_model"
-            ]
+            "$comment": "Values enumerated in vocabulary.json -> requirement_types.values."
         },
         "authority_level": {
             "type": "string",
-            "enum": [
-                "binding_law",
-                "regulation",
-                "official_guidance",
-                "research_model"
-            ]
+            "$comment": "Values enumerated in vocabulary.json -> authority_levels.values."
         },
         "applicability": {
             "type": "object",
@@ -100,6 +90,13 @@
                     "items": {
                         "type": "string"
                     }
+                },
+                "covered_actors_canonical": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "$comment": "Added by tools/normalise.mjs."
                 }
             },
             "additionalProperties": false
@@ -138,7 +135,15 @@
             "type": "object",
             "properties": {
                 "required": {
-                    "type": "boolean"
+                    "oneOf": [
+                        {
+                            "type": "boolean"
+                        },
+                        {
+                            "const": "conditional"
+                        }
+                    ],
+                    "$comment": "Deliberately not a plain boolean. 'conditional' means the answer depends on facts the matrix does not hold; a consumer that cannot represent it must surface it for a human rather than coerce it."
                 },
                 "conditions": {
                     "type": "array",
@@ -221,7 +226,26 @@
         },
         "notes": {
             "type": "string"
+        },
+        "topic_canonical": {
+            "type": "string",
+            "$comment": "Canonical topic added by tools/normalise.mjs; the regime's own term stays in `topic`."
+        },
+        "legal_bases_canonical": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "$comment": "Added by tools/normalise.mjs."
+        },
+        "data_categories_canonical": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "$comment": "Added by tools/normalise.mjs."
         }
     },
-    "additionalProperties": false
+    "additionalProperties": false,
+    "description": "Shape of one requirement record in matrix/requirements.json. Enumerated values are NOT duplicated here: the authoritative list for topic, requirement_type, authority_level, legal_bases, data_categories, covered_actors and regions is schemas/vocabulary.json, and tools/validate.mjs checks records against it. Earlier revisions of this file carried its own enums, which drifted out of step with the vocabulary and would have rejected every record in the matrix; see matrix/coverage.md for what was found and changed."
 }

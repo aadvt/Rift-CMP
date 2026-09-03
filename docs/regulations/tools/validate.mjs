@@ -171,6 +171,33 @@ if (fs.existsSync(csvPath)) {
   }
 }
 
+// ── 8. The schema still describes the data ──────────────────────────────────
+// Added in Phase 6C. The schema had gone stale without anything noticing: it
+// declared `additionalProperties: false` while normalise.mjs was adding four
+// canonical fields, and carried its own enums for requirement_type and
+// authority_level that had drifted away from the vocabulary. Nothing read it,
+// so all 81 records were silently invalid against their own schema. These
+// checks make the schema load-bearing rather than decorative.
+const declared = new Set(Object.keys(schema.properties ?? {}));
+const declaredApplicability = new Set(Object.keys(schema.properties?.applicability?.properties ?? {}));
+for (const req of reqs) {
+  for (const key of Object.keys(req)) {
+    if (!declared.has(key)) fail(`${req.requirement_id}: field '${key}' is not declared in requirement.schema.json`);
+  }
+  for (const key of Object.keys(req.applicability ?? {})) {
+    if (!declaredApplicability.has(key)) {
+      fail(`${req.requirement_id}: applicability.${key} is not declared in requirement.schema.json`);
+    }
+  }
+}
+// The vocabulary is the single authority for enumerated values. If the schema
+// re-declares them, the two can disagree, which is how they drifted before.
+for (const field of ["requirement_type", "authority_level"]) {
+  if (schema.properties?.[field]?.enum) {
+    fail(`requirement.schema.json re-declares an enum for '${field}'; vocabulary.json is the authority`);
+  }
+}
+
 // ── Report ───────────────────────────────────────────────────────────────────
 const byRegime = {};
 for (const r of reqs) byRegime[r.regime] = (byRegime[r.regime] ?? 0) + 1;

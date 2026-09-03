@@ -74,6 +74,7 @@ export type RegimeDataCategory =
   | "adolescent_personal_data"
   | "communications_content"
   | "traffic_data"
+  | "location_data"
   | "terminal_equipment_information"
   | "contact_data";
 
@@ -153,6 +154,10 @@ export const DATA_CATEGORY_MAP: Record<string, { canonical: string; relation: st
     "relation": "narrower"
   },
   "traffic_data": {
+    "canonical": "communications_data",
+    "relation": "narrower"
+  },
+  "location_data": {
     "canonical": "communications_data",
     "relation": "narrower"
   },
