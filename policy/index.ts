@@ -33,6 +33,34 @@
 
 export { evaluate } from "./evaluate";
 export {
+  resolveJurisdictions,
+  resolveContext,
+  type ActivityContext,
+  type JurisdictionResolution,
+  type ResolutionReason,
+  type ResolvedContext,
+} from "./resolve";
+export {
+  DEFAULT_JURISDICTION_RULES,
+  jurisdictionsForRegion,
+  looksLikeIpAddress,
+  mappedRegions,
+  normaliseRegion,
+  type JurisdictionRules,
+} from "./jurisdiction-rules";
+export {
+  CONFIDENCE_ORDER,
+  DEFAULT_SOURCE_CONFIDENCE,
+  SOURCE_IS_RESIDENCE_CLAIM,
+  strongest,
+  weakest,
+  type Confidence,
+  type DetectedLocation,
+  type LocationSource,
+  type ResolvedSignal,
+  type VisitorContext,
+} from "./location";
+export {
   RULES,
   REGIMES,
   POPULATED_TOPICS,

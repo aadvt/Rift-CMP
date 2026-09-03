@@ -31,6 +31,16 @@ recorded decision; the engine is a statement about what a regime requires, and
 joining them means refusing live traffic on the strength of a research artifact.
 That is a product decision and a later phase. See [docs/policy-engine.md](docs/policy-engine.md).
 
+Phase 7B adds **jurisdiction resolution** on top of that engine. It works out
+whose law is in play without collapsing the three claims the question usually
+conflates - an IP-derived country is not a residence, and neither is applicable
+law. Jurisdictions accumulate rather than competing, so a visitor can be in the
+EU and India at once; confidence is explicit and never removes a jurisdiction;
+and the region-to-jurisdiction mapping is versioned configuration, which is why
+`GB` is recognised and deliberately mapped to nothing. The resolver has no field
+for an IP address and rejects one loudly if passed: geolocation happens on the
+caller's side, before it. See [docs/jurisdiction-resolution.md](docs/jurisdiction-resolution.md).
+
 ## Repository layout
 
 | Path | Purpose |
@@ -40,7 +50,7 @@ That is a product decision and a later phase. See [docs/policy-engine.md](docs/p
 | `api/` | Next.js App Router app: the three API planes under `app/api/`, the operator dashboard under `app/dashboard/`, its server-only session and API client in `lib/dashboard/`, and the test suite in `tests/` |
 | `shared/` | Shared TypeScript event, tenancy, consent, transfer, authorisation, audit, analytics, and API contract types |
 | `secure-transfer/` | The crypto boundary: `envelope.ts` (types, canonical AAD, digest, shape validation) is Rift-safe; `fiduciary.ts` (key generation, seal, open) belongs to the fiduciaries and is never imported by `api/` |
-| `policy/` | The policy engine: the generic model, the topic disposition table, matrix compilation and the evaluator. Reads the Phase 6B matrix; imports no route and no database |
+| `policy/` | The policy engine and the jurisdiction resolver: the generic model, the topic disposition table, matrix compilation, the evaluator, and the versioned region-to-jurisdiction mapping. Reads the Phase 6B matrix; imports no route and no database |
 | `database/` | Prisma schema, generated client, migrations, credential/tenancy helpers, the consent and transfer service layers, the orchestration layer (`authorisation.ts`), the audit and analytics read models (`audit.ts`, `analytics.ts`), and seed data |
 
 ## What this repo owns
@@ -84,6 +94,11 @@ That is a product decision and a later phase. See [docs/policy-engine.md](docs/p
   over the Phase 6B requirement matrix, answering what a set of regimes requires
   of a processing activity. Cites every rule it relies on, resolves conflicts
   conservatively, and never returns `ALLOW` from absence of evidence
+- Jurisdiction resolution in the same package: dated location *observations*
+  with an explicit source and confidence, resolved into an accumulating set of
+  jurisdictions under a versioned mapping. It never treats an observation as a
+  residence, never drops a jurisdiction for weak evidence, and refuses to accept
+  an IP address at all
 - Shared event, consent and transfer contracts to prevent SDK/API drift
 
 It does **not** own the compliance engine or any consent UI. Nor does it own
@@ -109,6 +124,7 @@ Start with the first one; it is the entry point and links to the rest.
 - [Database Schema](docs/database-schema.md)
 - [Discovery](docs/discovery.md)
 - [Policy Engine](docs/policy-engine.md) - what a regime requires of an activity, and why it is not wired into a route
+- [Jurisdiction Resolution](docs/jurisdiction-resolution.md) - whose law is in play, and why an IP address never reaches it
 - [Security Model](docs/security.md) — what is enforced, what is defence in depth, what is not done
 - [Integration Contract](docs/integration-contract.md)
 
@@ -329,7 +345,7 @@ republishes it to `api/public/js/rift-cmp.js`.
 From the repo root:
 
 ```bash
-npm run test:unit   # vitest: 218 tests, no database, a few seconds
+npm run test:unit   # vitest: 263 tests, no database, a few seconds
 npm test            # vitest: all 355 tests; the integration half needs Postgres
 npm run typecheck   # tsc --noEmit across the api workspace
 npm run lint        # eslint
@@ -340,7 +356,7 @@ The suite is split into two vitest projects, configured in `api/vitest.config.ts
 
 | Project | Files | Tests | Needs a database |
 | --- | --- | --- | --- |
-| `unit` | `keys.test.ts`, `secure-transfer-crypto.test.ts`, `dashboard-components.test.tsx`, `discovery-classification.test.ts`, `rate-limit.test.ts`, `origin-validation.test.ts`, `sdk-limits.test.ts`, `policy-rules.test.ts`, `policy-engine.test.ts`, `policy-boundary.test.ts` | 218 | no |
+| `unit` | `keys.test.ts`, `secure-transfer-crypto.test.ts`, `dashboard-components.test.tsx`, `discovery-classification.test.ts`, `rate-limit.test.ts`, `origin-validation.test.ts`, `sdk-limits.test.ts`, `policy-rules.test.ts`, `policy-engine.test.ts`, `policy-boundary.test.ts`, `jurisdiction-resolution.test.ts` | 263 | no |
 | `integration` | everything else under `api/tests/` | 178 | yes |
 
 The split exists because crypto, key-format and component tests have no business
@@ -435,5 +451,6 @@ Keep the following aligned when making changes:
 - [api/app/api/v1/consent/route.ts](api/app/api/v1/consent/route.ts)
 - [api/lib/auth.ts](api/lib/auth.ts)
 - [docs/policy-engine.md](docs/policy-engine.md), [policy/disposition.ts](policy/disposition.ts) and [policy/model.ts](policy/model.ts) - the engine reads `docs/regulations/generated/`, so a matrix rebuild is a change to its input
+- [docs/jurisdiction-resolution.md](docs/jurisdiction-resolution.md) and [policy/jurisdiction-rules.ts](policy/jurisdiction-rules.ts) - the region mapping is versioned configuration; changing it changes which law a visitor is read under
 
 This project intentionally keeps the API focused on ingestion, the consent record and authorised data movement. The analytics/dashboard side still reads the database directly for its own reporting and builds the compliance engine on top of the consent vocabulary; `/api/v1/analytics/*` is a narrow, tenant-scoped alternative for aggregate activity, not a replacement for that access.

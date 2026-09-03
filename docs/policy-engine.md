@@ -7,6 +7,10 @@ It answers one question:
 
 > Given this processing activity and this context, what requirements apply?
 
+*Which* jurisdictions to ask about is a separate question, answered by the
+Phase 7B resolver in the same package — see
+[jurisdiction-resolution.md](jurisdiction-resolution.md).
+
 It is a **research artifact, not legal advice**, and it is deliberately not wired
 into any route. See [Why it is not wired in](#why-it-is-not-wired-in).
 
@@ -298,11 +302,11 @@ Each is a thing the engine genuinely does not do.
 ## Verification
 
 ```bash
-npm run test:unit    # 218 tests, 110 of them the policy engine, no database
+npm run test:unit    # 263 tests, 155 of them the policy package, no database
 npm run typecheck
 npm run lint
 node docs/regulations/tools/validate.mjs
 ```
 
 The engine's tests are in the `unit` project because they touch no database —
-they are pure functions over a static matrix, and all 110 run in about 230ms.
+they are pure functions over a static matrix, and all 155 run in about 300ms.

@@ -161,16 +161,21 @@ secure-transfer/
 
 ```text
 policy/
-  model.ts        the generic vocabulary - jurisdiction, actor, rule, verdict
-  disposition.ts  the ONE table that turns a topic into a verdict   <- names no regime
-  rules.ts        matrix -> Rule[], and which rules a context reaches
-  evaluate.ts     the evaluator: one pure function
+  model.ts             the generic vocabulary - jurisdiction, actor, rule, verdict
+  disposition.ts       the ONE table that turns a topic into a verdict  <- names no regime
+  rules.ts             matrix -> Rule[], and which rules a context reaches
+  evaluate.ts          the evaluator: one pure function
+  location.ts          location *evidence*: source, confidence, observed time
+  jurisdiction-rules.ts  versioned region -> jurisdiction mapping (configuration)
+  resolve.ts           observations -> jurisdictions -> a policy decision
 ```
 
 - `disposition.ts` is keyed on canonical topic and **contains no regime name**; `api/tests/policy-rules.test.ts` reads the file and fails the build if one appears. Adding an eighth regime to the matrix therefore adds rows to the matrix and changes no engine code. "A notice requirement obliges you to give notice" is not a fact about the GDPR.
 - `evaluate` is pure: no clock, no I/O, no state between calls. `asOf` is a required input, because an evaluator that reads the clock stops producing the same answer for the same question the moment some requirement's `effective_from` passes.
 - It resolves conservatively, and **absence never permits**: no matching rule, an unclassifiable topic, a condition it cannot evaluate and a missing jurisdiction are all `REVIEW`. `ALLOW` requires a rule that positively says so — and no context in the current matrix produces one, which a test pins down.
 - It is **not imported by any route, page or database module**. That is the whole of its relationship to the running platform today, and [policy-engine.md](policy-engine.md) sets out why.
+- Phase 7B adds jurisdiction resolution in the same package, kept in separate files because it answers a different question: *whose law is in play?* rather than *what does that law require?* Jurisdictions **accumulate** - there is no ranking and no winner, because a visitor can be reached by several regimes at once - and confidence is reported but never used to drop one, since discarding a weakly evidenced jurisdiction is the under-inclusive failure that looks like success.
+- The resolver **cannot geolocate and will not accept an IP address**. It takes a derived region code; a signal that looks like an address is rejected with a reason rather than ignored. The same structural argument as the crypto boundary: the capability is not in its dependency graph. See [jurisdiction-resolution.md](jurisdiction-resolution.md).
 
 ### Database (`database/`)
 - Stores the canonical event record model plus tenant, website and session metadata, the consent domain, and the secure routing tables.

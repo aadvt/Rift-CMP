@@ -24,6 +24,7 @@ const UNIT_TESTS = [
   "tests/policy-rules.test.ts",
   "tests/policy-engine.test.ts",
   "tests/policy-boundary.test.ts",
+  "tests/jurisdiction-resolution.test.ts",
 ];
 
 export default defineConfig({

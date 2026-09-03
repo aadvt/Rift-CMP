@@ -190,6 +190,37 @@ describe("the engine is not entangled with the platform", () => {
     expect(pkg.dependencies).toBeUndefined();
   });
 
+  it("accepts no identifier anywhere in its public input types", () => {
+    /**
+     * The privacy boundary of Phase 7B, checked structurally. The brief says not
+     * to collect personal information merely to sharpen jurisdiction detection,
+     * so the resolver's input must have nowhere to put any. If a field named for
+     * an address, a user agent or an identifier ever appears on `VisitorContext`
+     * or `DetectedLocation`, this fails.
+     */
+    const text = fs.readFileSync(path.join(policyDir, "location.ts"), "utf8");
+
+    // Declared field names only. Prose legitimately discusses addresses at
+    // length - it is the whole subject of the file - so scanning the text would
+    // catch the explanation rather than a leak.
+    const fieldsOf = (name: string): string[] => {
+      const start = text.indexOf(`export interface ${name} {`);
+      expect(start, `${name} not found`).toBeGreaterThan(-1);
+      const body = text.slice(start, text.indexOf("\n}", start));
+      return [...body.matchAll(/^\s*(?:readonly\s+)?([A-Za-z_$][\w$]*)\??\s*:/gm)]
+        .map((m) => m[1]);
+    };
+
+    const declared = [...fieldsOf("DetectedLocation"), ...fieldsOf("VisitorContext")];
+    expect(declared.length).toBeGreaterThan(0);
+
+    const forbidden =
+      /^(ip|ipAddress|remoteAddr|userAgent|email|userId|principalId|deviceId|cookie|fingerprint|latitude|longitude|postcode|address|name|phone)$/i;
+    for (const field of declared) {
+      expect(forbidden.test(field), `location.ts declares "${field}"`).toBe(false);
+    }
+  });
+
   it("performs no I/O and reads no environment", () => {
     for (const { file, text } of policySources()) {
       for (const pattern of [

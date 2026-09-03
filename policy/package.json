@@ -8,7 +8,10 @@
     "./model": "./model.ts",
     "./rules": "./rules.ts",
     "./disposition": "./disposition.ts",
-    "./evaluate": "./evaluate.ts"
+    "./evaluate": "./evaluate.ts",
+    "./location": "./location.ts",
+    "./jurisdiction-rules": "./jurisdiction-rules.ts",
+    "./resolve": "./resolve.ts"
   },
   "types": "./index.ts"
 }

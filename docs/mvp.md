@@ -99,9 +99,11 @@ rift-cmp/
   database/         Prisma schema and the service layers: keys, tenancy, consent,
                     transfers, authorisation (orchestration), audit and analytics
                     (read models). Every function takes its tenant explicitly.
-  policy/           the policy engine: the generic model, one topic disposition
-                    table, matrix compilation and a pure evaluator. Reads the
-                    Phase 6B matrix; imports no route and no database.
+  policy/           the policy engine and the jurisdiction resolver: the generic
+                    model, one topic disposition table, matrix compilation, a
+                    pure evaluator, and a versioned region -> jurisdiction
+                    mapping. Reads the Phase 6B matrix; imports no route and no
+                    database, and cannot geolocate.
   api/              Next.js App Router. Three API planes under app/api/, and the
                     operator dashboard under app/dashboard/.
   docs/             this document and the ones it links to
@@ -480,6 +482,14 @@ caveat — each one is a thing the MVP genuinely does not do.
   on an applicability trigger: those are free text in the research, 102 distinct
   values across 102 records, and matching them would be a string comparison
   dressed as a legal conclusion.
+- **Jurisdiction resolution reads signals it is given and gathers nothing.** It
+  has no field for an IP address and refuses one if passed, so it is only as
+  good as the observations a caller already holds. It carries the EU-27 plus the
+  three non-EU EEA states, India, Brazil and California; every other region -
+  including `GB`, whose UK GDPR the matrix does not carry - resolves to nothing,
+  which is reported as "not carried" and must never be read as "nothing
+  applies". Nothing about a resolution is persisted, so there is also no audit
+  trail of what was resolved for whom.
 - **Recipients cannot be updated, rotated or removed.** There is no `PATCH`, no
   second active key, and no delete. Rotating a recipient's key means registering
   a new recipient.
