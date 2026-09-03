@@ -1,41 +1,87 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
+import {
+  DASHBOARD_SESSION_MAX_AGE_SECONDS,
+  createDashboardSession,
+  prisma,
+  resolveDashboardSession,
+  revokeDashboardSession,
+} from "database";
 
 /**
  * Dashboard sign-in state.
  *
- * The dashboard authenticates with the organisation secret key, which is the
- * only operator credential this platform has. That secret must never reach the
- * browser, so it is held in an httpOnly cookie and read exclusively on the
- * server: page components fetch through `lib/dashboard/api.ts`, and the browser
- * only ever receives rendered results.
+ * The cookie used to hold the organisation secret verbatim. It now holds an
+ * opaque session token; the secret is sealed at rest in `dashboard_sessions`
+ * with a key derived from that token, so neither the cookie nor the database is
+ * sufficient on its own, and deleting the row revokes the session immediately.
+ * The reasoning, and the limitation that remains, are in
+ * `database/dashboard-sessions.ts` and docs/security.md.
  *
- * This is an MVP compromise and is documented as one. A production system would
- * have user accounts, short-lived sessions and per-user roles rather than a
- * single shared organisation secret standing in for all of them.
+ * This module is the one place in `api/` outside the route handlers that talks
+ * to `database`. The rule the dashboard follows — "no page imports `database`" —
+ * is about *product data*: every screen still reads consent, transfers and
+ * analytics over HTTP like any other integrator. A session store is
+ * infrastructure, and routing it through the public API would mean publishing an
+ * endpoint that hands out organisation secrets.
  */
-export const SESSION_COOKIE = "rift_dashboard_key";
+export const SESSION_COOKIE = "rift_dashboard_session";
 
-/** Eight hours: long enough for a working session, short enough to expire. */
-const MAX_AGE_SECONDS = 8 * 60 * 60;
+/**
+ * The cookie the previous design used, which held the organisation secret
+ * itself. Cleared on sign-in and sign-out so a stale one cannot linger in a
+ * browser after this deploy.
+ */
+const LEGACY_SESSION_COOKIE = "rift_dashboard_key";
 
-export async function readSessionKey(): Promise<string | null> {
+/**
+ * Reads the organisation secret for the current request, or null.
+ *
+ * Memoised per request with React's `cache`, because the layout and every
+ * `apiGet` call on a page all need it and none of them should cost a separate
+ * round trip. The idle clock is advanced once per request as a side effect of
+ * the first call.
+ */
+export const readSessionKey = cache(async (): Promise<string | null> => {
   const store = await cookies();
-  return store.get(SESSION_COOKIE)?.value ?? null;
-}
+  const token = store.get(SESSION_COOKIE)?.value;
+  if (!token) return null;
 
-export async function writeSessionKey(secretKey: string): Promise<void> {
+  const session = await resolveDashboardSession(prisma, token, { touch: true });
+  return session?.secretKey ?? null;
+});
+
+/** Opens a session for an organisation whose secret has already been validated. */
+export async function writeSessionKey(
+  organisationId: string,
+  secretKey: string,
+): Promise<void> {
+  const { token } = await createDashboardSession(prisma, { organisationId, secretKey });
+
   const store = await cookies();
-  store.set(SESSION_COOKIE, secretKey, {
+  store.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "strict",
     // Allows local development over http; a deployment behind TLS gets secure.
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: MAX_AGE_SECONDS,
+    maxAge: DASHBOARD_SESSION_MAX_AGE_SECONDS,
   });
+  store.delete(LEGACY_SESSION_COOKIE);
 }
 
+/**
+ * Signs out.
+ *
+ * The row is deleted before the cookie is cleared, so a token captured in flight
+ * is dead even if the browser never receives the `Set-Cookie`.
+ */
 export async function clearSessionKey(): Promise<void> {
   const store = await cookies();
+  const token = store.get(SESSION_COOKIE)?.value;
+  if (token) {
+    await revokeDashboardSession(prisma, token);
+  }
   store.delete(SESSION_COOKIE);
+  store.delete(LEGACY_SESSION_COOKIE);
 }

@@ -131,7 +131,18 @@ This is what the compliance engine will be built on, so it must not drift:
   Anything reading the database directly must reproduce the same derivation.
 - current state is **derived, never stored**. There is no "is granted" column, and
   a consumer must not add one.
-- `consent_records` is append-only. A `UPDATE` is refused by a database trigger.
+- `consent_records` is append-only. A `UPDATE` is refused by a database trigger,
+  and since Phase 6A a `DELETE` is too unless the transaction has explicitly
+  opted in via `rift.offboarding` — see [security.md](security.md).
+- `transfer_authorisations` and `transfer_records` are now guarded the same way:
+  identity columns frozen, `status` restricted to a forward state machine. A
+  consumer that mutated them to "correct" history will start getting
+  `restrict_violation`.
+- **recording a decision needs a consent session**, not just the site public key.
+  This is a breaking change to `POST /api/v1/consent`, made because a key in page
+  source cannot be evidence that a person decided anything. A consumer building a
+  banner calls `POST /api/v1/consent/session` first, or uses the SDK, which does
+  it transparently.
 - these models encode structure and **no legal rules**
 
 The consent domain is kept separate from the analytics domain: nothing in the
@@ -191,9 +202,15 @@ The ingestion API contract is defined in [api-spec.md](api-spec.md). The current
 
 - `POST /api/v1/events` accepts one event or `{ "events": [...] }`, authenticated
   by a **site public key** (`pk_...`)
-- `POST /api/v1/consent` appends one consent decision, and `GET /api/v1/consent`
-  returns the effective state of **one** principal — both authenticated by a
-  **site public key** (`pk_...`)
+- `POST /api/v1/consent/session` opens a consent session, authenticated by a
+  **site public key** (`pk_...`), and is what binds a decision to a browser that
+  controls the principal it is deciding for
+- `POST /api/v1/consent` appends one consent decision — site public key **plus**
+  a consent session in `X-Rift-Consent-Session` — and `GET /api/v1/consent`
+  returns the effective state of **one** principal with the public key alone
+- `POST /api/v1/discovery` accepts in-page observations, authenticated by a
+  **site public key** and deliberately never consent-gated: a gate would drop the
+  evidence that something fired without consent
 - `GET /api/v1/organisation`, `GET|POST /api/v1/sites`, `GET|PATCH /api/v1/sites/{siteId}`
   are the management surface, authenticated by an **organisation secret key** (`sk_...`)
 - `GET /api/v1/consent/history` (the audit trail), `GET|POST /api/v1/purposes`,

@@ -18,6 +18,8 @@ A single side-effect-free orchestration layer answers "is this action currently 
 
 Phase 5 adds an **aggregate analytics read API** and an **operator dashboard**. The dashboard is a pure consumer of the platform API — every page fetches over HTTP with the organisation secret, and no page imports `database` — so if a screen needs something the API cannot express, the API is what changes. It adds no table and no migration. The complete picture, including the MVP's security assumptions and an honest list of what it does not do, is in [docs/mvp.md](docs/mvp.md).
 
+Phase 6A is a **security hardening pass over that MVP**, and it changed one contract on purpose. A site public key ships in page source, so it was never evidence that a person decided anything — yet it was the only credential `POST /api/v1/consent` asked for, which meant anyone could append a permanent record claiming a named principal had consented. Recording a decision now also requires a **consent session**, bound to a principal whose secret the caller holds. Alongside it: opt-in server-side consent enforcement for analytics ingestion (the API re-derives the decision from the log instead of trusting a browser's gate), rate limiting, origin validation, immutability guards on the authorisation and transfer tables, and revocable dashboard sessions that no longer carry the organisation secret in a cookie. [docs/security.md](docs/security.md) sets all of it out as *enforced*, *defence in depth*, or *still a limitation* — including what a consent session deliberately does not prove.
+
 ## Repository layout
 
 | Path | Purpose |
@@ -89,6 +91,7 @@ Start with the first one; it is the entry point and links to the rest.
 - [API Spec](docs/api-spec.md)
 - [Database Schema](docs/database-schema.md)
 - [Discovery](docs/discovery.md)
+- [Security Model](docs/security.md) — what is enforced, what is defence in depth, what is not done
 - [Integration Contract](docs/integration-contract.md)
 
 ## Local development
@@ -214,7 +217,8 @@ warns and exits cleanly, and that URL 404s until it has.
 The API routes are:
 - `GET http://127.0.0.1:3000/api/healthz`
 - `POST http://127.0.0.1:3000/api/v1/events`
-- `POST|GET http://127.0.0.1:3000/api/v1/consent`
+- `POST|GET http://127.0.0.1:3000/api/v1/consent` — `POST` also needs `X-Rift-Consent-Session`
+- `POST http://127.0.0.1:3000/api/v1/consent/session` (public key) — opens a consent session
 - `GET http://127.0.0.1:3000/api/v1/consent/history` (secret key)
 - `GET http://127.0.0.1:3000/api/v1/consent/effective` (secret key) — effective consent for one principal on one site
 - `GET http://127.0.0.1:3000/api/v1/organisation`, `GET|POST /api/v1/sites`, `GET|PATCH /api/v1/sites/{siteId}` (secret key)
@@ -243,15 +247,19 @@ The API validates the request with `Authorization: Bearer <public_key>` and reje
 redirects to `/signin` when there is no session.
 
 Sign in with an **organisation secret key** (`sk_...`), the one `npm run seed`
-printed in step 4. It is validated against `GET /api/v1/organisation` before it is
-stored, then held in an httpOnly cookie (`rift_dashboard_key`, `sameSite:
-strict`, eight hours) and read only on the server. The secret never reaches page
-scripts.
+printed in step 4. It is validated against `GET /api/v1/organisation` and then
+exchanged for a revocable session: the cookie (`rift_dashboard_session`,
+`httpOnly`, `sameSite: strict`, 60-minute idle timeout inside an eight-hour
+lifetime) holds an opaque token, and the secret is sealed at rest in
+`dashboard_sessions` under a key derived from it. Neither the cookie nor the
+database is enough on its own, signing out ends the session immediately, and the
+secret never reaches page scripts.
 
-This is an **MVP compromise**: there are no user accounts, no roles and no
-per-user sessions, so one shared organisation secret stands in for all three, and
-anything holding that cookie is the whole organisation. See the known limitations
-in [docs/mvp.md](docs/mvp.md).
+This is still an **MVP compromise**: there are no user accounts and no roles, so
+one shared organisation secret stands behind every session, and anything holding
+a live one speaks for the whole organisation. See
+[docs/security.md](docs/security.md) and the known limitations in
+[docs/mvp.md](docs/mvp.md).
 
 | Page | What it shows |
 | --- | --- |
@@ -348,6 +356,18 @@ submissions resolving to exactly one transfer.
 `analytics-api.test.ts` covers the two analytics endpoints — the arithmetic, the
 date range, and the isolation, which matters more here than anywhere else because
 these are the only endpoints that aggregate across a whole tenant.
+
+Six files cover Phase 6A, and five of them are written from the attacker's side:
+`consent-authenticity.test.ts` (forged, absent, replayed, cross-site and
+cross-tenant sessions, and the trust-on-first-use path),
+`ingest-consent-enforcement.test.ts` (forged, absent, revoked and valid consent
+at ingestion, plus proof that no principal identifier lands on an analytics row),
+`browser-plane-guard.test.ts` (origin and rate limiting as the routes apply
+them), `audit-immutability.test.ts` (which reaches past the API and issues the
+`UPDATE`s and `DELETE`s through Prisma), `dashboard-session.test.ts`, and the two
+unit files `rate-limit.test.ts` and `origin-validation.test.ts` — both of which
+also assert the limitations, so a defence cannot quietly be described as more
+than it is.
 
 `mvp-acceptance.test.ts` is a single test with twelve steps: register a site,
 instrument it with the real SDK, record consent, authorise, seal, transfer,

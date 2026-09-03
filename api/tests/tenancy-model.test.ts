@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { createOrganisation, createWebsite, hashSecretKey, prisma } from "database";
+import {
+  createOrganisation,
+  createWebsite,
+  deleteOrganisation,
+  hashSecretKey,
+  prisma,
+} from "database";
 import { createOwnershipTree, resetDatabase } from "./helpers/fixtures";
 
 beforeEach(resetDatabase);
@@ -159,7 +165,10 @@ describe("database relationship constraints", () => {
       });
     }
 
-    await prisma.organisation.delete({ where: { id: orgA.organisationId } });
+    // Offboarding goes through the documented mechanism: Phase 6A guards DELETE
+    // on the history tables, and `deleteOrganisation` is the one place that
+    // opens the gate. See `database/tenancy.ts`.
+    await deleteOrganisation(prisma, orgA.organisationId);
 
     expect(await prisma.website.count({ where: { organisationId: orgA.organisationId } })).toBe(0);
     expect(await prisma.session.count({ where: { siteId: siteA1.siteId } })).toBe(0);

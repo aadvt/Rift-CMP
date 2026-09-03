@@ -164,6 +164,14 @@ page source must not be able to read it back. The report's `site_id` is ignored
 in favour of the credential's site, so a report cannot be filed against a site
 the caller does not hold a key for.
 
+`POST /api/v1/discovery` is rate limited and origin checked like the other
+browser-facing routes, and is **deliberately never consent-gated**. Phase 6A
+added an opt-in consent gate to analytics ingestion; applying the same gate here
+would drop precisely the reports that say a destination was contacted while
+consent was withdrawn — the evidence this domain exists to capture. Discovery is
+already not joined to `Principal` and records hosts and names, never values, so
+there is no personal data to gate. See [security.md](security.md).
+
 ## Storage model
 
 Three tables, all site-scoped, in

@@ -4,6 +4,7 @@ import { prisma } from "database";
 // Imported from source so the test exercises the SDK as written, not a stale bundle.
 import { ConsentClient } from "../../sdk/src/consent";
 import { GET as getConsent, POST as recordConsent } from "@/app/api/v1/consent/route";
+import { POST as openConsentSessionRoute } from "@/app/api/v1/consent/session/route";
 import { createConsentFixture, createOwnershipTree, resetDatabase } from "./helpers/fixtures";
 
 /**
@@ -54,6 +55,12 @@ async function routeToHandler(input: RequestInfo | URL, init?: RequestInit): Pro
       : { body: init.body as BodyInit }),
   });
 
+  // Phase 6A: the SDK opens a session first, because the site public key alone
+  // no longer authorises recording a decision.
+  if (url.pathname === "/api/v1/consent/session") {
+    return openConsentSessionRoute(request);
+  }
+
   if (url.pathname === "/api/v1/consent") {
     return method === "POST" ? recordConsent(request) : getConsent(request);
   }
@@ -102,10 +109,12 @@ describe("SDK to API consent communication", () => {
     expect(stored.purpose.code).toBe(consent.purposeCode);
   });
 
-  it("mints an anonymous principal id and reuses it across decisions", async () => {
+  it("adopts the server-minted anonymous principal id and reuses it across decisions", async () => {
     const { client, consent } = await setup();
 
     await client.grant(consent.purposeCode);
+    // Minted by the server when the session was opened, not by the browser:
+    // a client that chose its own identifier could choose somebody else's.
     const principalId = client.getPrincipalId();
     expect(principalId).toMatch(/^[0-9a-f-]{36}$/);
 
@@ -239,6 +248,71 @@ describe("SDK to API consent communication", () => {
     warn.mockRestore();
   });
 
+  it("opens a consent session and stores the secret that binds this browser", async () => {
+    const { client, consent } = await setup();
+
+    await client.grant(consent.purposeCode);
+
+    // The server minted both halves; the SDK kept them. Without the secret this
+    // browser could not open another session for the same principal, and
+    // without the session it could not have recorded anything at all.
+    expect(storage.getItem("rift_cmp_principal_secret")).toMatch(/^ps_[0-9a-f]{64}$/);
+    expect(client.getSessionToken()).toMatch(/^cs_/);
+
+    const stored = await prisma.principal.findFirstOrThrow();
+    expect(stored.secretHash).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("renews an expired session rather than failing the decision", async () => {
+    const { client, consent } = await setup();
+    await client.grant(consent.purposeCode);
+
+    // A person can leave a banner on screen for longer than a session lasts.
+    // Making them click twice would be a bug, not a security property.
+    await prisma.consentSession.updateMany({
+      data: { expiresAt: new Date(Date.now() - 1000) },
+    });
+
+    await expect(client.withdraw(consent.purposeCode)).resolves.toBe(true);
+    expect(await prisma.consentRecord.count()).toBe(2);
+    expect(await prisma.principal.count()).toBe(1);
+  });
+
+  it("starts a new principal when the stored identity is no longer accepted", async () => {
+    const { client, consent, siteA1 } = await setup();
+    await client.grant(consent.purposeCode);
+    const first = client.getPrincipalId();
+
+    // Simulates a browser carrying an identifier the server will not honour —
+    // a secret that no longer matches, or a principal that has been removed.
+    await prisma.principal.updateMany({ data: { secretHash: "0".repeat(64) } });
+
+    const reopened = new ConsentClient(siteA1.siteId, siteA1.publicKey, {
+      apiUrl: "http://localhost:3000",
+    });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    await expect(reopened.grant(consent.purposeCode)).resolves.toBe(true);
+
+    // Degrading to a fresh principal is the right failure: the alternative is a
+    // browser that can never record a decision again.
+    expect(reopened.getPrincipalId()).not.toBe(first);
+    expect(await prisma.principal.count()).toBe(2);
+    warn.mockRestore();
+  });
+
+  it("does not mint a principal merely to read state", async () => {
+    const { client } = await setup();
+
+    await expect(client.getState()).resolves.toEqual([]);
+
+    // Creating an identity for a visitor who has decided nothing would
+    // manufacture exactly the durable identifier this product exists without.
+    expect(client.getPrincipalId()).toBeNull();
+    expect(await prisma.principal.count()).toBe(0);
+    expect(await prisma.consentSession.count()).toBe(0);
+  });
+
   it("clear() forgets local identity without touching the server-side trail", async () => {
     const { client, consent } = await setup();
     await client.grant(consent.purposeCode);
@@ -246,6 +320,8 @@ describe("SDK to API consent communication", () => {
     client.clear();
 
     expect(client.getPrincipalId()).toBeNull();
+    expect(client.getSessionToken()).toBeNull();
+    expect(storage.getItem("rift_cmp_principal_secret")).toBeNull();
     expect(client.isGranted(consent.purposeCode)).toBe(false);
     // The audit trail is append-only and unaffected by a local reset.
     expect(await prisma.consentRecord.count()).toBe(1);

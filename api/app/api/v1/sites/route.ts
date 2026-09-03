@@ -10,6 +10,11 @@ const createSiteSchema = z
   .object({
     name: z.string().min(1),
     domain: z.string().min(1),
+    // Phase 6A. Opting in makes the ingestion plane refuse this site's analytics
+    // events unless the request proves the purpose is currently GRANTED. Null,
+    // the default, is the pre-6A behaviour.
+    analytics_consent_purpose: z.string().min(1).max(100).nullish(),
+    allowed_origins: z.array(z.string().min(1).max(255)).max(20).optional(),
   })
   .strict();
 
@@ -39,6 +44,8 @@ export async function POST(request: NextRequest) {
     organisationId: auth.caller.organisationId,
     name: parsed.data.name,
     domain: parsed.data.domain,
+    analyticsConsentPurpose: parsed.data.analytics_consent_purpose ?? null,
+    allowedOrigins: parsed.data.allowed_origins ?? [],
   });
 
   return Response.json(site, { status: 201 });

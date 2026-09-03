@@ -105,6 +105,7 @@ export default async function IntegrationPage({
                   <th>Public key</th>
                   <th>Domain</th>
                   <th>Status</th>
+                  <th>Consent gate</th>
                   <th>Created</th>
                 </tr>
               </thead>
@@ -121,6 +122,19 @@ export default async function IntegrationPage({
                     <td>{site.domain}</td>
                     <td>
                       <StatusBadge status={site.is_active ? "ACTIVE" : "INACTIVE"} />
+                    </td>
+                    {/*
+                      Whether the *server* refuses this site's events without
+                      consent, as opposed to the SDK declining to queue them.
+                      An operator who cannot see which of the two is in force
+                      cannot know what the platform is actually enforcing.
+                    */}
+                    <td>
+                      {site.analytics_consent_purpose ? (
+                        <code>{site.analytics_consent_purpose}</code>
+                      ) : (
+                        <span className="hint">Not enforced</span>
+                      )}
                     </td>
                     <td>{formatDate(site.created_at)}</td>
                   </tr>

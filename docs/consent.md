@@ -92,9 +92,16 @@ and prints it, so a decision can be recorded against a real purpose immediately.
 ## Principals are anonymous
 
 For the MVP a principal is anonymous. `external_id` is an opaque, high-entropy
-identifier the SDK mints with `crypto.randomUUID()` and stores in `localStorage`
-under `rift_cmp_principal_id`. The server never learns anything about the person
-behind it; it is a handle for correlating that browser's decisions, nothing more.
+identifier stored in `localStorage` under `rift_cmp_principal_id`. The server
+never learns anything about the person behind it; it is a handle for correlating
+that browser's decisions, nothing more.
+
+Since Phase 6A the **server** mints that identifier, when the browser opens its
+first consent session, and returns a matching secret alongside it — kept in
+`localStorage` under `rift_cmp_principal_secret`, stored here as a SHA-256 digest
+in `principals.secret_hash`. The browser used to choose the identifier itself
+with `crypto.randomUUID()`; a client that picks its own can pick somebody
+else's, which is precisely what needed to stop.
 
 `Principal.kind` defaults to `"anonymous"` and is an open string rather than an
 enum, so a later phase can promote a principal to `"identified"` — once the
@@ -163,18 +170,30 @@ A PostgreSQL trigger, `consent_records_append_only`, fires `BEFORE UPDATE` on
 does not depend on that: `api/tests/consent-decisions.test.ts` reaches past the
 API entirely and issues the `UPDATE` through Prisma, and PostgreSQL refuses it.
 
-**`DELETE` is deliberately not blocked.** Two reasons:
+**`DELETE` is guarded rather than blocked.** Phase 6A extended the trigger to
+cover it, behind one explicit opt-in: a transaction that has set
+`rift.offboarding = 'on'`. `deleteOrganisation()` in
+[`../database/tenancy.ts`](../database/tenancy.ts) is the only thing in this
+repository that sets it, and it uses `SET LOCAL`, so the permission expires with
+the transaction rather than lingering on a pooled connection.
 
-1. Tenant offboarding cascades from `organisations`. Deleting an organisation
-   must remove its sites, principals and consent records; a trigger that blocked
-   `DELETE` would make offboarding impossible without first disabling the
-   trigger, which is worse than not having it.
+The two reasons `DELETE` was previously left unguarded still stand, and are both
+served by that mechanism rather than by leaving the door open:
+
+1. Tenant offboarding cascades from `organisations`, and must keep working.
+   It does — in one call, through the helper above.
 2. Retention and erasure are a separate concern from immutability. When a
-   retention policy exists it will need to remove rows, and it should not have to
-   fight the schema to do so.
+   retention policy exists it will need to remove rows, and it will use the same
+   flag. None exists today.
+
+What the guard buys is that everything *else* which would delete history — an
+ad-hoc `psql` session, a mistaken script, a cascade nobody reviewed — now fails
+loudly instead of succeeding quietly.
 
 The guarantee this trigger makes is precise: a recorded decision is never
-*rewritten*. It does not claim rows live forever.
+*rewritten*, and it is not removed except by something that said out loud that it
+meant to. It does not claim rows live forever. Note also that `TRUNCATE` does not
+fire row-level triggers.
 
 ## The two credential planes
 
@@ -183,7 +202,8 @@ along the same line.
 
 | | Site public key `pk_` | Organisation secret key `sk_` |
 | --- | --- | --- |
-| Record a decision | `POST /api/v1/consent` | — |
+| Open a consent session | `POST /api/v1/consent/session` | — |
+| Record a decision | `POST /api/v1/consent`, **plus a consent session** | — |
 | Read **one** principal's state | `GET /api/v1/consent` | — |
 | Read the audit trail | — | `GET /api/v1/consent/history` |
 | Manage purposes | — | `GET\|POST /api/v1/purposes` |
@@ -194,8 +214,16 @@ along the same line.
 The split is not arbitrary. A public key is visible to anyone who views the page
 source, so anything it can do, a stranger can do. It may therefore:
 
-- append a decision for a principal id it supplies, and
+- open a consent session, minting a fresh principal of its own, and
 - read the state of **one** principal whose high-entropy id it already knows.
+
+What it may **no longer** do, as of Phase 6A, is append a decision for a
+principal id it merely supplies. That was the exact shape of the problem: a
+credential every stranger holds, writing permanent records about named people
+into an append-only log. Recording a decision now requires a consent session, and
+a session for an existing principal requires that principal's secret. See
+[security.md](security.md) for the mechanism and, more importantly, for what it
+does not prove.
 
 It may **not** enumerate principals, list decisions across principals, or read
 history. Those are operator capabilities and require the organisation secret,
@@ -213,15 +241,40 @@ oracle for whether a given principal id exists.
 
 One principal, `p_3f9c`, on `site_demo`, deciding about the `analytics` purpose.
 
+**08:59** — the page loads and the SDK opens a session. On a first visit it sends
+an empty body and the server mints both halves of the identity; on a return visit
+it presents the pair it stored.
+
+```http
+POST /api/v1/consent/session
+Authorization: Bearer pk_demo_12345
+
+{ "principal_external_id": "p_3f9c", "principal_secret": "ps_9d41..." }
+```
+
+```json
+{ "site_id": "site_demo", "principal_external_id": "p_3f9c",
+  "principal_secret": null, "session_token": "cs_Yk3...",
+  "expires_at": "2026-08-31T09:29:00.000Z", "max_decisions": 50 }
+```
+
+`principal_secret` is `null` because this browser already has it. It is returned
+exactly once, when it is minted.
+
 **09:00** — the banner is accepted.
 
 ```http
 POST /api/v1/consent
 Authorization: Bearer pk_demo_12345
+X-Rift-Consent-Session: cs_Yk3...
 
 { "principal_external_id": "p_3f9c", "purpose_code": "analytics",
   "status": "GRANTED", "notice_id": "3a1e...", "decided_at": "2026-08-31T09:00:00Z" }
 ```
+
+The body still names the principal — it keeps a stored request self-describing —
+but it is checked against the session rather than trusted. A mismatch is
+`403 principal_mismatch`.
 
 `201`, with the recomputed state alongside the record so no read-after-write is
 needed:
@@ -386,11 +439,35 @@ reading of the rules into immutable rows, and would be wrong the moment a
 decision changed — the event log would then disagree with the consent log about
 the same instant.
 
+### The client-side gate is a courtesy; Phase 6A added the enforced one
+
+`setConsentCheck` runs in the browser, in code the caller controls, on a page
+whose public key anybody can read. It saves a round trip for honest integrators
+and stops nobody else.
+
+A site that wants the rule *enforced* sets `analytics_consent_purpose` on the
+site. The ingestion plane then refuses a batch unless the request presents a
+consent session and `getEffectiveConsent` — the same derivation used everywhere
+else — currently resolves that purpose to `GRANTED`. The decision is re-read from
+the log on every batch, so a withdrawal takes effect on the next request.
+
+This does not put consent state onto an analytics row, and does not join the two
+domains: the principal is resolved in-request to answer "may these be stored" and
+never written down. The separation above is intact. See
+[security.md](security.md).
+
 ## Status codes
 
 | Situation | Status | `code` |
 | --- | --- | --- |
 | No credential, malformed, wrong plane, or unknown key | `401` | `unauthorized` |
+| `POST` with no consent session | `401` | `consent_session_required` |
+| Consent session unknown, revoked, or minted on another site | `401` | `invalid_session` |
+| Consent session past its 30-minute lifetime | `401` | `session_expired` |
+| Consent session has recorded its 50 decisions | `429` | `session_exhausted` |
+| The decision names a principal the session does not speak for | `403` | `principal_mismatch` |
+| `Origin` present and not one the site accepts | `403` | `origin_not_allowed` |
+| Too many requests from this client or site | `429` | `rate_limited` |
 | Valid site key, site is inactive | `403` | `forbidden` |
 | Body is not valid JSON | `400` | `invalid_json` |
 | Body fails schema validation, or names its own tenant | `400` | `invalid_request` |
@@ -436,7 +513,13 @@ These are known and accepted for this phase:
 - **Consent is enforced only on the paths that go through our API.** Phase 4 made
   it the gate for one action: a transfer authorisation is refused unless the
   decision in force is `GRANTED`, via the orchestration layer in
-  [lifecycle.md](lifecycle.md). Everything else is unchanged — a downstream
-  consumer that reads the database directly is outside our authorisation layer,
-  so whether it respects a `WITHDRAWN` decision remains that consumer's
-  responsibility.
+  [lifecycle.md](lifecycle.md). Phase 6A added a second, opt-in per site:
+  analytics ingestion. Everything else is unchanged — a downstream consumer that
+  reads the database directly is outside our authorisation layer, so whether it
+  respects a `WITHDRAWN` decision remains that consumer's responsibility.
+- **A consent session proves possession of a secret, not human intent.** It stops
+  one client speaking for another client's principal. It cannot establish that a
+  person clicked anything, and there is no per-decision signature an auditor
+  could verify offline. A principal created before Phase 6A has its secret bound
+  trust-on-first-use, so the first caller to claim it wins. All of this is set
+  out in [security.md](security.md).

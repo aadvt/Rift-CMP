@@ -9,6 +9,8 @@
     "./keys": "./keys.ts",
     "./tenancy": "./tenancy.ts",
     "./consent": "./consent.ts",
+    "./consent-sessions": "./consent-sessions.ts",
+    "./dashboard-sessions": "./dashboard-sessions.ts",
     "./transfers": "./transfers.ts",
     "./authorisation": "./authorisation.ts",
     "./audit": "./audit.ts",

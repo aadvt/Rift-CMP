@@ -1,8 +1,15 @@
 import type { AnalyticsEvent } from "@rift-cmp/shared";
+import { CONSENT_SESSION_HEADER } from "@rift-cmp/shared";
 import { DEFAULT_API_URL } from "./constants";
 import { getDeviceInfo } from "./device";
 import { getPageContext } from "./page";
-import type { ConsentCheck, SDKOptions, SessionState } from "./types";
+import type {
+  ConsentCheck,
+  ConsentSessionProvider,
+  SDKOptions,
+  SessionState,
+  SyncConsentSessionProvider,
+} from "./types";
 
 // Envelope `source` per docs/event-schema.md: SDK identifier and version.
 const SDK_SOURCE = "rift-cmp-sdk/0.1.0";
@@ -19,6 +26,13 @@ export class AnalyticsClient {
   private apiUrl: string;
   private sessionState: SessionState | null = null;
   private consentCheck: ConsentCheck = () => true;
+  /**
+   * Supplies the consent session token for sites that enforce consent
+   * server-side. Defaults to "this browser has none", which is the honest answer
+   * before `init()` wires the consent client in.
+   */
+  private consentSessionProvider: ConsentSessionProvider = async () => null;
+  private syncConsentSessionProvider: SyncConsentSessionProvider = () => null;
   private eventQueue: AnalyticsEvent[] = [];
   private flushTimer: number | null = null;
   private retryCounts = new Map<string, number>();
@@ -85,6 +99,38 @@ export class AnalyticsClient {
     } catch (error) {
       console.warn("[rift-cmp] setConsentCheck() failed", error);
       return false;
+    }
+  }
+
+  /**
+   * Wires in the consent session the ingestion plane may ask for.
+   *
+   * The client-side `consentCheck` above is a courtesy to honest integrators: it
+   * saves a round trip and keeps events out of the queue. It is not enforcement,
+   * because the code running it belongs to whoever is making the request. When a
+   * site sets `analytics_consent_purpose`, the API re-derives the decision from
+   * the append-only log and refuses the batch outright — this provider is how
+   * the SDK proves which principal to look up.
+   */
+  setConsentSessionProvider(provider: ConsentSessionProvider, sync?: SyncConsentSessionProvider) {
+    try {
+      this.consentSessionProvider = provider;
+      if (sync) this.syncConsentSessionProvider = sync;
+      return true;
+    } catch (error) {
+      console.warn("[rift-cmp] setConsentSessionProvider() failed", error);
+      return false;
+    }
+  }
+
+  /** Never throws and never blocks a flush: no token simply means no header. */
+  private async consentSessionHeaders(): Promise<Record<string, string>> {
+    try {
+      const token = await this.consentSessionProvider();
+      return token ? { [CONSENT_SESSION_HEADER]: token } : {};
+    } catch (error) {
+      console.warn("[rift-cmp] could not resolve a consent session for ingestion", error);
+      return {};
     }
   }
 
@@ -245,10 +291,21 @@ export class AnalyticsClient {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${this.publicKey}`,
+          ...(await this.consentSessionHeaders()),
         },
         body: JSON.stringify({ events: batch }),
         mode: "cors",
       });
+
+      // The server refused on consent grounds. Retrying cannot help and would
+      // hammer the endpoint until the attempt budget ran out, so the batch is
+      // dropped: "these events may not be stored" is a final answer, and it is
+      // the answer server-side enforcement exists to give.
+      if (response.status === 403) {
+        this.dropBatch(batch);
+        console.warn("[rift-cmp] events refused: consent is not granted for this site");
+        return;
+      }
 
       if (!response.ok) {
         throw new Error(`Event submission failed (${response.status}): ${response.statusText}`);
@@ -283,6 +340,37 @@ export class AnalyticsClient {
       this.isFlushing = false;
       // Anything queued while this flush was in flight still needs a drain.
       this.scheduleFlush();
+    }
+  }
+
+  private readSyncConsentSession(): string | null {
+    try {
+      return this.syncConsentSessionProvider();
+    } catch {
+      return null;
+    }
+  }
+
+  /** Discards a batch permanently, including anything persisted for retry. */
+  private dropBatch(batch: AnalyticsEvent[]) {
+    const dropped = new Set(batch.map((event) => event.event_id));
+    for (const id of dropped) this.retryCounts.delete(id);
+    this.eventQueue = this.eventQueue.filter((event) => !dropped.has(event.event_id));
+
+    // `persistQueue` merges rather than replaces, so it cannot remove anything.
+    // The persisted copy has to be rewritten directly, or a refused batch would
+    // come back on the next page load and be refused again forever.
+    const storage = this.getStorage();
+    if (!storage) return;
+    try {
+      const kept = this.readPersistedQueue().filter((event) => !dropped.has(event.event_id));
+      if (kept.length === 0) {
+        storage.removeItem(this.storageKey);
+      } else {
+        storage.setItem(this.storageKey, JSON.stringify(kept));
+      }
+    } catch {
+      // Ignore localStorage failures; the SDK must remain resilient.
     }
   }
 
@@ -324,11 +412,18 @@ export class AnalyticsClient {
     this.persistQueue(payload);
 
     try {
+      // Synchronous: a page being torn down cannot await a session refresh, so
+      // the beacon sends whatever token already exists. On a consent-enforcing
+      // site an aged-out token means these events are refused and re-sent on the
+      // next page load, where a fresh session is available.
+      const sessionToken = this.readSyncConsentSession();
+
       void fetch(`${this.apiUrl}/api/v1/events`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${this.publicKey}`,
+          ...(sessionToken ? { [CONSENT_SESSION_HEADER]: sessionToken } : {}),
         },
         body: JSON.stringify({ events: payload }),
         mode: "cors",

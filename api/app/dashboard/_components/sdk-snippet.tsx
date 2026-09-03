@@ -11,6 +11,12 @@ import type { WebsiteSummary } from "@rift-cmp/shared";
  * analytics requires consent — a regulation and an integrator do — so an install
  * that omits `setConsentCheck` sends events regardless of any decision, which is
  * almost never what the installer intended.
+ *
+ * That gate runs in the browser, so it is a courtesy to an honest integrator
+ * rather than a control. Setting `analytics_consent_purpose` on the site makes
+ * the API enforce the same rule against the append-only log — see
+ * docs/security.md — and the snippet says so, because an operator reading this
+ * screen is exactly the person who needs to know the difference.
  */
 export function SdkSnippet({ site, origin }: { site: WebsiteSummary; origin: string }) {
   const snippet = [
@@ -19,7 +25,8 @@ export function SdkSnippet({ site, origin }: { site: WebsiteSummary; origin: str
     "<script>",
     `  analytics.init("${site.site_id}", "${site.public_key}", { apiUrl: "${origin}" });`,
     "",
-    "  // Nothing is sent for a purpose the principal has not granted.",
+    "  // Client-side gate: nothing is queued for a purpose that is not granted.",
+    "  // For server-side enforcement, set analytics_consent_purpose on this site.",
     "  analytics.setConsentCheck((purpose) => analytics.consent.isGranted(purpose));",
     "</script>",
   ].join("\n");

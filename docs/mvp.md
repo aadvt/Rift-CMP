@@ -38,8 +38,9 @@ the decision in force must be `GRANTED`. It encodes no legal rules at all.
    | SDK             | ------> | Ingestion plane                      |
    |  page_view      |  events |   POST /api/v1/events                | --> sessions, events
    |  session_start  |         |                                      |
-   |  track()        |   pk_   |                                      |
-   |  consent client | ------> |   POST|GET /api/v1/consent           | --> consent_records
+   |  track()        |   pk_   |   POST /api/v1/discovery             | --> discovered_*
+   |  consent client | ------> |   POST /api/v1/consent/session       | --> consent_sessions
+   |                 |   +cs_  |   POST|GET /api/v1/consent           | --> consent_records
    +-----------------+ consent +--------------------------------------+     (append-only)
                                                   |
                                                   | getEffectiveConsent
@@ -69,8 +70,8 @@ the decision in force must be `GRANTED`. It encodes no legal rules at all.
                                |   GET /api/v1/consent/effective      |
                                +--------------------------------------+
                                                   ^
-                                                  | HTTP, sk_ read from an
-                                                  | httpOnly cookie on the server
+                                                  | HTTP, sk_ unsealed from a
+                                                  | session row on the server
                                +--------------------------------------+
                                | Dashboard (api/app/dashboard)        |
                                |   Overview | Consent | Transfers     |
@@ -123,7 +124,7 @@ probed with another plane's key.
 | Lives in | browser code, page source | server-side config | the target fiduciary |
 | Stored as | plaintext — it is not a secret | SHA-256 digest only | SHA-256 digest only |
 | Shown | on every read of the site | once, at provisioning | once, at registration |
-| **Can** | append events for that site; record one decision; read one principal's effective state | everything that organisation owns: sites, consent history, reference data, recipients, authorisations, transfers, audit, analytics | list and collect envelopes addressed to that one recipient |
+| **Can** | append events for that site; open a consent session; record a decision **with** one; read one principal's effective state | everything that organisation owns: sites, consent history, reference data, recipients, authorisations, transfers, audit, analytics | list and collect envelopes addressed to that one recipient |
 | **Cannot** | enumerate principals, read history, reach the management plane at all | act on another organisation; decrypt anything | read what it collects, reach any other recipient's envelopes, or touch the other two planes |
 | Plane | ingestion (CORS open) | management (no CORS) | delivery (no CORS) |
 
@@ -131,31 +132,56 @@ Each of the three is a `401` on either of the other two planes, and a `401` for 
 missing, malformed or unknown key — the same response in every case, so no
 endpoint can be used to test whether a key exists.
 
-### The dashboard cookie
+### A public key is not proof of anything a person did
 
-The dashboard has no fourth credential. It signs in with the **organisation
-secret key** and stores it in a cookie:
+Phase 6A added a fourth piece of credential material, and it is not a fourth
+plane: a **consent session**. It authenticates no request on its own — the site
+public key still does that — and it exists because "the caller holds a `pk_`" is
+true of everybody who can view page source, and therefore says nothing at all
+about whether a human decided anything.
+
+| | Consent session `cs_` | Principal secret `ps_` |
+| --- | --- | --- |
+| Identifies | one browser's claim over one **principal** on one **site** | the browser that owns that principal |
+| Lives in | `localStorage`, alongside the identifier | `localStorage`, minted once by the server |
+| Stored as | SHA-256 digest only | SHA-256 digest only |
+| Lifetime | 30 minutes, capped at 50 decisions | until the browser is cleared |
+| Required by | `POST /api/v1/consent`; `POST /api/v1/events` on sites that enforce consent | `POST /api/v1/consent/session` |
+
+The property this buys, precisely: **a decision can only be recorded against a
+principal whose secret the caller holds.** It does *not* prove a human was
+involved, and no mechanism available to a server could. The full model, including
+what it deliberately does not achieve, is [security.md](security.md).
+
+### The dashboard session
+
+The dashboard has no fourth credential of its own. It signs in with the
+**organisation secret key**, and exchanges it for a revocable session:
 
 | | |
 | --- | --- |
-| Name | `rift_dashboard_key` |
-| Contents | the organisation secret key, verbatim |
+| Cookie name | `rift_dashboard_session` |
+| Contents | an opaque `ds_` token — **not** the organisation secret |
 | Flags | `httpOnly`, `sameSite: strict`, `path: /`, `secure` when `NODE_ENV=production` |
-| Lifetime | 8 hours |
+| Idle timeout | 60 minutes |
+| Absolute lifetime | 8 hours |
+| Where the secret lives | `dashboard_sessions`, sealed with AES-256-GCM under a key derived from the cookie token |
 | Read by | server components only, through `readSessionKey()` in `api/lib/dashboard/session.ts` |
 
-`httpOnly` means no page script can read it, so the secret never reaches the
-browser as a value — it is attached to outgoing requests on the server, in
-`apiGet`, and the browser only ever receives rendered HTML.
+Until Phase 6A the cookie held the organisation secret verbatim. It was
+`httpOnly` and `sameSite: strict`, so page script could not read it and
+cross-site requests did not carry it — but the cookie *was* the credential, and
+there was no way to revoke a single session. Now neither half is sufficient
+alone: the cookie without the row opens nothing, the row without the cookie
+yields ciphertext, and deleting the row ends the session immediately.
 
-**This is an MVP compromise and should be read as one.** The cookie holds a
-long-lived, all-or-nothing credential rather than a session token: anything that
-can present it *is* the organisation, for every site the organisation owns. There
-is no revocation short of rotating the organisation secret, and there is no
-endpoint that rotates one. A production system needs user accounts, short-lived
-sessions derived from them, and per-user roles — at which point the cookie holds
-a session id and the organisation secret stops travelling anywhere near a
-browser. See [Known limitations](#known-limitations).
+**What has not changed is the part that matters most, and it is still an MVP
+compromise.** There are no user accounts and no roles. A session is a container
+for one shared organisation credential, so anything holding a live one *is* the
+organisation, for every site it owns; the audit trail records what the
+organisation did, never who did it. The full account — including why building
+accounts was out of scope for a hardening phase — is in
+[security.md](security.md) and [Known limitations](#known-limitations).
 
 ## The five domains
 
@@ -214,7 +240,7 @@ exists precisely because that rule was followed rather than worked around.
 | Consent | `GET /api/v1/sites`, `GET /api/v1/consent/history`, `GET /api/v1/consent/effective` |
 | Transfers | `GET /api/v1/sites`, `GET /api/v1/authorisations`, `GET /api/v1/transfers` |
 | Analytics | `GET /api/v1/sites`, `GET /api/v1/analytics/summary` |
-| Integration | `GET /api/v1/sites`, `/purposes`, `/recipients`, `/notices`, `GET /api/healthz` |
+| Integration | `GET /api/v1/sites`, `/purposes`, `/recipients`, `/notices`, `GET /api/healthz` — the sites table shows each site's server-side consent gate, so an operator can tell enforcement from the SDK's client-side courtesy |
 
 Each page issues its requests with `Promise.all` and renders each result
 independently, so one failing endpoint degrades one panel instead of blanking the
@@ -252,12 +278,35 @@ authorisation gate.
 | `GET /api/v1/analytics/overview` | Counts across every domain: sites, consent decisions, authorisations, transfers, plus the activity totals |
 | `GET /api/v1/consent/effective` | Effective consent for one principal, on the management plane |
 | `limit` on `GET /api/v1/transfers` | Integer 1–500. It was the last unbounded list endpoint |
-| The dashboard | Five pages, sign-in, and the httpOnly cookie above |
+| The dashboard | Five pages, sign-in, and the httpOnly session cookie described above (Phase 6A changed what that cookie holds) |
 | The `unit` test project | 37 tests that need no database |
 
 **No schema change.** There is no Phase 5 migration. The analytics read models
 aggregate over tables that already existed, using indexes that already existed.
 Full request and response shapes are in [api-spec.md](api-spec.md).
+
+## What Phase 6A added
+
+A security hardening pass over the existing MVP. No new product surface, no
+regulation engine, no crawler: six things that were wrong, fixed.
+
+| | |
+| --- | --- |
+| `POST /api/v1/consent/session` | A browser proves it controls a principal before it may record a decision for one. **Breaking**: `POST /api/v1/consent` now requires the session |
+| Server-side consent enforcement | `websites.analytics_consent_purpose` makes the ingestion plane re-derive consent from the log instead of trusting a browser's gate. Opt-in per site; `null` is the pre-6A behaviour |
+| Rate limiting | Per-address and per-site fixed windows on all four browser-facing routes, applied before authentication as well as after |
+| Origin validation | `websites.domain` is finally checked, plus `websites.allowed_origins`. Defence in depth — an absent `Origin` is still allowed |
+| Immutable routing history | Triggers on `transfer_authorisations` and `transfer_records`: identity columns frozen, `status` restricted to a forward state machine, `DELETE` behind an explicit offboarding transaction |
+| Revocable dashboard sessions | The cookie holds an opaque token; the organisation secret is sealed at rest under a key derived from it |
+
+One migration, `20260903120000_phase6a_security_hardening`. Two new tables, both
+credential storage rather than product data: `consent_sessions` and
+`dashboard_sessions`. Three new columns: `principals.secret_hash`,
+`websites.analytics_consent_purpose`, `websites.allowed_origins`.
+
+**[security.md](security.md) is the document for this**, and it is organised
+around what is *enforced*, what is *defence in depth*, and what remains a
+limitation — including the things Phase 6A deliberately did not achieve.
 
 ## Security assumptions
 
@@ -298,17 +347,25 @@ does not hold.
    authorises collecting that recipient's envelopes and confers no ability to
    read them, so the blast radius of a leaked delivery key is availability and
    metadata, not confidentiality.
-8. **The append-only migration has been applied.** The immutability of
-   `consent_records` is a PostgreSQL trigger, not application logic. A database
-   the migration never reached provides no such guarantee, and nothing at runtime
-   checks that it is present.
+8. **The immutability migrations have been applied.** The append-only guarantee
+   on `consent_records` and the state-machine guards on
+   `transfer_authorisations` and `transfer_records` are PostgreSQL triggers, not
+   application logic. A database the migrations never reached provides no such
+   guarantee, and nothing at runtime checks that they are present.
 9. **Clocks are roughly in sync.** An authorisation's `expires_at` and the
    five-minute future bound on `decided_at` are both wall-clock comparisons
    across two systems.
 10. **The browser is not trusted, and does not need to be.** A `pk_` can append
-    events and record or read decisions for one principal. It can do nothing
-    else, which is why shipping the SDK to arbitrary pages is safe.
-11. **The fiduciaries at both ends behave as specified.** They are outside this
+    events and read one principal's state. Since Phase 6A it can no longer
+    *record* a decision on its own: that needs a consent session bound to a
+    principal whose secret the caller holds. What still cannot be established
+    from a browser is that a human was involved at all — see
+    [security.md](security.md), which says so rather than implying otherwise.
+11. **The browser's storage is as trustworthy as the browser.** A principal
+    secret lives in `localStorage`. Anything that can read it — an XSS on the
+    site's origin, a malicious extension, a shared machine — can record
+    decisions as that person.
+12. **The fiduciaries at both ends behave as specified.** They are outside this
     repo. In the tests they are mocks that run in the same process; in a real
     deployment they are systems Rift has no access to and cannot verify.
 
@@ -327,25 +384,40 @@ caveat — each one is a thing the MVP genuinely does not do.
   separation between someone who may read the consent log and someone who may
   authorise transfers, and no attribution: the audit trail records what the
   organisation did, never who did it.
-- **The dashboard cookie holds a long-lived secret.** Eight hours of the
-  organisation's full credential, in a cookie. It is `httpOnly` and `sameSite:
-  strict`, so page scripts cannot read it and cross-site requests do not carry
-  it, but it is the credential itself rather than a token derived from one — and
-  there is no way to revoke a single session.
-- **No rate limiting anywhere.** Ingestion accepts batches from any holder of a
-  public key, which by design is anyone who views page source. There is no
-  per-site quota, no per-IP limit, and no backpressure.
-- **No origin or domain enforcement.** `websites.domain` is stored and never
-  checked. Ingestion CORS is `Access-Control-Allow-Origin: *`, so a site's public
-  key works from any page on the internet, not only the domain it was registered
-  for.
+- **The dashboard session still carries one shared organisation credential.**
+  Phase 6A took the secret out of the cookie and made sessions revocable, with a
+  60-minute idle timeout inside the 8-hour lifetime. What it did not do is give
+  the organisation more than one credential: any live session speaks for
+  everything the organisation owns, and nothing records who opened it.
+- **Rate limiting is per process and defeatable by address rotation.** The
+  limiter is a fixed-window counter in memory: counters reset on deploy, are not
+  shared between instances, and are keyed partly on `x-forwarded-for`, which a
+  client talking to the app directly can set at will. It is worth having and is
+  not a quota system. See [security.md](security.md).
+- **Origin validation cannot be required.** A request with no `Origin` header is
+  allowed, because a legitimate server-to-server caller sends none and is
+  indistinguishable from `curl`. Checking it raises the cost of abusing a public
+  key from a web page and proves nothing about consent.
+- **Consent authenticity is possession of a secret, not evidence of intent.** A
+  session proves the caller holds a principal's secret. It does not prove a human
+  clicked anything, there is no per-decision signature an auditor could verify
+  offline, and a principal created before Phase 6A has its secret bound
+  trust-on-first-use. All three are set out in [security.md](security.md).
+- **Server-side consent enforcement for analytics is opt-in.** A site that has
+  not set `analytics_consent_purpose` has no gate, because the platform encodes
+  no legal rules and cannot decide on a fiduciary's behalf that its analytics
+  requires consent. Discovery reports are never gated, deliberately: a gate would
+  drop the evidence that something fired without consent.
 - **Refused authorisation attempts are not persisted.** A refusal writes no row,
   so nothing records a fiduciary repeatedly probing withdrawn consent. Recording
   refusals means writing on a read path, and designing that — volume, retention,
   what an unauthenticated probe should produce — is separate work.
-- **The audit trail is not itself append-only.** Only `consent_records` has the
-  trigger. The routing tables do not, and no trigger guards the timeline as a
-  whole; it is a projection over three tables, two of which are mutable.
+- **The audit trail is guarded per table, not as a whole.** All three tables it
+  projects over now have triggers: `consent_records` refuses every `UPDATE`, and
+  the two routing tables freeze their identity columns and allow `status` to move
+  only forwards along a declared state machine. Nothing guards the *timeline* as
+  an object — it is still a projection assembled at read time, and a superuser
+  can drop a trigger.
 - **No retention or erasure policy.** Events, sessions, consent records and
   delivered envelopes all accumulate indefinitely. A collected envelope stays in
   the table after delivery — unreadable to Rift, but "unreadable" is not

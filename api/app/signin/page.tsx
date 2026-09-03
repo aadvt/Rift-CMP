@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import type { OrganisationSummary } from "@rift-cmp/shared";
 import { requestOrigin } from "@/lib/dashboard/api";
 import { writeSessionKey } from "@/lib/dashboard/session";
 
@@ -8,8 +9,9 @@ export const metadata = { title: "Sign in · Rift-CMP" };
  * Sign-in.
  *
  * The dashboard authenticates with the organisation secret key. It is submitted
- * to a server action, validated against the platform API, and stored in an
- * httpOnly cookie — it is never held in browser-readable state.
+ * to a server action and validated against the platform API; what reaches the
+ * browser afterwards is an opaque session token, not the secret. See
+ * `lib/dashboard/session.ts`.
  */
 async function signIn(formData: FormData) {
   "use server";
@@ -20,7 +22,8 @@ async function signIn(formData: FormData) {
   }
 
   // Validate before storing, so a wrong key fails here rather than on every
-  // subsequent page.
+  // subsequent page. The response also names the organisation the session
+  // belongs to, which the session row needs.
   const response = await fetch(`${await requestOrigin()}/api/v1/organisation`, {
     headers: { Authorization: `Bearer ${secretKey}` },
     cache: "no-store",
@@ -30,7 +33,12 @@ async function signIn(formData: FormData) {
     redirect("/signin?error=invalid");
   }
 
-  await writeSessionKey(secretKey);
+  const organisation = (await response.json().catch(() => null)) as OrganisationSummary | null;
+  if (!organisation?.organisation_id) {
+    redirect("/signin?error=invalid");
+  }
+
+  await writeSessionKey(organisation.organisation_id, secretKey);
   redirect("/dashboard");
 }
 
@@ -78,7 +86,8 @@ export default async function SignInPage({
 
       <p className="hint" style={{ marginTop: 16 }}>
         The key is printed once by <code>npm run seed</code> in <code>database/</code>.
-        It is stored in an httpOnly cookie and never exposed to page scripts.
+        It is exchanged for a revocable session; the cookie holds an opaque token,
+        never the key itself, and no page script can read either.
       </p>
     </main>
   );

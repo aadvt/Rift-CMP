@@ -7,18 +7,34 @@ import {
   createConsentFixture,
   createOwnershipTree,
   managementRequest,
+  openConsentSession,
   resetDatabase,
   siteRequest,
+  type OpenedConsentSession,
 } from "./helpers/fixtures";
 
 beforeEach(resetDatabase);
 
 const PRINCIPAL = "principal-abc-123";
 
+/**
+ * The session every decision in this file is recorded through.
+ *
+ * Since Phase 6A the site public key alone does not authorise a write: a caller
+ * must also hold a consent session bound to the principal it is deciding for.
+ * Forgery, replay and cross-principal attempts are covered in
+ * `consent-authenticity.test.ts`; this file stays about the decision semantics.
+ */
+let session: OpenedConsentSession;
+
 async function setup() {
   const tree = await createOwnershipTree();
   const consent = await createConsentFixture(tree.orgA.organisationId);
-  return { ...tree, consent };
+  session = await openConsentSession(tree.siteA1.publicKey, {
+    siteId: tree.siteA1.siteId,
+    principalExternalId: PRINCIPAL,
+  });
+  return { ...tree, consent, session };
 }
 
 /** Records one decision through the site-authenticated API. */
@@ -30,6 +46,7 @@ async function decide(
     siteRequest("/api/v1/consent", {
       key: publicKey,
       method: "POST",
+      sessionToken: session.sessionToken,
       body: { principal_external_id: PRINCIPAL, ...body },
     }),
   );
@@ -105,6 +122,7 @@ describe("recording decisions", () => {
       siteRequest("/api/v1/consent", {
         key: siteA1.publicKey,
         method: "POST",
+        sessionToken: session.sessionToken,
         body: {
           principal_external_id: PRINCIPAL,
           purpose_code: consent.purposeCode,
@@ -125,6 +143,7 @@ describe("recording decisions", () => {
       siteRequest("/api/v1/consent", {
         key: siteA1.publicKey,
         method: "POST",
+        sessionToken: session.sessionToken,
         body: {
           principal_external_id: PRINCIPAL,
           purpose_code: consent.purposeCode,
@@ -293,6 +312,7 @@ describe("notice and policy version recording", () => {
       siteRequest("/api/v1/consent", {
         key: siteA1.publicKey,
         method: "POST",
+        sessionToken: session.sessionToken,
         body: {
           principal_external_id: PRINCIPAL,
           purpose_code: consent.undisclosedPurposeCode,

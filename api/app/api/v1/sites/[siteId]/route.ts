@@ -12,6 +12,10 @@ const updateSiteSchema = z
     name: z.string().min(1).optional(),
     domain: z.string().min(1).optional(),
     is_active: z.boolean().optional(),
+    // Phase 6A security configuration. `null` turns the analytics consent gate
+    // off again, which is why this is nullish rather than merely optional.
+    analytics_consent_purpose: z.string().min(1).max(100).nullish(),
+    allowed_origins: z.array(z.string().min(1).max(255)).max(20).optional(),
   })
   .strict();
 
@@ -48,6 +52,12 @@ export async function PATCH(request: NextRequest, ctx: RouteContext<"/api/v1/sit
       ...(parsed.data.name !== undefined ? { name: parsed.data.name } : {}),
       ...(parsed.data.domain !== undefined ? { domain: parsed.data.domain } : {}),
       ...(parsed.data.is_active !== undefined ? { isActive: parsed.data.is_active } : {}),
+      ...(parsed.data.analytics_consent_purpose !== undefined
+        ? { analyticsConsentPurpose: parsed.data.analytics_consent_purpose ?? null }
+        : {}),
+      ...(parsed.data.allowed_origins !== undefined
+        ? { allowedOrigins: parsed.data.allowed_origins }
+        : {}),
     },
   });
 

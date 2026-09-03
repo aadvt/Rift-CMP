@@ -51,6 +51,8 @@ Customer websites that install the SDK.
 | `domain` | `domain` | `String` | not null |
 | `publicKey` | `public_key` | `String` | not null, **unique** |
 | `isActive` | `is_active` | `Boolean` | not null, default `true` |
+| `analyticsConsentPurpose` | `analytics_consent_purpose` | `String?` | null = no server-side consent gate on ingestion |
+| `allowedOrigins` | `allowed_origins` | `String[]` | not null, default `{}` |
 | `createdAt` | `created_at` | `DateTime` | not null, default `now()` |
 
 Indexes and keys: `@@index([organisationId])`, `@@unique([id, organisationId])`.
@@ -58,6 +60,11 @@ Indexes and keys: `@@index([organisationId])`, `@@unique([id, organisationId])`.
 Notes:
 - `public_key` is unique, so it identifies exactly one site on its own. The API
   resolves the site from the key and never from a request body.
+- `analytics_consent_purpose` is the site's opt-in to server-side consent
+  enforcement on `POST /api/v1/events`. Null — the default — is the behaviour
+  every site had before Phase 6A. See [security.md](security.md).
+- `allowed_origins` holds full origins accepted alongside `domain`. Defence in
+  depth only: a caller that sends no `Origin` is not checked at all.
 - `@@unique([id, organisationId])` lets a tenant-scoped update address a row by
   `(id, organisation_id)`, keeping the tenant filter inside the SQL `WHERE`.
 
@@ -135,13 +142,20 @@ The person a consent decision belongs to. Anonymous for the MVP.
 | `siteId` | `site_id` | `String` | not null, FK → `websites.id` (cascade) |
 | `externalId` | `external_id` | `String` | not null |
 | `kind` | `kind` | `String` | not null, default `'anonymous'` |
+| `secretHash` | `secret_hash` | `String?` | SHA-256 of the browser-held principal secret |
 | `createdAt` | `created_at` | `DateTime` | not null, default `now()` |
 
 Indexes and keys: `@@unique([siteId, externalId])`, `@@unique([id, siteId])`.
 
 Notes:
-- `external_id` is opaque to us — the SDK mints a `crypto.randomUUID()` and keeps
-  it in `localStorage`. The same value on two sites is two different principals.
+- `external_id` is opaque to us — since Phase 6A the **server** mints it when a
+  browser opens its first consent session, and the browser keeps it in
+  `localStorage`. The same value on two sites is two different principals.
+- `secret_hash` is what stops one client recording decisions for another client's
+  principal: opening a session for an existing principal requires presenting the
+  secret whose digest this is. Null for principals created before Phase 6A, by
+  the seed script, or by an import — those are bound trust-on-first-use, which is
+  a documented weakness in [security.md](security.md).
 - `kind` is an open string, not an enum, so a principal can later be promoted to
   `"identified"` without a type migration.
 - `@@unique([id, siteId])` exists to be the target of the composite FK on
@@ -302,18 +316,22 @@ Notes:
 
 ```sql
 CREATE TRIGGER consent_records_append_only
-    BEFORE UPDATE ON "consent_records"
+    BEFORE UPDATE OR DELETE ON "consent_records"
     FOR EACH ROW EXECUTE FUNCTION rift_consent_records_append_only();
 ```
 
-The function raises unconditionally with `ERRCODE = 'restrict_violation'`
-(SQLSTATE `23001`). Consent history is preserved by the database rather than by
-convention in application code: changing your mind means appending a new record.
+`UPDATE` raises unconditionally with `ERRCODE = 'restrict_violation'` (SQLSTATE
+`23001`). Consent history is preserved by the database rather than by convention
+in application code: changing your mind means appending a new record.
 
-`DELETE` is deliberately **not** blocked. Tenant offboarding cascades from
-`organisations` and must keep working, and retention/erasure is a separate
-concern from immutability. The guarantee made here is precisely that a decision
-is never *rewritten*.
+`DELETE` raises the same way **unless** the surrounding transaction has set
+`rift.offboarding = 'on'`. That is the Phase 6A change:
+`deleteOrganisation()` in `database/tenancy.ts` is the only thing in this
+repository that sets it, with `SET LOCAL` so the permission dies with the
+transaction. Offboarding a tenant still works in one call; an ad-hoc `psql`
+session, a mistaken script or an unreviewed cascade now fails loudly.
+
+`TRUNCATE` does not fire row-level triggers, so the test harness is unaffected.
 
 ## Secure data routing models
 
@@ -424,6 +442,11 @@ Notes:
   `ConsentRecord`: it is checked at the end of the statement, so a cascading
   tenant delete succeeds while deleting a purpose or recipient that still has
   transfer history on its own still fails.
+- **Phase 6A added a guard trigger.** Every column above except `status` is
+  immutable, and `status` may only move `AUTHORISED → CONSUMED` or
+  `AUTHORISED → EXPIRED`. Re-arming a consumed single-use permission is refused
+  by the database, not merely absent from the API. `DELETE` needs the same
+  `rift.offboarding` opt-in as `consent_records`.
 
 ### `TransferRecord`
 
@@ -447,6 +470,12 @@ What actually happened, plus the sealed payload while it is in transit.
 
 Indexes and keys: `@@index([organisationId, recordedAt])`, unique index on
 `authorisation_id`.
+
+Phase 6A guard trigger: `id`, `organisation_id`, `authorisation_id`, the four
+envelope columns, `ciphertext_sha256`, `payload_bytes` and `recorded_at` are all
+immutable. `status` may only move `RECORDED → DELIVERED` or `RECORDED → FAILED`,
+and `delivered_at` and `failure_reason` are write-once. `DELETE` needs the
+`rift.offboarding` opt-in.
 
 Notes:
 - **`authorisation_id` is unique.** This is the database-level half of replay
@@ -536,9 +565,16 @@ access pattern rather than added pre-emptively.
 ## Retention
 
 The MVP does not yet specify a retention policy. This will be added when the first
-production storage strategy is defined. Note that the append-only trigger on
-`consent_records` blocks `UPDATE` only, so a future retention job can still
-delete rows; immutability and retention are separate concerns.
+production storage strategy is defined. Immutability and retention are separate
+concerns, and Phase 6A kept them separate: a future retention job deletes rows
+the same way tenant offboarding does, inside a transaction that has set
+`rift.offboarding = 'on'`. Nothing does today.
+
+`consent_sessions` and `dashboard_sessions` are the exception, and deliberately
+so: they are credentials, not history. Nothing in any read model references one,
+`purgeExpiredConsentSessions` and `purgeExpiredDashboardSessions` delete them
+freely, and **nothing calls either** — there is no scheduler in this MVP, so both
+tables grow until an operator intervenes.
 
 The same gap applies to `transfer_records`: a collected envelope stays in the
 table after delivery. It is unreadable to Rift either way, but "unreadable" is
@@ -572,4 +608,12 @@ work — see the known limitations in [secure-transfer.md](secure-transfer.md).
   dashboard read existing tables through existing indexes. A read model that
   needed a schema change would have been a sign the domains were modelled wrong,
   not a reason to add a column.
+- `20260902191721_add_discovery_domain` adds `discovered_components`,
+  `discovered_storage` and `discovery_violations`.
+- `20260903120000_phase6a_security_hardening` adds `principals.secret_hash`,
+  `websites.analytics_consent_purpose`, `websites.allowed_origins`, the
+  `consent_sessions` and `dashboard_sessions` tables, and the immutability
+  guards: `rift_offboarding_enabled()`, the extended `consent_records` trigger,
+  and new triggers on `transfer_authorisations` and `transfer_records`. It
+  changes no existing column's meaning and writes nothing onto analytics rows.
 - Never edit a migration that has been applied — add a new one.

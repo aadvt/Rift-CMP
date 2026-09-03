@@ -23,7 +23,22 @@ export type ApiErrorCode =
   | "authorisation_expired"
   | "authorisation_consumed"
   | "invalid_envelope"
-  | "ingest_failed";
+  | "ingest_failed"
+  // --- Phase 6A: security hardening -----------------------------------------
+  /** No consent session was presented where one is required. */
+  | "consent_session_required"
+  /** A consent session was presented but is unknown, revoked or not this site's. */
+  | "invalid_session"
+  | "session_expired"
+  /** The session has already recorded as many decisions as it may. */
+  | "session_exhausted"
+  /** The decision names a principal the presented session does not speak for. */
+  | "principal_mismatch"
+  /** The site enforces consent for analytics and this request did not prove it. */
+  | "consent_required"
+  /** The browser `Origin` is not one this site is configured to accept. */
+  | "origin_not_allowed"
+  | "rate_limited";
 
 export interface ApiErrorDetail {
   code: ApiErrorCode;

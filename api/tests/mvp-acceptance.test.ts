@@ -25,6 +25,7 @@ import { GET as getAudit } from "@/app/api/v1/audit/route";
 import { GET as getSummary } from "@/app/api/v1/analytics/summary/route";
 import { GET as getOverview } from "@/app/api/v1/analytics/overview/route";
 import { POST as recordConsentRoute } from "@/app/api/v1/consent/route";
+import { POST as openConsentSessionRoute } from "@/app/api/v1/consent/session/route";
 import { managementRequest, resetDatabase, siteRequest } from "./helpers/fixtures";
 import { MockTargetFiduciary, sealForAuthorisation, submissionBody } from "./helpers/fiduciaries";
 import { ConsentClient } from "../../sdk/src/consent";
@@ -78,6 +79,9 @@ async function routeToHandler(input: RequestInfo | URL, init?: RequestInit): Pro
     ...(init?.body == null ? {} : { body: init.body as BodyInit }),
   });
 
+  // The SDK opens a consent session before it records anything: the site public
+  // key alone has not authorised a write since Phase 6A.
+  if (url.pathname === "/api/v1/consent/session") return openConsentSessionRoute(request);
   if (url.pathname === "/api/v1/consent") return recordConsentRoute(request);
   if (url.pathname === "/api/v1/events") return ingestEvents(request);
   throw new Error(`Unrouted request in acceptance test: ${method} ${url.pathname}`);
@@ -181,8 +185,9 @@ describe("MVP acceptance", () => {
     await expect(consentClient.grant("analytics")).resolves.toBe(true);
 
     const principalId = consentClient.getPrincipalId();
-    // Minted lazily by the SDK, so narrow it before it is used as a filter.
-    if (principalId === null) throw new Error("SDK did not mint a principal id");
+    // Minted by the *server* when the session was opened, and stored by the SDK,
+    // so narrow it before it is used as a filter.
+    if (principalId === null) throw new Error("no principal id was established");
     expect(principalId).toMatch(/^[0-9a-f-]{36}$/);
     expect(consentClient.isGranted("analytics")).toBe(true);
 

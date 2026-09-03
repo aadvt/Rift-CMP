@@ -24,6 +24,7 @@ model Organisation {
   policies   Policy[]
   notices    Notice[]
   recipients DataRecipient[]
+  dashboardSessions DashboardSession[]
 
   @@map("organisations")
 }
@@ -37,6 +38,15 @@ model Website {
   /// authorises ingestion for this one site and nothing else.
   publicKey      String   @unique @map("public_key")
   isActive       Boolean  @default(true) @map("is_active")
+  /// Purpose code that must currently resolve to GRANTED before this site's
+  /// analytics events are accepted. Null - the default - means the ingestion
+  /// plane applies no consent gate, which is the behaviour every site had
+  /// before Phase 6A. See docs/security.md.
+  analyticsConsentPurpose String? @map("analytics_consent_purpose")
+  /// Extra browser origins accepted alongside `domain`, as full origins
+  /// (`https://app.example.com`, `http://localhost:5173`). Defence in depth:
+  /// an `Origin` header is only ever evidence about a *browser*.
+  allowedOrigins String[] @default([]) @map("allowed_origins")
   createdAt      DateTime @default(now()) @map("created_at")
 
   organisation   Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
@@ -48,6 +58,7 @@ model Website {
   discoveredComponents DiscoveredComponent[]
   discoveredStorage    DiscoveredStorage[]
   discoveryViolations  DiscoveryViolation[]
+  consentSessions      ConsentSession[]
 
   @@unique([id, organisationId])
   @@index([organisationId])
@@ -124,10 +135,18 @@ model Principal {
   externalId String   @map("external_id")
   /// "anonymous" | "identified" - open-ended by design.
   kind       String   @default("anonymous")
+  /// SHA-256 of the browser-held principal secret minted when this principal
+  /// first opened a consent session. Proving possession of it is what stops one
+  /// client recording decisions on behalf of another principal whose id it has
+  /// merely learned. Null for principals created before Phase 6A, or by the
+  /// seed script / a bulk import - see the trust-on-first-use note in
+  /// docs/security.md.
+  secretHash String?  @map("secret_hash")
   createdAt  DateTime @default(now()) @map("created_at")
 
-  website        Website         @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  consentRecords ConsentRecord[]
+  website         Website          @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  consentRecords  ConsentRecord[]
+  consentSessions ConsentSession[]
   transferAuthorisations TransferAuthorisation[]
 
   @@unique([siteId, externalId])
@@ -472,4 +491,73 @@ model DiscoveryViolation {
 
   @@index([siteId, observedAt])
   @@map("discovery_violations")
+}
+
+// ─── Security: consent sessions and dashboard sessions ───────────────────────
+//
+// Phase 6A. Both are *credential* storage, not product data: nothing here is
+// part of the consent, analytics, routing or discovery vocabulary, and no read
+// model projects them. See docs/security.md.
+
+/// A browser's proof that it controls a principal, held for a short window.
+///
+/// The site public key ships in page source, so it cannot be evidence that a
+/// human decided anything. A consent session is what carries that evidence: it
+/// is minted only after the caller proves possession of the principal secret
+/// (or mints a brand new principal), it is bound to one site and one principal,
+/// it expires, and the number of decisions it may record is capped.
+///
+/// Only the SHA-256 digest of the token is stored, exactly as for `sk_` and
+/// `rk_` credentials: a database dump yields no usable session token.
+model ConsentSession {
+  id          String   @id @default(uuid())
+  siteId      String   @map("site_id")
+  principalId String   @map("principal_id")
+  /// SHA-256 of the opaque `cs_...` token handed to the browser.
+  tokenHash   String   @unique @map("token_hash")
+  /// The `Origin` the session was opened from, when the browser sent one.
+  /// Recorded for forensics; never treated as proof of anything.
+  origin      String?
+  /// Decisions recorded through this session, against `maxDecisions`.
+  decisionCount Int    @default(0) @map("decision_count")
+  maxDecisions  Int    @map("max_decisions")
+  issuedAt    DateTime @default(now()) @map("issued_at")
+  expiresAt   DateTime @map("expires_at")
+  revokedAt   DateTime? @map("revoked_at")
+
+  /// Composite, so a session can never name a principal from another site.
+  website   Website   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  principal Principal @relation(fields: [principalId, siteId], references: [id, siteId], onDelete: Cascade)
+
+  @@index([siteId, expiresAt])
+  @@index([principalId])
+  @@map("consent_sessions")
+}
+
+/// One signed-in dashboard operator session.
+///
+/// The cookie used to hold the organisation secret verbatim. It now holds an
+/// opaque token, and the secret is sealed at rest with a key derived from that
+/// token: the database alone cannot recover it, and the cookie alone cannot
+/// either. Deleting the row revokes the session, which the old design had no
+/// way to do. It is still one shared organisation credential behind it - see
+/// the limitation in docs/security.md.
+model DashboardSession {
+  id             String   @id @default(uuid())
+  organisationId String   @map("organisation_id")
+  /// SHA-256 of the opaque `ds_...` cookie token.
+  tokenHash      String   @unique @map("token_hash")
+  /// AES-256-GCM ciphertext of the organisation secret, base64.
+  sealedSecret   String   @map("sealed_secret")
+  sealIv         String   @map("seal_iv")
+  sealTag        String   @map("seal_tag")
+  createdAt      DateTime @default(now()) @map("created_at")
+  lastSeenAt     DateTime @default(now()) @map("last_seen_at")
+  expiresAt      DateTime @map("expires_at")
+  revokedAt      DateTime? @map("revoked_at")
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@map("dashboard_sessions")
 }
