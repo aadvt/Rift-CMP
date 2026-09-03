@@ -284,7 +284,7 @@ authorisation gate.
 | `GET /api/v1/consent/effective` | Effective consent for one principal, on the management plane |
 | `limit` on `GET /api/v1/transfers` | Integer 1–500. It was the last unbounded list endpoint |
 | The dashboard | Five pages, sign-in, and the httpOnly session cookie described above (Phase 6A changed what that cookie holds) |
-| The `unit` test project | 37 tests that need no database |
+| The `unit` test project | 270 tests that need no database |
 
 **No schema change.** There is no Phase 5 migration. The analytics read models
 aggregate over tables that already existed, using indexes that already existed.
@@ -574,8 +574,8 @@ Then:
 The checks, from the repo root:
 
 ```bash
-npm run test:unit   # 37 tests, no database, seconds
-npm test            # all 215 tests; the integration half needs Postgres
+npm run test:unit   # 270 tests, no database, seconds
+npm test            # unit plus integration; the integration half needs Postgres
 npm run typecheck
 npm run lint
 npm run build

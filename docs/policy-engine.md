@@ -37,11 +37,13 @@ be fixed, which is the property worth protecting.
 ## Using it
 
 ```ts
-import { evaluate } from "@rift-cmp/policy";
+import { evaluate, WEBSITE_OPERATOR_ROLES } from "@rift-cmp/policy";
 
 const decision = evaluate({
   jurisdictions: ["EU"],
-  actor: "determines_purpose",
+  // Plural: one company is both the party deciding the purposes and the
+  // operator of the service, and the cookie rules bind the second.
+  actors: WEBSITE_OPERATOR_ROLES,
   asOf: new Date("2026-09-04"),
   processingContexts: ["cookies"],
 });
@@ -135,7 +137,7 @@ The only way a condition resolves:
 ```ts
 evaluate({
   jurisdictions: ["EU"],
-  actor: "service_operator",
+  actors: ["service_operator"],
   asOf: new Date("2026-09-04"),
   processingContexts: ["terminal_equipment"],
   assertedConditions: ["strictly_necessary"],
