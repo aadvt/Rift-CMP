@@ -1,0 +1,99 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/rift-cmp/schemas/source.schema.json",
+    "title": "Regulation Source",
+    "description": "Schema for legal and authoritative sources used in Rift-CMP regulation research.",
+    "type": "object",
+    "required": [
+        "source_id",
+        "regime",
+        "title",
+        "source_type",
+        "authority",
+        "url"
+    ],
+    "properties": {
+        "source_id": {
+            "type": "string",
+            "minLength": 1
+        },
+        "regime": {
+            "type": "string",
+            "minLength": 1
+        },
+        "title": {
+            "type": "string",
+            "minLength": 1
+        },
+        "source_type": {
+            "type": "string",
+            "enum": [
+                "primary",
+                "primary_official",
+                "primary_regulatory",
+                "official_guidance",
+                "official_information",
+                "derived_model",
+                "secondary_authoritative"
+            ]
+        },
+        "authority": {
+            "type": "string",
+            "minLength": 1
+        },
+        "publisher": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "publication_date": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date"
+        },
+        "effective_date": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date"
+        },
+        "application_date": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date"
+        },
+        "version": {
+            "type": [
+                "string",
+                "null"
+            ]
+        },
+        "url": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "uri"
+        },
+        "retrieved_date": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date"
+        },
+        "notes": {
+            "type": [
+                "string",
+                "null"
+            ]
+        }
+    },
+    "additionalProperties": false
+}

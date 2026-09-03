@@ -1,0 +1,89 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://rift-cmp.local/schemas/applicability.schema.json",
+    "title": "Regulation Applicability",
+    "description": "Schema for determining when a privacy regulation or requirement applies.",
+    "type": "object",
+    "required": [
+        "applies",
+        "triggers",
+        "covered_actors",
+        "regions",
+        "conditions",
+        "exceptions"
+    ],
+    "properties": {
+        "applies": {
+            "type": "boolean"
+        },
+        "triggers": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "covered_actors": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "regions": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "data_categories": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "processing_contexts": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "conditions": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "exceptions": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "effective_from": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date"
+        },
+        "effective_to": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "format": "date"
+        },
+        "source_ids": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "notes": {
+            "type": [
+                "string",
+                "null"
+            ]
+        }
+    },
+    "additionalProperties": false
+}

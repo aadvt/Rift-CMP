@@ -1,0 +1,189 @@
+{
+    "schema_version": "1.0.0",
+    "research_status": "research",
+    "legal_advice": false,
+    "sources": [
+        {
+            "source_id": "SRC-GDPR-EURLEX",
+            "regime": "GDPR",
+            "title": "Regulation (EU) 2016/679 (General Data Protection Regulation)",
+            "publisher": "European Union",
+            "source_type": "primary",
+            "authority": "EUR-Lex",
+            "publication_date": "2016-04-27",
+            "effective_date": "2016-05-24",
+            "application_date": "2018-05-25",
+            "url": "https://eur-lex.europa.eu/eli/reg/2016/679/oj",
+            "notes": "Primary legal text. Use the consolidated/current text when validating individual requirements."
+        },
+        {
+            "source_id": "SRC-GDPR-EC",
+            "regime": "GDPR",
+            "title": "Data protection under GDPR",
+            "publisher": "European Commission",
+            "source_type": "official_guidance",
+            "authority": "European Commission",
+            "url": "https://commission.europa.eu/law/law-topic/data-protection/data-protection-eu_en",
+            "notes": "Official explanatory and guidance material; not a substitute for the GDPR text."
+        },
+        {
+            "source_id": "SRC-GDPR-EDPB-LAWFUL-BASIS",
+            "regime": "GDPR",
+            "title": "Lawfulness of processing",
+            "publisher": "European Data Protection Board",
+            "source_type": "official_guidance",
+            "authority": "EDPB",
+            "url": "https://www.edpb.europa.eu/sme-data-protection-guide/principles-processing-personal-data/lawfulness-processing_en",
+            "notes": "Supports the six GDPR legal bases and related explanations."
+        },
+        {
+            "source_id": "SRC-EP-EURLEX",
+            "regime": "EU-ePrivacy",
+            "title": "Directive 2002/58/EC concerning the processing of personal data and protection of privacy in the electronic communications sector",
+            "publisher": "European Union",
+            "source_type": "primary",
+            "authority": "EUR-Lex",
+            "publication_date": "2002-07-12",
+            "url": "https://eur-lex.europa.eu/eli/dir/2002/58/oj",
+            "notes": "Primary EU ePrivacy Directive text. National transposition must be considered."
+        },
+        {
+            "source_id": "SRC-EP-EC",
+            "regime": "EU-ePrivacy",
+            "title": "Privacy and electronic communications",
+            "publisher": "European Commission",
+            "source_type": "official_information",
+            "authority": "European Commission",
+            "url": "https://digital-strategy.ec.europa.eu/en/policies/privacy-electronic-communications",
+            "notes": "Official EU-level contextual material. Directive requirements remain subject to national implementation."
+        },
+        {
+            "source_id": "SRC-IN-DPDP-ACT-GAZETTE",
+            "regime": "India-DPDP-Act",
+            "title": "Digital Personal Data Protection Act, 2023",
+            "publisher": "Government of India",
+            "source_type": "primary",
+            "authority": "Gazette of India",
+            "publication_date": "2023-08-11",
+            "url": "https://www.meity.gov.in/static/uploads/2024/02/Digital-Personal-Data-Protection-Act-2023.pdf",
+            "notes": "Primary statutory text. Act No. 22 of 2023."
+        },
+        {
+            "source_id": "SRC-IN-DPDP-COMMENCEMENT",
+            "regime": "India-DPDP-Act",
+            "title": "Digital Personal Data Protection Act, 2023 commencement notification",
+            "publisher": "Government of India",
+            "source_type": "primary",
+            "authority": "Ministry of Electronics and Information Technology",
+            "publication_date": "2025-11-13",
+            "url": "https://www.meity.gov.in/",
+            "notes": "G.S.R. 843(E). Commencement is phased across specified provisions."
+        },
+        {
+            "source_id": "SRC-IN-DPDP-RULES-GAZETTE",
+            "regime": "India-DPDP-Rules",
+            "title": "Digital Personal Data Protection Rules, 2025",
+            "publisher": "Government of India",
+            "source_type": "primary",
+            "authority": "Gazette of India",
+            "publication_date": "2025-11-13",
+            "url": "https://www.meity.gov.in/",
+            "notes": "Final notified Rules. G.S.R. 846(E). Rule 1 specifies phased commencement."
+        },
+        {
+            "source_id": "SRC-IN-DPDP-RULES-MEITY",
+            "regime": "India-DPDP-Rules",
+            "title": "Digital Personal Data Protection Rules, 2025",
+            "publisher": "Ministry of Electronics and Information Technology",
+            "source_type": "official_information",
+            "authority": "MeitY",
+            "publication_date": "2025-11-14",
+            "url": "https://www.meity.gov.in/",
+            "notes": "Official MeitY publication page for the final Rules. A corrigendum was published on 2025-12-16."
+        },
+        {
+            "source_id": "SRC-CA-CCPA-CPPA",
+            "regime": "California-CCPA-CPRA",
+            "title": "California Consumer Privacy Act (CCPA)",
+            "publisher": "California Privacy Protection Agency",
+            "source_type": "primary_official",
+            "authority": "CPPA",
+            "url": "https://cppa.ca.gov/regulations/",
+            "notes": "Official California privacy law and regulations resource."
+        },
+        {
+            "source_id": "SRC-CA-REGULATIONS-2026",
+            "regime": "California-CCPA-CPRA",
+            "title": "California Consumer Privacy Act Regulations",
+            "publisher": "California Privacy Protection Agency",
+            "source_type": "primary",
+            "authority": "CPPA",
+            "effective_date": "2026-01-01",
+            "url": "https://cppa.ca.gov/regulations/",
+            "notes": "Current regulatory framework should be validated against the applicable version and effective date."
+        },
+        {
+            "source_id": "SRC-CA-OAG-CCPA",
+            "regime": "California-CCPA-CPRA",
+            "title": "California Consumer Privacy Act",
+            "publisher": "California Department of Justice",
+            "source_type": "official_information",
+            "authority": "California Attorney General",
+            "url": "https://oag.ca.gov/privacy/ccpa",
+            "notes": "Official consumer-rights and CCPA explanatory material."
+        },
+        {
+            "source_id": "SRC-BR-LGPD-LAW",
+            "regime": "Brazil-LGPD",
+            "title": "Lei Geral de Proteção de Dados Pessoais — Lei No. 13.709/2018",
+            "publisher": "Government of Brazil",
+            "source_type": "primary",
+            "authority": "Câmara dos Deputados / Brazilian legislation",
+            "publication_date": "2018-08-14",
+            "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm",
+            "notes": "Primary LGPD statutory text."
+        },
+        {
+            "source_id": "SRC-BR-ANPD-REGULATIONS",
+            "regime": "Brazil-LGPD",
+            "title": "ANPD Regulations",
+            "publisher": "Autoridade Nacional de Proteção de Dados",
+            "source_type": "official_regulatory",
+            "authority": "ANPD",
+            "url": "https://www.gov.br/anpd/pt-br/assuntos/regulamentacoes",
+            "notes": "Official repository of ANPD resolutions and regulations."
+        },
+        {
+            "source_id": "SRC-BR-ANPD-TRANSFERS",
+            "regime": "Brazil-LGPD",
+            "title": "Resolution CD/ANPD No. 19 — International Data Transfers",
+            "publisher": "Autoridade Nacional de Proteção de Dados",
+            "source_type": "primary_regulatory",
+            "authority": "ANPD",
+            "publication_date": "2024-08-23",
+            "url": "https://www.gov.br/anpd/",
+            "notes": "Regulates international data transfers and standard contractual clauses. Corrigendum published 2025-08-18."
+        },
+        {
+            "source_id": "SRC-BR-ANPD-SANCTIONS",
+            "regime": "Brazil-LGPD",
+            "title": "Resolution No. 4 — Administrative Sanctions and Dosimetry",
+            "publisher": "Autoridade Nacional de Proteção de Dados",
+            "source_type": "primary_regulatory",
+            "authority": "ANPD",
+            "publication_date": "2023-02-24",
+            "url": "https://www.gov.br/anpd/",
+            "notes": "Official ANPD framework for administrative sanctions and dosimetry."
+        },
+        {
+            "source_id": "SRC-US-STATE-MODEL",
+            "regime": "US-State-Model",
+            "title": "US State Privacy Law Comparative Model",
+            "publisher": "Rift-CMP research model",
+            "source_type": "derived_model",
+            "authority": "Internal research",
+            "url": null,
+            "notes": "Not a legal source and not a statement of law. Represents common schema dimensions across US state privacy regimes. Individual state laws must be sourced separately before implementation."
+        }
+    ]
+}
