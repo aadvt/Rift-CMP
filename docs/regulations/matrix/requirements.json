@@ -1,2145 +1,2171 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://example.com/rift-cmp/regulations/matrix/requirements.json",
-    "schema_version": "1.1.0",
-    "description": "Machine-readable privacy regulation requirement matrix for Rift-CMP.",
-    "research_status": "research",
-    "legal_advice": false,
-    "requirements": [
-        {
-            "requirement_id": "REQ-GDPR-001",
-            "regime": "GDPR",
-            "topic": "territorial_scope",
-            "requirement": "GDPR applies to processing within its territorial scope, including specified processing activities connected with offering goods or services to, or monitoring the behaviour of, individuals in the Union.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "processing_in_union",
-                    "offering_goods_or_services_to_individuals_in_union",
-                    "monitoring_behaviour_in_union"
-                ],
-                "covered_actors": [
-                    "controller",
-                    "processor"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "personal_data"
-            ],
-            "contexts": [],
-            "regions": [
-                "EU"
-            ],
-            "exceptions": [],
-            "effective_from": "2018-05-25",
-            "effective_to": null,
-            "policy_version": "GDPR-2016-679",
-            "source_ids": [
-                "SRC-GDPR-EURLEX"
-            ]
-        },
-        {
-            "requirement_id": "REQ-GDPR-002",
-            "regime": "GDPR",
-            "topic": "lawful_basis",
-            "requirement": "Processing must have a lawful basis under Article 6.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "processing_of_personal_data"
-                ],
-                "covered_actors": [
-                    "controller"
-                ]
-            },
-            "legal_bases": [
-                "consent",
-                "contract",
-                "legal_obligation",
-                "vital_interests",
-                "public_task",
-                "legitimate_interests"
-            ],
-            "purposes": [],
-            "data_categories": [
-                "personal_data"
-            ],
-            "contexts": [],
-            "exceptions": [],
-            "effective_from": "2018-05-25",
-            "effective_to": null,
-            "policy_version": "GDPR-2016-679",
-            "source_ids": [
-                "SRC-GDPR-EURLEX",
-                "SRC-GDPR-EDPB-LAWFUL-BASIS"
-            ]
-        },
-        {
-            "requirement_id": "REQ-GDPR-003",
-            "regime": "GDPR",
-            "topic": "consent",
-            "requirement": "Where consent is relied upon, consent must satisfy GDPR requirements including being freely given, specific, informed and unambiguous, with a clear affirmative action.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "consent_used_as_legal_basis"
-                ],
-                "covered_actors": [
-                    "controller"
-                ]
-            },
-            "legal_bases": [
-                "consent"
-            ],
-            "purposes": [],
-            "data_categories": [
-                "personal_data"
-            ],
-            "contexts": [],
-            "consent": {
-                "required": true,
-                "conditions": [
-                    "freely_given",
-                    "specific",
-                    "informed",
-                    "unambiguous",
-                    "clear_affirmative_action"
-                ],
-                "withdrawal_required": true
-            },
-            "exceptions": [],
-            "effective_from": "2018-05-25",
-            "effective_to": null,
-            "policy_version": "GDPR-2016-679",
-            "source_ids": [
-                "SRC-GDPR-EURLEX"
-            ]
-        },
-        {
-            "requirement_id": "REQ-GDPR-004",
-            "regime": "GDPR",
-            "topic": "special_categories",
-            "requirement": "Processing of special categories of personal data is prohibited unless an Article 9 exception applies.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "special_category_data"
-                ],
-                "covered_actors": [
-                    "controller",
-                    "processor"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "special_category_data"
-            ],
-            "contexts": [],
-            "exceptions": [
-                "article_9_conditions"
-            ],
-            "effective_from": "2018-05-25",
-            "effective_to": null,
-            "policy_version": "GDPR-2016-679",
-            "source_ids": [
-                "SRC-GDPR-EURLEX"
-            ]
-        },
-        {
-            "requirement_id": "REQ-GDPR-005",
-            "regime": "GDPR",
-            "topic": "children",
-            "requirement": "For information-society services offered directly to a child, consent-based processing is subject to Article 8 age and parental-authorisation requirements, subject to Member State variation within the permitted range.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "child",
-                    "information_society_service",
-                    "consent_based_processing"
-                ],
-                "covered_actors": [
-                    "controller"
-                ]
-            },
-            "legal_bases": [
-                "consent"
-            ],
-            "purposes": [],
-            "data_categories": [
-                "personal_data"
-            ],
-            "contexts": [
-                "online_service"
-            ],
-            "children": {
-                "applies": true,
-                "conditions": [
-                    "article_8_age_threshold",
-                    "parental_authorisation_where_required"
-                ]
-            },
-            "exceptions": [],
-            "effective_from": "2018-05-25",
-            "effective_to": null,
-            "policy_version": "GDPR-2016-679",
-            "source_ids": [
-                "SRC-GDPR-EURLEX"
-            ]
-        },
-        {
-            "requirement_id": "REQ-GDPR-006",
-            "regime": "GDPR",
-            "topic": "transparency",
-            "requirement": "Controllers must provide required information to data subjects in a concise, transparent, intelligible and easily accessible form.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "collection_of_personal_data"
-                ],
-                "covered_actors": [
-                    "controller"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "personal_data"
-            ],
-            "contexts": [],
-            "exceptions": [],
-            "effective_from": "2018-05-25",
-            "effective_to": null,
-            "policy_version": "GDPR-2016-679",
-            "source_ids": [
-                "SRC-GDPR-EURLEX",
-                "SRC-GDPR-EC"
-            ]
-        },
-        {
-            "requirement_id": "REQ-GDPR-007",
-            "regime": "GDPR",
-            "topic": "data_subject_rights",
-            "requirement": "Data subjects have rights including access, rectification, erasure, restriction, portability and objection, subject to applicable conditions and exceptions.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "data_subject_request"
-                ],
-                "covered_actors": [
-                    "controller"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "personal_data"
-            ],
-            "contexts": [],
-            "exceptions": [
-                "gdpr_right_specific_exceptions"
-            ],
-            "effective_from": "2018-05-25",
-            "effective_to": null,
-            "policy_version": "GDPR-2016-679",
-            "source_ids": [
-                "SRC-GDPR-EURLEX",
-                "SRC-GDPR-EC"
-            ]
-        },
-        {
-            "requirement_id": "REQ-GDPR-008",
-            "regime": "GDPR",
-            "topic": "international_transfers",
-            "requirement": "Transfers of personal data to third countries or international organisations require an applicable GDPR transfer mechanism.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "third_country_transfer",
-                    "international_organisation_transfer"
-                ],
-                "covered_actors": [
-                    "controller",
-                    "processor"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "personal_data"
-            ],
-            "contexts": [
-                "international_transfer"
-            ],
-            "exceptions": [
-                "adequacy_decision",
-                "appropriate_safeguards",
-                "derogations"
-            ],
-            "effective_from": "2018-05-25",
-            "effective_to": null,
-            "policy_version": "GDPR-2016-679",
-            "source_ids": [
-                "SRC-GDPR-EURLEX",
-                "SRC-GDPR-EC"
-            ]
-        },
-        {
-            "requirement_id": "REQ-EP-001",
-            "regime": "EU-ePrivacy",
-            "topic": "communications_confidentiality",
-            "requirement": "Member States must ensure confidentiality of communications and related traffic data through national implementation of the ePrivacy Directive.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "electronic_communications"
-                ],
-                "covered_actors": [
-                    "electronic_communications_provider"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "communications_content",
-                "traffic_data"
-            ],
-            "contexts": [
-                "electronic_communications"
-            ],
-            "regions": [
-                "EU"
-            ],
-            "exceptions": [],
-            "effective_from": "2002-07-31",
-            "effective_to": null,
-            "policy_version": "Directive-2002-58-EC",
-            "source_ids": [
-                "SRC-EP-EURLEX"
-            ],
-            "notes": "Directive-level requirement. National transposition must be evaluated."
-        },
-        {
-            "requirement_id": "REQ-EP-002",
-            "regime": "EU-ePrivacy",
-            "topic": "terminal_equipment",
-            "requirement": "Storage of information or access to information already stored in a subscriber or user's terminal equipment is subject to consent unless a statutory exception under Article 5(3) applies.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "terminal_equipment_storage",
-                    "terminal_equipment_access"
-                ],
-                "covered_actors": [
-                    "service_provider",
-                    "website_operator"
-                ]
-            },
-            "legal_bases": [
-                "consent"
-            ],
-            "purposes": [],
-            "data_categories": [
-                "terminal_equipment_information"
-            ],
-            "contexts": [
-                "cookies",
-                "tracking",
-                "terminal_equipment"
-            ],
-            "regions": [
-                "EU"
-            ],
-            "consent": {
-                "required": true,
-                "conditions": [
-                    "subject_to_national_transposition",
-                    "article_5_3_exceptions"
-                ],
-                "withdrawal_required": true
-            },
-            "exceptions": [
-                "communication_transmission",
-                "strictly_necessary_service"
-            ],
-            "effective_from": "2002-07-31",
-            "effective_to": null,
-            "policy_version": "Directive-2002-58-EC",
-            "source_ids": [
-                "SRC-EP-EURLEX"
-            ],
-            "notes": "Do not treat this as a universal rule that all analytics or all cookies require consent; classification depends on the activity and applicable national implementation."
-        },
-        {
-            "requirement_id": "REQ-EP-003",
-            "regime": "EU-ePrivacy",
-            "topic": "direct_marketing",
-            "requirement": "Direct marketing by electronic communications is subject to the conditions established by Article 13 and applicable national implementation.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "electronic_direct_marketing"
-                ],
-                "covered_actors": [
-                    "marketer",
-                    "electronic_communications_provider"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [
-                "direct_marketing"
-            ],
-            "data_categories": [
-                "contact_data"
-            ],
-            "contexts": [
-                "electronic_marketing"
-            ],
-            "regions": [
-                "EU"
-            ],
-            "exceptions": [
-                "existing_customer_similar_products_conditions"
-            ],
-            "effective_from": "2002-07-31",
-            "effective_to": null,
-            "policy_version": "Directive-2002-58-EC",
-            "source_ids": [
-                "SRC-EP-EURLEX"
-            ],
-            "notes": "National implementation must be checked."
-        },
-        {
-            "requirement_id": "REQ-IN-DPDP-ACT-001",
-            "regime": "India-DPDP-Act",
-            "topic": "scope",
-            "requirement": "The Act applies to digital personal data processed in India where the personal data is collected digitally or collected in non-digital form and subsequently digitised, and to certain processing outside India connected with offering goods or services to Data Principals in India.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "digital_personal_data_processing_in_india",
-                    "offering_goods_or_services_to_data_principals_in_india"
-                ],
-                "covered_actors": [
-                    "data_fiduciary",
-                    "data_processor"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "digital_personal_data"
-            ],
-            "contexts": [],
-            "regions": [
-                "India"
-            ],
-            "exceptions": [],
-            "effective_from": null,
-            "effective_to": null,
-            "policy_version": "DPDP-Act-2023",
-            "source_ids": [
-                "SRC-IN-DPDP-ACT",
-                "SRC-IN-DPDP-ACT-COMMENCEMENT"
-            ],
-            "notes": "Provision-level commencement must be evaluated; the Act does not have one universal operative date for all provisions."
-        },
-        {
-            "requirement_id": "REQ-IN-DPDP-ACT-002",
-            "regime": "India-DPDP-Act",
-            "topic": "lawful_processing",
-            "requirement": "A Data Fiduciary may process personal data for a lawful purpose on the basis of consent or specified legitimate uses under the Act.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "processing_of_digital_personal_data"
-                ],
-                "covered_actors": [
-                    "data_fiduciary"
-                ]
-            },
-            "legal_bases": [
-                "consent",
-                "legitimate_use"
-            ],
-            "purposes": [],
-            "data_categories": [
-                "digital_personal_data"
-            ],
-            "contexts": [],
-            "exceptions": [
-                "specified_legitimate_uses"
-            ],
-            "effective_from": null,
-            "effective_to": null,
-            "policy_version": "DPDP-Act-2023",
-            "source_ids": [
-                "SRC-IN-DPDP-ACT",
-                "SRC-IN-DPDP-ACT-COMMENCEMENT"
-            ]
-        },
-        {
-            "requirement_id": "REQ-IN-DPDP-ACT-003",
-            "regime": "India-DPDP-Act",
-            "topic": "consent",
-            "requirement": "Consent must be free, specific, informed and unambiguous, with a clear affirmative action, and must be capable of withdrawal.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "consent_used_as_basis"
-                ],
-                "covered_actors": [
-                    "data_fiduciary"
-                ]
-            },
-            "legal_bases": [
-                "consent"
-            ],
-            "purposes": [],
-            "data_categories": [
-                "digital_personal_data"
-            ],
-            "contexts": [],
-            "consent": {
-                "required": true,
-                "conditions": [
-                    "free",
-                    "specific",
-                    "informed",
-                    "unambiguous",
-                    "clear_affirmative_action"
-                ],
-                "withdrawal_required": true
-            },
-            "exceptions": [],
-            "effective_from": null,
-            "effective_to": null,
-            "policy_version": "DPDP-Act-2023",
-            "source_ids": [
-                "SRC-IN-DPDP-ACT",
-                "SRC-IN-DPDP-ACT-COMMENCEMENT"
-            ]
-        },
-        {
-            "requirement_id": "REQ-IN-DPDP-ACT-004",
-            "regime": "India-DPDP-Act",
-            "topic": "notice",
-            "requirement": "The Data Fiduciary must give notice containing required information concerning the personal data and purpose of processing.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "collection_or_processing_of_personal_data"
-                ],
-                "covered_actors": [
-                    "data_fiduciary"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "digital_personal_data"
-            ],
-            "contexts": [],
-            "exceptions": [],
-            "effective_from": null,
-            "effective_to": null,
-            "policy_version": "DPDP-Act-2023",
-            "source_ids": [
-                "SRC-IN-DPDP-ACT",
-                "SRC-IN-DPDP-ACT-COMMENCEMENT"
-            ]
-        },
-        {
-            "requirement_id": "REQ-IN-DPDP-ACT-005",
-            "regime": "India-DPDP-Act",
-            "topic": "withdrawal",
-            "requirement": "Withdrawal of consent must be as easy as giving consent, and processing must cease unless otherwise authorised under the Act.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "withdrawal_of_consent"
-                ],
-                "covered_actors": [
-                    "data_fiduciary"
-                ]
-            },
-            "legal_bases": [
-                "consent"
-            ],
-            "purposes": [],
-            "data_categories": [
-                "digital_personal_data"
-            ],
-            "contexts": [],
-            "consent": {
-                "required": true,
-                "conditions": [
-                    "withdrawal_mechanism_as_easy_as_consent"
-                ],
-                "withdrawal_required": true
-            },
-            "exceptions": [
-                "other_authorisation_under_act"
-            ],
-            "effective_from": null,
-            "effective_to": null,
-            "policy_version": "DPDP-Act-2023",
-            "source_ids": [
-                "SRC-IN-DPDP-ACT",
-                "SRC-IN-DPDP-ACT-COMMENCEMENT"
-            ]
-        },
-        {
-            "requirement_id": "REQ-IN-DPDP-ACT-006",
-            "regime": "India-DPDP-Act",
-            "topic": "data_subject_rights",
-            "requirement": "Data Principals have rights including access to information, correction and erasure, grievance redressal and nomination, subject to the Act.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "data_principal_request"
-                ],
-                "covered_actors": [
-                    "data_fiduciary"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "digital_personal_data"
-            ],
-            "contexts": [],
-            "exceptions": [],
-            "effective_from": null,
-            "effective_to": null,
-            "policy_version": "DPDP-Act-2023",
-            "source_ids": [
-                "SRC-IN-DPDP-ACT",
-                "SRC-IN-DPDP-ACT-COMMENCEMENT"
-            ]
-        },
-        {
-            "requirement_id": "REQ-IN-DPDP-ACT-007",
-            "regime": "India-DPDP-Act",
-            "topic": "children",
-            "requirement": "Processing personal data of children requires verifiable parental consent and is subject to restrictions on detrimental processing, tracking or behavioural monitoring, and targeted advertising, subject to statutory exemptions.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "child_data"
-                ],
-                "covered_actors": [
-                    "data_fiduciary"
-                ]
-            },
-            "legal_bases": [
-                "consent"
-            ],
-            "purposes": [],
-            "data_categories": [
-                "child_personal_data"
-            ],
-            "contexts": [],
-            "children": {
-                "applies": true,
-                "conditions": [
-                    "verifiable_parental_consent",
-                    "child_restrictions"
-                ]
-            },
-            "exceptions": [
-                "notified_exemptions"
-            ],
-            "effective_from": null,
-            "effective_to": null,
-            "policy_version": "DPDP-Act-2023",
-            "source_ids": [
-                "SRC-IN-DPDP-ACT",
-                "SRC-IN-DPDP-ACT-COMMENCEMENT"
-            ]
-        },
-        {
-            "requirement_id": "REQ-IN-DPDP-ACT-008",
-            "regime": "India-DPDP-Act",
-            "topic": "security",
-            "requirement": "Data Fiduciaries must implement reasonable security safeguards to prevent personal data breaches.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "processing_of_digital_personal_data"
-                ],
-                "covered_actors": [
-                    "data_fiduciary"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "digital_personal_data"
-            ],
-            "contexts": [],
-            "exceptions": [],
-            "effective_from": null,
-            "effective_to": null,
-            "policy_version": "DPDP-Act-2023",
-            "source_ids": [
-                "SRC-IN-DPDP-ACT",
-                "SRC-IN-DPDP-ACT-COMMENCEMENT"
-            ]
-        },
-        {
-            "requirement_id": "REQ-IN-DPDP-ACT-009",
-            "regime": "India-DPDP-Act",
-            "topic": "international_transfer",
-            "requirement": "The Central Government may restrict transfer of personal data by a Data Fiduciary for processing outside India to notified countries or territories.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "processing_outside_india"
-                ],
-                "covered_actors": [
-                    "data_fiduciary"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "digital_personal_data"
-            ],
-            "contexts": [
-                "international_transfer"
-            ],
-            "regions": [
-                "India"
-            ],
-            "exceptions": [],
-            "effective_from": null,
-            "effective_to": null,
-            "policy_version": "DPDP-Act-2023",
-            "source_ids": [
-                "SRC-IN-DPDP-ACT",
-                "SRC-IN-DPDP-ACT-COMMENCEMENT"
-            ]
-        },
-        {
-            "requirement_id": "REQ-IN-DPDP-ACT-010",
-            "regime": "India-DPDP-Act",
-            "topic": "significant_data_fiduciary",
-            "requirement": "A Significant Data Fiduciary is subject to additional governance obligations including appointment of a Data Protection Officer and independent data auditor and specified impact assessment and audit requirements.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "significant_data_fiduciary_designation"
-                ],
-                "covered_actors": [
-                    "significant_data_fiduciary"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "digital_personal_data"
-            ],
-            "contexts": [],
-            "exceptions": [],
-            "effective_from": null,
-            "effective_to": null,
-            "policy_version": "DPDP-Act-2023",
-            "source_ids": [
-                "SRC-IN-DPDP-ACT",
-                "SRC-IN-DPDP-ACT-COMMENCEMENT"
-            ]
-        },
-        {
-            "requirement_id": "REQ-IN-DPDP-RULES-001",
-            "regime": "India-DPDP-Rules",
-            "topic": "commencement",
-            "requirement": "The Rules commence in phases specified by Rule 1.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "rule_specific_commencement"
-                ],
-                "covered_actors": [
-                    "data_fiduciary",
-                    "data_processor",
-                    "consent_manager",
-                    "significant_data_fiduciary"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [],
-            "contexts": [],
-            "exceptions": [],
-            "effective_from": "2025-11-13",
-            "effective_to": null,
-            "policy_version": "DPDP-Rules-2025",
-            "source_ids": [
-                "SRC-IN-DPDP-RULES",
-                "SRC-IN-DPDP-RULES-CORRIGENDUM"
-            ],
-            "notes": "Rules 1, 2 and 17–21 commence on publication; Rule 4 one year after publication; Rules 3, 5–16 and 22–23 eighteen months after publication."
-        },
-        {
-            "requirement_id": "REQ-IN-DPDP-RULES-002",
-            "regime": "India-DPDP-Rules",
-            "topic": "notice_and_consent",
-            "requirement": "The Rules provide implementation requirements concerning notices and consent mechanisms under the Act.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "notice",
-                    "consent"
-                ],
-                "covered_actors": [
-                    "data_fiduciary",
-                    "consent_manager"
-                ]
-            },
-            "legal_bases": [
-                "consent"
-            ],
-            "purposes": [],
-            "data_categories": [
-                "digital_personal_data"
-            ],
-            "contexts": [],
-            "exceptions": [],
-            "effective_from": "2027-05-13",
-            "effective_to": null,
-            "policy_version": "DPDP-Rules-2025",
-            "source_ids": [
-                "SRC-IN-DPDP-RULES",
-                "SRC-IN-DPDP-RULES-CORRIGENDUM"
-            ],
-            "notes": "Validate exact sub-rule applicability before implementation."
-        },
-        {
-            "requirement_id": "REQ-IN-DPDP-RULES-003",
-            "regime": "India-DPDP-Rules",
-            "topic": "security_and_breach",
-            "requirement": "The Rules specify security safeguards and personal data breach-related obligations under the Act.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "security_safeguards",
-                    "personal_data_breach"
-                ],
-                "covered_actors": [
-                    "data_fiduciary",
-                    "data_processor"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "digital_personal_data"
-            ],
-            "contexts": [
-                "security",
-                "data_breach"
-            ],
-            "exceptions": [],
-            "effective_from": "2027-05-13",
-            "effective_to": null,
-            "policy_version": "DPDP-Rules-2025",
-            "source_ids": [
-                "SRC-IN-DPDP-RULES",
-                "SRC-IN-DPDP-RULES-CORRIGENDUM"
-            ]
-        },
-        {
-            "requirement_id": "REQ-IN-DPDP-RULES-004",
-            "regime": "India-DPDP-Rules",
-            "topic": "children",
-            "requirement": "The Rules provide implementation details concerning verifiable parental consent and specified exemptions for processing children's personal data.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "child_data"
-                ],
-                "covered_actors": [
-                    "data_fiduciary"
-                ]
-            },
-            "legal_bases": [
-                "consent"
-            ],
-            "purposes": [],
-            "data_categories": [
-                "child_personal_data"
-            ],
-            "contexts": [],
-            "children": {
-                "applies": true,
-                "conditions": [
-                    "verifiable_parental_consent",
-                    "specified_rule_exemptions"
-                ]
-            },
-            "exceptions": [
-                "specified_rule_exemptions"
-            ],
-            "effective_from": "2027-05-13",
-            "effective_to": null,
-            "policy_version": "DPDP-Rules-2025",
-            "source_ids": [
-                "SRC-IN-DPDP-RULES",
-                "SRC-IN-DPDP-RULES-CORRIGENDUM"
-            ]
-        },
-        {
-            "requirement_id": "REQ-IN-DPDP-RULES-005",
-            "regime": "India-DPDP-Rules",
-            "topic": "significant_data_fiduciary",
-            "requirement": "The Rules specify implementation requirements for Significant Data Fiduciaries, including governance, assessment and audit-related obligations.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "significant_data_fiduciary"
-                ],
-                "covered_actors": [
-                    "significant_data_fiduciary"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "digital_personal_data"
-            ],
-            "contexts": [],
-            "exceptions": [],
-            "effective_from": "2027-05-13",
-            "effective_to": null,
-            "policy_version": "DPDP-Rules-2025",
-            "source_ids": [
-                "SRC-IN-DPDP-RULES",
-                "SRC-IN-DPDP-RULES-CORRIGENDUM"
-            ]
-        },
-        {
-            "requirement_id": "REQ-CA-CCPA-001",
-            "regime": "California-CCPA-CPRA",
-            "topic": "scope",
-            "requirement": "The CCPA applies to covered businesses and other regulated actors meeting the statutory applicability requirements and thresholds, subject to exemptions.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "covered_business",
-                    "statutory_threshold",
-                    "doing_business_in_california"
-                ],
-                "covered_actors": [
-                    "business",
-                    "service_provider",
-                    "contractor",
-                    "third_party"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "personal_information"
-            ],
-            "contexts": [],
-            "regions": [
-                "California"
-            ],
-            "exceptions": [
-                "statutory_exemptions"
-            ],
-            "effective_from": "2020-01-01",
-            "effective_to": null,
-            "policy_version": "CCPA-2026",
-            "source_ids": [
-                "SRC-CA-CCPA-STATUTE-2026"
-            ]
-        },
-        {
-            "requirement_id": "REQ-CA-CCPA-002",
-            "regime": "California-CCPA-CPRA",
-            "topic": "notice_at_collection",
-            "requirement": "Businesses must provide required notice at or before collection of personal information.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "collection_of_personal_information"
-                ],
-                "covered_actors": [
-                    "business"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "personal_information"
-            ],
-            "contexts": [
-                "collection"
-            ],
-            "regions": [
-                "California"
-            ],
-            "exceptions": [],
-            "effective_from": "2020-01-01",
-            "effective_to": null,
-            "policy_version": "CCPA-2026",
-            "source_ids": [
-                "SRC-CA-CCPA-STATUTE-2026",
-                "SRC-CA-CCPA-REGS-2026"
-            ]
-        },
-        {
-            "requirement_id": "REQ-CA-CCPA-003",
-            "regime": "California-CCPA-CPRA",
-            "topic": "privacy_policy",
-            "requirement": "Covered businesses must make required disclosures in their privacy policy, including categories of information, purposes and applicable consumer rights and methods.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "covered_business"
-                ],
-                "covered_actors": [
-                    "business"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "personal_information"
-            ],
-            "contexts": [],
-            "regions": [
-                "California"
-            ],
-            "exceptions": [],
-            "effective_from": "2020-01-01",
-            "effective_to": null,
-            "policy_version": "CCPA-2026",
-            "source_ids": [
-                "SRC-CA-CCPA-STATUTE-2026",
-                "SRC-CA-CCPA-REGS-2026"
-            ]
-        },
-        {
-            "requirement_id": "REQ-CA-CCPA-004",
-            "regime": "California-CCPA-CPRA",
-            "topic": "right_to_know",
-            "requirement": "Consumers have rights to request information about collection, use, disclosure and other statutory categories of personal information.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "consumer_request_to_know"
-                ],
-                "covered_actors": [
-                    "business"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "personal_information"
-            ],
-            "contexts": [],
-            "regions": [
-                "California"
-            ],
-            "exceptions": [
-                "statutory_exceptions"
-            ],
-            "effective_from": "2020-01-01",
-            "effective_to": null,
-            "policy_version": "CCPA-2026",
-            "source_ids": [
-                "SRC-CA-CCPA-STATUTE-2026",
-                "SRC-CA-OAG-CCPA"
-            ]
-        },
-        {
-            "requirement_id": "REQ-CA-CCPA-005",
-            "regime": "California-CCPA-CPRA",
-            "topic": "right_to_delete",
-            "requirement": "Consumers have a right to request deletion of personal information, subject to statutory exceptions.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "consumer_deletion_request"
-                ],
-                "covered_actors": [
-                    "business"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "personal_information"
-            ],
-            "contexts": [],
-            "regions": [
-                "California"
-            ],
-            "exceptions": [
-                "statutory_exceptions"
-            ],
-            "effective_from": "2020-01-01",
-            "effective_to": null,
-            "policy_version": "CCPA-2026",
-            "source_ids": [
-                "SRC-CA-CCPA-STATUTE-2026",
-                "SRC-CA-OAG-CCPA"
-            ]
-        },
-        {
-            "requirement_id": "REQ-CA-CCPA-006",
-            "regime": "California-CCPA-CPRA",
-            "topic": "sale_opt_out",
-            "requirement": "Consumers have the right to opt out of the sale of their personal information, subject to statutory definitions and exceptions.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "sale_of_personal_information"
-                ],
-                "covered_actors": [
-                    "business"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [
-                "sale"
-            ],
-            "data_categories": [
-                "personal_information"
-            ],
-            "contexts": [],
-            "regions": [
-                "California"
-            ],
-            "opt_out": {
-                "available": true,
-                "conditions": [
-                    "sale_definition_applies"
-                ],
-                "signals": [
-                    "consumer_opt_out",
-                    "opt_out_preference_signal"
-                ]
-            },
-            "exceptions": [],
-            "effective_from": "2020-01-01",
-            "effective_to": null,
-            "policy_version": "CCPA-2026",
-            "source_ids": [
-                "SRC-CA-CCPA-STATUTE-2026",
-                "SRC-CA-CCPA-REGS-2026",
-                "SRC-CA-OAG-CCPA"
-            ]
-        },
-        {
-            "requirement_id": "REQ-CA-CCPA-007",
-            "regime": "California-CCPA-CPRA",
-            "topic": "sharing_opt_out",
-            "requirement": "Consumers have the right to opt out of sharing of personal information for cross-context behavioural advertising where the statutory definition applies.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "sharing_for_cross_context_behavioural_advertising"
-                ],
-                "covered_actors": [
-                    "business"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [
-                "cross_context_behavioural_advertising"
-            ],
-            "data_categories": [
-                "personal_information"
-            ],
-            "contexts": [
-                "advertising"
-            ],
-            "regions": [
-                "California"
-            ],
-            "opt_out": {
-                "available": true,
-                "conditions": [
-                    "sharing_definition_applies"
-                ],
-                "signals": [
-                    "consumer_opt_out",
-                    "global_privacy_control"
-                ]
-            },
-            "exceptions": [],
-            "effective_from": "2023-01-01",
-            "effective_to": null,
-            "policy_version": "CCPA-2026",
-            "source_ids": [
-                "SRC-CA-CCPA-STATUTE-2026",
-                "SRC-CA-CCPA-REGS-2026",
-                "SRC-CA-OAG-CCPA"
-            ]
-        },
-        {
-            "requirement_id": "REQ-CA-CCPA-008",
-            "regime": "California-CCPA-CPRA",
-            "topic": "sensitive_personal_information",
-            "requirement": "Consumers have a right to limit certain uses and disclosures of sensitive personal information, subject to statutory conditions and exceptions.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "sensitive_personal_information"
-                ],
-                "covered_actors": [
-                    "business"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "sensitive_personal_information"
-            ],
-            "contexts": [],
-            "regions": [
-                "California"
-            ],
-            "opt_out": {
-                "available": true,
-                "conditions": [
-                    "statutory_sensitive_information_conditions"
-                ],
-                "signals": []
-            },
-            "exceptions": [],
-            "effective_from": "2023-01-01",
-            "effective_to": null,
-            "policy_version": "CCPA-2026",
-            "source_ids": [
-                "SRC-CA-CCPA-STATUTE-2026",
-                "SRC-CA-CCPA-REGS-2026"
-            ]
-        },
-        {
-            "requirement_id": "REQ-CA-CCPA-009",
-            "regime": "California-CCPA-CPRA",
-            "topic": "minors",
-            "requirement": "California law imposes enhanced consent requirements for certain sales or sharing involving minors, with age-specific rules.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "consumer_under_16",
-                    "sale_or_sharing"
-                ],
-                "covered_actors": [
-                    "business"
-                ]
-            },
-            "legal_bases": [
-                "consent"
-            ],
-            "purposes": [
-                "sale",
-                "sharing"
-            ],
-            "data_categories": [
-                "personal_information"
-            ],
-            "contexts": [
-                "sale",
-                "sharing"
-            ],
-            "regions": [
-                "California"
-            ],
-            "consent": {
-                "required": true,
-                "conditions": [
-                    "age_specific_opt_in_requirements"
-                ],
-                "withdrawal_required": true
-            },
-            "children": {
-                "applies": true,
-                "conditions": [
-                    "under_13_parental_consent",
-                    "age_13_to_15_consumer_opt_in"
-                ]
-            },
-            "exceptions": [],
-            "effective_from": "2023-01-01",
-            "effective_to": null,
-            "policy_version": "CCPA-2026",
-            "source_ids": [
-                "SRC-CA-CCPA-STATUTE-2026",
-                "SRC-CA-CCPA-REGS-2026"
-            ]
-        },
-        {
-            "requirement_id": "REQ-CA-CCPA-010",
-            "regime": "California-CCPA-CPRA",
-            "topic": "non_discrimination",
-            "requirement": "A business generally may not discriminate against a consumer for exercising CCPA rights, subject to statutory exceptions.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "exercise_of_consumer_right"
-                ],
-                "covered_actors": [
-                    "business"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "personal_information"
-            ],
-            "contexts": [],
-            "regions": [
-                "California"
-            ],
-            "exceptions": [
-                "statutory_exceptions"
-            ],
-            "effective_from": "2020-01-01",
-            "effective_to": null,
-            "policy_version": "CCPA-2026",
-            "source_ids": [
-                "SRC-CA-CCPA-STATUTE-2026",
-                "SRC-CA-OAG-CCPA"
-            ]
-        },
-        {
-            "requirement_id": "REQ-CA-CCPA-011",
-            "regime": "California-CCPA-CPRA",
-            "topic": "opt_out_preference_signals",
-            "requirement": "Covered businesses must process qualifying opt-out preference signals as required by California law and regulations.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "qualifying_opt_out_preference_signal"
-                ],
-                "covered_actors": [
-                    "business"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [
-                "sale",
-                "sharing"
-            ],
-            "data_categories": [
-                "personal_information"
-            ],
-            "contexts": [
-                "online"
-            ],
-            "regions": [
-                "California"
-            ],
-            "opt_out": {
-                "available": true,
-                "conditions": [
-                    "qualifying_signal"
-                ],
-                "signals": [
-                    "global_privacy_control"
-                ]
-            },
-            "exceptions": [],
-            "effective_from": "2023-01-01",
-            "effective_to": null,
-            "policy_version": "CCPA-2026",
-            "source_ids": [
-                "SRC-CA-CCPA-REGS-2026",
-                "SRC-CA-OAG-CCPA"
-            ]
-        },
-        {
-            "requirement_id": "REQ-CA-CCPA-012",
-            "regime": "California-CCPA-CPRA",
-            "topic": "data_minimization",
-            "requirement": "Collection, use, retention and sharing of personal information are subject to purpose and minimization restrictions under California law.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "collection",
-                    "use",
-                    "retention",
-                    "sharing"
-                ],
-                "covered_actors": [
-                    "business"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "personal_information"
-            ],
-            "contexts": [],
-            "regions": [
-                "California"
-            ],
-            "exceptions": [],
-            "effective_from": "2023-01-01",
-            "effective_to": null,
-            "policy_version": "CCPA-2026",
-            "source_ids": [
-                "SRC-CA-CCPA-STATUTE-2026",
-                "SRC-CA-CCPA-REGS-2026"
-            ]
-        },
-        {
-            "requirement_id": "REQ-CA-CCPA-013",
-            "regime": "California-CCPA-CPRA",
-            "topic": "risk_assessments",
-            "requirement": "The current California regulatory framework establishes requirements concerning risk assessments for covered processing activities.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "covered_processing_activity",
-                    "risk_assessment_requirement"
-                ],
-                "covered_actors": [
-                    "business"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "personal_information"
-            ],
-            "contexts": [],
-            "regions": [
-                "California"
-            ],
-            "exceptions": [],
-            "effective_from": "2026-01-01",
-            "effective_to": null,
-            "policy_version": "CCPA-Regulations-2026",
-            "source_ids": [
-                "SRC-CA-CCPA-REGS-2026"
-            ]
-        },
-        {
-            "requirement_id": "REQ-CA-CCPA-014",
-            "regime": "California-CCPA-CPRA",
-            "topic": "cybersecurity_audit",
-            "requirement": "The current California regulatory framework establishes cybersecurity audit requirements for covered businesses meeting applicable conditions.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "covered_business",
-                    "applicable_audit_threshold"
-                ],
-                "covered_actors": [
-                    "business"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "personal_information"
-            ],
-            "contexts": [
-                "security"
-            ],
-            "regions": [
-                "California"
-            ],
-            "exceptions": [],
-            "effective_from": "2026-01-01",
-            "effective_to": null,
-            "policy_version": "CCPA-Regulations-2026",
-            "source_ids": [
-                "SRC-CA-CCPA-REGS-2026"
-            ],
-            "notes": "Specific certification deadlines are phased by applicable business size and begin in later years."
-        },
-        {
-            "requirement_id": "REQ-CA-CCPA-015",
-            "regime": "California-CCPA-CPRA",
-            "topic": "automated_decision_making",
-            "requirement": "The current California regulatory framework establishes requirements concerning automated decisionmaking technology for covered uses, including specified significant-decision contexts.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "automated_decisionmaking_technology",
-                    "significant_decision"
-                ],
-                "covered_actors": [
-                    "business"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [
-                "automated_decisionmaking"
-            ],
-            "data_categories": [
-                "personal_information"
-            ],
-            "contexts": [
-                "automated_decisionmaking"
-            ],
-            "regions": [
-                "California"
-            ],
-            "exceptions": [],
-            "effective_from": "2026-01-01",
-            "effective_to": null,
-            "policy_version": "CCPA-Regulations-2026",
-            "source_ids": [
-                "SRC-CA-CCPA-REGS-2026"
-            ],
-            "notes": "Certain significant-decision requirements have later compliance dates. Do not treat all ADMT obligations as immediately operative on the same date."
-        },
-        {
-            "requirement_id": "REQ-BR-LGPD-001",
-            "regime": "Brazil-LGPD",
-            "topic": "scope",
-            "requirement": "The LGPD applies to processing of personal data by public or private natural or legal persons in the circumstances established by Article 3, subject to statutory exclusions.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "processing_in_brazil",
-                    "offering_goods_or_services_to_individuals_in_brazil",
-                    "data_collected_in_brazil"
-                ],
-                "covered_actors": [
-                    "controller",
-                    "processor"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "personal_data"
-            ],
-            "contexts": [],
-            "regions": [
-                "Brazil"
-            ],
-            "exceptions": [
-                "statutory_exclusions"
-            ],
-            "effective_from": "2021-08-01",
-            "effective_to": null,
-            "policy_version": "LGPD-13-709-2018",
-            "source_ids": [
-                "SRC-BR-LGPD"
-            ]
-        },
-        {
-            "requirement_id": "REQ-BR-LGPD-002",
-            "regime": "Brazil-LGPD",
-            "topic": "lawful_basis",
-            "requirement": "Processing of personal data must rely on one of the legal hypotheses established by Article 7.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "personal_data_processing"
-                ],
-                "covered_actors": [
-                    "controller"
-                ]
-            },
-            "legal_bases": [
-                "consent",
-                "legal_or_regulatory_obligation",
-                "public_administration",
-                "research",
-                "contract",
-                "exercise_of_rights",
-                "life_protection",
-                "physical_safety",
-                "health",
-                "legitimate_interest",
-                "credit_protection"
-            ],
-            "purposes": [],
-            "data_categories": [
-                "personal_data"
-            ],
-            "contexts": [],
-            "exceptions": [],
-            "effective_from": "2021-08-01",
-            "effective_to": null,
-            "policy_version": "LGPD-13-709-2018",
-            "source_ids": [
-                "SRC-BR-LGPD"
-            ]
-        },
-        {
-            "requirement_id": "REQ-BR-LGPD-003",
-            "regime": "Brazil-LGPD",
-            "topic": "sensitive_data",
-            "requirement": "Sensitive personal data processing is subject to the specific legal hypotheses in Article 11.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "sensitive_personal_data_processing"
-                ],
-                "covered_actors": [
-                    "controller"
-                ]
-            },
-            "legal_bases": [
-                "consent",
-                "legal_or_regulatory_obligation",
-                "public_administration",
-                "research",
-                "exercise_of_rights",
-                "life_protection",
-                "physical_safety",
-                "health",
-                "fraud_prevention",
-                "security"
-            ],
-            "purposes": [],
-            "data_categories": [
-                "sensitive_personal_data"
-            ],
-            "contexts": [],
-            "exceptions": [],
-            "effective_from": "2021-08-01",
-            "effective_to": null,
-            "policy_version": "LGPD-13-709-2018",
-            "source_ids": [
-                "SRC-BR-LGPD"
-            ]
-        },
-        {
-            "requirement_id": "REQ-BR-LGPD-004",
-            "regime": "Brazil-LGPD",
-            "topic": "children_and_adolescents",
-            "requirement": "Processing of personal data of children and adolescents must be carried out in their best interests, with specific highlighted consent requirements for children subject to statutory exceptions.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "child_or_adolescent_data"
-                ],
-                "covered_actors": [
-                    "controller"
-                ]
-            },
-            "legal_bases": [
-                "consent"
-            ],
-            "purposes": [],
-            "data_categories": [
-                "child_personal_data",
-                "adolescent_personal_data"
-            ],
-            "contexts": [],
-            "regions": [
-                "Brazil"
-            ],
-            "consent": {
-                "required": true,
-                "conditions": [
-                    "specific_highlighted_consent_for_child",
-                    "parent_or_legal_guardian"
-                ],
-                "withdrawal_required": true
-            },
-            "children": {
-                "applies": true,
-                "conditions": [
-                    "best_interests"
-                ]
-            },
-            "exceptions": [
-                "statutory_child_processing_exceptions"
-            ],
-            "effective_from": "2021-08-01",
-            "effective_to": null,
-            "policy_version": "LGPD-13-709-2018",
-            "source_ids": [
-                "SRC-BR-LGPD"
-            ]
-        },
-        {
-            "requirement_id": "REQ-BR-LGPD-005",
-            "regime": "Brazil-LGPD",
-            "topic": "data_subject_rights",
-            "requirement": "Data subjects have statutory rights including confirmation, access, correction, deletion, portability, information and review-related rights, subject to applicable conditions.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "data_subject_request"
-                ],
-                "covered_actors": [
-                    "controller"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "personal_data"
-            ],
-            "contexts": [],
-            "exceptions": [
-                "statutory_exceptions"
-            ],
-            "effective_from": "2021-08-01",
-            "effective_to": null,
-            "policy_version": "LGPD-13-709-2018",
-            "source_ids": [
-                "SRC-BR-LGPD"
-            ]
-        },
-        {
-            "requirement_id": "REQ-BR-LGPD-006",
-            "regime": "Brazil-LGPD",
-            "topic": "international_transfer",
-            "requirement": "International transfers require an LGPD-authorised transfer basis and applicable transfer mechanism under Articles 33–36 and ANPD regulation.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "international_transfer"
-                ],
-                "covered_actors": [
-                    "controller",
-                    "processor"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "personal_data"
-            ],
-            "contexts": [
-                "international_transfer"
-            ],
-            "regions": [
-                "Brazil"
-            ],
-            "exceptions": [
-                "adequacy",
-                "standard_contractual_clauses",
-                "specific_contractual_clauses",
-                "global_corporate_rules",
-                "other_article_33_mechanisms"
-            ],
-            "effective_from": "2021-08-01",
-            "effective_to": null,
-            "policy_version": "LGPD-13-709-2018-with-ANPD-Resolution-19-2024",
-            "source_ids": [
-                "SRC-BR-LGPD",
-                "SRC-BR-ANPD-TRANSFERS-19-2024"
-            ]
-        },
-        {
-            "requirement_id": "REQ-BR-LGPD-007",
-            "regime": "Brazil-LGPD",
-            "topic": "security",
-            "requirement": "Controllers and processors must adopt security, technical and administrative measures capable of protecting personal data against unauthorised access and accidental or unlawful situations.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "personal_data_processing"
-                ],
-                "covered_actors": [
-                    "controller",
-                    "processor"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "personal_data"
-            ],
-            "contexts": [
-                "security"
-            ],
-            "regions": [
-                "Brazil"
-            ],
-            "exceptions": [],
-            "effective_from": "2021-08-01",
-            "effective_to": null,
-            "policy_version": "LGPD-13-709-2018",
-            "source_ids": [
-                "SRC-BR-LGPD"
-            ]
-        },
-        {
-            "requirement_id": "REQ-BR-LGPD-008",
-            "regime": "Brazil-LGPD",
-            "topic": "enforcement",
-            "requirement": "The ANPD has regulatory and enforcement powers, including application of administrative sanctions under the LGPD and applicable ANPD regulations.",
-            "applicability": {
-                "applies": true,
-                "triggers": [
-                    "regulatory_noncompliance"
-                ],
-                "covered_actors": [
-                    "controller",
-                    "processor"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "personal_data"
-            ],
-            "contexts": [],
-            "regions": [
-                "Brazil"
-            ],
-            "exceptions": [],
-            "effective_from": "2021-08-01",
-            "effective_to": null,
-            "policy_version": "LGPD-with-ANPD-sanctions-framework",
-            "source_ids": [
-                "SRC-BR-LGPD",
-                "SRC-BR-ANPD-SANCTIONS-4-2023"
-            ]
-        },
-        {
-            "requirement_id": "REQ-US-STATE-001",
-            "regime": "US-State-Model",
-            "topic": "applicability",
-            "requirement": "US state privacy regimes may use jurisdiction-specific entity, revenue, consumer, data-volume or business-activity thresholds.",
-            "applicability": {
-                "applies": false,
-                "triggers": [
-                    "state_specific_threshold"
-                ],
-                "covered_actors": [
-                    "state_specific_covered_entity"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "personal_information"
-            ],
-            "contexts": [],
-            "regions": [
-                "US"
-            ],
-            "exceptions": [
-                "state_specific_exemptions"
-            ],
-            "effective_from": null,
-            "effective_to": null,
-            "policy_version": "GENERIC-MODEL-1.0",
-            "source_ids": [
-                "SRC-US-STATE-MODEL"
-            ],
-            "notes": "Model only. Not a statement of any individual state's law."
-        },
-        {
-            "requirement_id": "REQ-US-STATE-002",
-            "regime": "US-State-Model",
-            "topic": "consumer_rights",
-            "requirement": "State privacy regimes may provide combinations of access, correction, deletion, portability, appeal and other consumer rights.",
-            "applicability": {
-                "applies": false,
-                "triggers": [
-                    "state_specific_consumer_right"
-                ],
-                "covered_actors": [
-                    "state_specific_covered_entity"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "personal_information"
-            ],
-            "contexts": [],
-            "regions": [
-                "US"
-            ],
-            "exceptions": [
-                "state_specific_exemptions"
-            ],
-            "effective_from": null,
-            "effective_to": null,
-            "policy_version": "GENERIC-MODEL-1.0",
-            "source_ids": [
-                "SRC-US-STATE-MODEL"
-            ],
-            "notes": "Model only."
-        },
-        {
-            "requirement_id": "REQ-US-STATE-003",
-            "regime": "US-State-Model",
-            "topic": "sale_targeted_advertising",
-            "requirement": "Some state privacy regimes provide opt-out rights concerning sale of personal data, targeted advertising or similar activities.",
-            "applicability": {
-                "applies": false,
-                "triggers": [
-                    "state_specific_sale_definition",
-                    "targeted_advertising"
-                ],
-                "covered_actors": [
-                    "state_specific_covered_entity"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [
-                "sale",
-                "targeted_advertising"
-            ],
-            "data_categories": [
-                "personal_information"
-            ],
-            "contexts": [
-                "advertising"
-            ],
-            "regions": [
-                "US"
-            ],
-            "opt_out": {
-                "available": true,
-                "conditions": [
-                    "state_specific_conditions"
-                ],
-                "signals": [
-                    "state_specific_preference_signal"
-                ]
-            },
-            "exceptions": [
-                "state_specific_exemptions"
-            ],
-            "effective_from": null,
-            "effective_to": null,
-            "policy_version": "GENERIC-MODEL-1.0",
-            "source_ids": [
-                "SRC-US-STATE-MODEL"
-            ],
-            "notes": "Model only; individual state definitions and requirements must be sourced separately."
-        },
-        {
-            "requirement_id": "REQ-US-STATE-004",
-            "regime": "US-State-Model",
-            "topic": "sensitive_data",
-            "requirement": "Some state regimes impose heightened requirements for sensitive personal data, including consent or other restrictions.",
-            "applicability": {
-                "applies": false,
-                "triggers": [
-                    "sensitive_data"
-                ],
-                "covered_actors": [
-                    "state_specific_covered_entity"
-                ]
-            },
-            "legal_bases": [
-                "state_specific_consent",
-                "state_specific_exception"
-            ],
-            "purposes": [],
-            "data_categories": [
-                "sensitive_personal_data"
-            ],
-            "contexts": [],
-            "regions": [
-                "US"
-            ],
-            "consent": {
-                "required": false,
-                "conditions": [
-                    "state_specific_requirement"
-                ],
-                "withdrawal_required": false
-            },
-            "exceptions": [
-                "state_specific_exemptions"
-            ],
-            "effective_from": null,
-            "effective_to": null,
-            "policy_version": "GENERIC-MODEL-1.0",
-            "source_ids": [
-                "SRC-US-STATE-MODEL"
-            ],
-            "notes": "Model only."
-        },
-        {
-            "requirement_id": "REQ-US-STATE-005",
-            "regime": "US-State-Model",
-            "topic": "children",
-            "requirement": "State regimes may impose additional requirements for processing data of children or minors, with age thresholds and consent mechanisms varying by jurisdiction.",
-            "applicability": {
-                "applies": false,
-                "triggers": [
-                    "minor_or_child_data"
-                ],
-                "covered_actors": [
-                    "state_specific_covered_entity"
-                ]
-            },
-            "legal_bases": [
-                "state_specific_consent"
-            ],
-            "purposes": [],
-            "data_categories": [
-                "child_or_minor_data"
-            ],
-            "contexts": [],
-            "regions": [
-                "US"
-            ],
-            "children": {
-                "applies": true,
-                "conditions": [
-                    "state_specific_age_threshold",
-                    "state_specific_consent_requirement"
-                ]
-            },
-            "exceptions": [
-                "state_specific_exemptions"
-            ],
-            "effective_from": null,
-            "effective_to": null,
-            "policy_version": "GENERIC-MODEL-1.0",
-            "source_ids": [
-                "SRC-US-STATE-MODEL"
-            ],
-            "notes": "Model only."
-        },
-        {
-            "requirement_id": "REQ-US-STATE-006",
-            "regime": "US-State-Model",
-            "topic": "privacy_notice",
-            "requirement": "State privacy regimes may require notices describing categories of personal data, purposes, rights and other jurisdiction-specific information.",
-            "applicability": {
-                "applies": false,
-                "triggers": [
-                    "state_specific_notice_requirement"
-                ],
-                "covered_actors": [
-                    "state_specific_covered_entity"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "personal_information"
-            ],
-            "contexts": [],
-            "regions": [
-                "US"
-            ],
-            "exceptions": [
-                "state_specific_exemptions"
-            ],
-            "effective_from": null,
-            "effective_to": null,
-            "policy_version": "GENERIC-MODEL-1.0",
-            "source_ids": [
-                "SRC-US-STATE-MODEL"
-            ],
-            "notes": "Model only."
-        },
-        {
-            "requirement_id": "REQ-US-STATE-007",
-            "regime": "US-State-Model",
-            "topic": "processor_relationship",
-            "requirement": "State privacy regimes may distinguish controllers and processors and impose contractual or operational obligations on processor relationships.",
-            "applicability": {
-                "applies": false,
-                "triggers": [
-                    "controller_processor_relationship"
-                ],
-                "covered_actors": [
-                    "controller",
-                    "processor"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "personal_information"
-            ],
-            "contexts": [
-                "vendor_processing"
-            ],
-            "regions": [
-                "US"
-            ],
-            "exceptions": [
-                "state_specific_exemptions"
-            ],
-            "effective_from": null,
-            "effective_to": null,
-            "policy_version": "GENERIC-MODEL-1.0",
-            "source_ids": [
-                "SRC-US-STATE-MODEL"
-            ],
-            "notes": "Model only."
-        },
-        {
-            "requirement_id": "REQ-US-STATE-008",
-            "regime": "US-State-Model",
-            "topic": "appeals",
-            "requirement": "Some state privacy regimes provide consumers with an appeal mechanism following denial of a privacy request.",
-            "applicability": {
-                "applies": false,
-                "triggers": [
-                    "denied_consumer_request"
-                ],
-                "covered_actors": [
-                    "state_specific_covered_entity"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [
-                "personal_information"
-            ],
-            "contexts": [
-                "consumer_request"
-            ],
-            "regions": [
-                "US"
-            ],
-            "exceptions": [
-                "state_specific_conditions"
-            ],
-            "effective_from": null,
-            "effective_to": null,
-            "policy_version": "GENERIC-MODEL-1.0",
-            "source_ids": [
-                "SRC-US-STATE-MODEL"
-            ],
-            "notes": "Model only."
-        },
-        {
-            "requirement_id": "REQ-US-STATE-009",
-            "regime": "US-State-Model",
-            "topic": "effective_dates",
-            "requirement": "State privacy requirements must be evaluated using jurisdiction-specific effective and compliance dates.",
-            "applicability": {
-                "applies": false,
-                "triggers": [
-                    "state_specific_effective_date"
-                ],
-                "covered_actors": [
-                    "state_specific_covered_entity"
-                ]
-            },
-            "legal_bases": [],
-            "purposes": [],
-            "data_categories": [],
-            "contexts": [],
-            "regions": [
-                "US"
-            ],
-            "exceptions": [],
-            "effective_from": null,
-            "effective_to": null,
-            "policy_version": "GENERIC-MODEL-1.0",
-            "source_ids": [
-                "SRC-US-STATE-MODEL"
-            ],
-            "notes": "Model only. Individual state laws must be separately sourced."
-        }
-    ]
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/rift-cmp/regulations/matrix/requirements.json",
+  "schema_version": "1.2.0",
+  "description": "Machine-readable privacy regulation requirement matrix for Rift-CMP.",
+  "research_status": "research",
+  "legal_advice": false,
+  "requirements": [
+    {
+      "requirement_id": "REQ-GDPR-001",
+      "regime": "GDPR",
+      "topic": "territorial_scope",
+      "requirement": "GDPR applies to processing within its territorial scope, including specified processing activities connected with offering goods or services to, or monitoring the behaviour of, individuals in the Union.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "processing_in_union",
+          "offering_goods_or_services_to_individuals_in_union",
+          "monitoring_behaviour_in_union"
+        ],
+        "covered_actors": [
+          "controller",
+          "processor"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "personal_data"
+      ],
+      "contexts": [],
+      "regions": [
+        "EU"
+      ],
+      "exceptions": [],
+      "effective_from": "2018-05-25",
+      "effective_to": null,
+      "policy_version": "GDPR-2016-679",
+      "source_ids": [
+        "SRC-GDPR-EURLEX"
+      ]
+    },
+    {
+      "requirement_id": "REQ-GDPR-002",
+      "regime": "GDPR",
+      "topic": "lawful_basis",
+      "requirement": "Processing must have a lawful basis under Article 6.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "processing_of_personal_data"
+        ],
+        "covered_actors": [
+          "controller"
+        ]
+      },
+      "legal_bases": [
+        "consent",
+        "contract",
+        "legal_obligation",
+        "vital_interests",
+        "public_task",
+        "legitimate_interests"
+      ],
+      "purposes": [],
+      "data_categories": [
+        "personal_data"
+      ],
+      "contexts": [],
+      "exceptions": [],
+      "effective_from": "2018-05-25",
+      "effective_to": null,
+      "policy_version": "GDPR-2016-679",
+      "source_ids": [
+        "SRC-GDPR-EURLEX",
+        "SRC-GDPR-EDPB-LAWFUL-BASIS"
+      ]
+    },
+    {
+      "requirement_id": "REQ-GDPR-003",
+      "regime": "GDPR",
+      "topic": "consent",
+      "requirement": "Where consent is relied upon, consent must satisfy GDPR requirements including being freely given, specific, informed and unambiguous, with a clear affirmative action.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "consent_used_as_legal_basis"
+        ],
+        "covered_actors": [
+          "controller"
+        ]
+      },
+      "legal_bases": [
+        "consent"
+      ],
+      "purposes": [],
+      "data_categories": [
+        "personal_data"
+      ],
+      "contexts": [],
+      "consent": {
+        "required": true,
+        "conditions": [
+          "freely_given",
+          "specific",
+          "informed",
+          "unambiguous",
+          "clear_affirmative_action"
+        ],
+        "withdrawal_required": true
+      },
+      "exceptions": [],
+      "effective_from": "2018-05-25",
+      "effective_to": null,
+      "policy_version": "GDPR-2016-679",
+      "source_ids": [
+        "SRC-GDPR-EURLEX"
+      ]
+    },
+    {
+      "requirement_id": "REQ-GDPR-004",
+      "regime": "GDPR",
+      "topic": "special_categories",
+      "requirement": "Processing of special categories of personal data is prohibited unless an Article 9 exception applies.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "special_category_data"
+        ],
+        "covered_actors": [
+          "controller",
+          "processor"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "special_category_data"
+      ],
+      "contexts": [],
+      "exceptions": [
+        "article_9_conditions"
+      ],
+      "effective_from": "2018-05-25",
+      "effective_to": null,
+      "policy_version": "GDPR-2016-679",
+      "source_ids": [
+        "SRC-GDPR-EURLEX"
+      ]
+    },
+    {
+      "requirement_id": "REQ-GDPR-005",
+      "regime": "GDPR",
+      "topic": "children",
+      "requirement": "For information-society services offered directly to a child, consent-based processing is subject to Article 8 age and parental-authorisation requirements, subject to Member State variation within the permitted range.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "child",
+          "information_society_service",
+          "consent_based_processing"
+        ],
+        "covered_actors": [
+          "controller"
+        ]
+      },
+      "legal_bases": [
+        "consent"
+      ],
+      "purposes": [],
+      "data_categories": [
+        "personal_data"
+      ],
+      "contexts": [
+        "online_service"
+      ],
+      "children": {
+        "applies": true,
+        "conditions": [
+          "article_8_age_threshold",
+          "parental_authorisation_where_required"
+        ]
+      },
+      "exceptions": [],
+      "effective_from": "2018-05-25",
+      "effective_to": null,
+      "policy_version": "GDPR-2016-679",
+      "source_ids": [
+        "SRC-GDPR-EURLEX"
+      ]
+    },
+    {
+      "requirement_id": "REQ-GDPR-006",
+      "regime": "GDPR",
+      "topic": "transparency",
+      "requirement": "Controllers must provide required information to data subjects in a concise, transparent, intelligible and easily accessible form.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "collection_of_personal_data"
+        ],
+        "covered_actors": [
+          "controller"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "personal_data"
+      ],
+      "contexts": [],
+      "exceptions": [],
+      "effective_from": "2018-05-25",
+      "effective_to": null,
+      "policy_version": "GDPR-2016-679",
+      "source_ids": [
+        "SRC-GDPR-EURLEX",
+        "SRC-GDPR-EC"
+      ]
+    },
+    {
+      "requirement_id": "REQ-GDPR-007",
+      "regime": "GDPR",
+      "topic": "data_subject_rights",
+      "requirement": "Data subjects have rights including access, rectification, erasure, restriction, portability and objection, subject to applicable conditions and exceptions.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "data_subject_request"
+        ],
+        "covered_actors": [
+          "controller"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "personal_data"
+      ],
+      "contexts": [],
+      "exceptions": [
+        "gdpr_right_specific_exceptions"
+      ],
+      "effective_from": "2018-05-25",
+      "effective_to": null,
+      "policy_version": "GDPR-2016-679",
+      "source_ids": [
+        "SRC-GDPR-EURLEX",
+        "SRC-GDPR-EC"
+      ]
+    },
+    {
+      "requirement_id": "REQ-GDPR-008",
+      "regime": "GDPR",
+      "topic": "international_transfers",
+      "requirement": "Transfers of personal data to third countries or international organisations require an applicable GDPR transfer mechanism.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "third_country_transfer",
+          "international_organisation_transfer"
+        ],
+        "covered_actors": [
+          "controller",
+          "processor"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "personal_data"
+      ],
+      "contexts": [
+        "international_transfer"
+      ],
+      "exceptions": [
+        "adequacy_decision",
+        "appropriate_safeguards",
+        "derogations"
+      ],
+      "effective_from": "2018-05-25",
+      "effective_to": null,
+      "policy_version": "GDPR-2016-679",
+      "source_ids": [
+        "SRC-GDPR-EURLEX",
+        "SRC-GDPR-EC"
+      ]
+    },
+    {
+      "requirement_id": "REQ-EP-001",
+      "regime": "EU-ePrivacy",
+      "topic": "communications_confidentiality",
+      "requirement": "Member States must ensure confidentiality of communications and related traffic data through national implementation of the ePrivacy Directive.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "electronic_communications"
+        ],
+        "covered_actors": [
+          "electronic_communications_provider"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "communications_content",
+        "traffic_data"
+      ],
+      "contexts": [
+        "electronic_communications"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "exceptions": [],
+      "effective_from": "2002-07-31",
+      "effective_to": null,
+      "policy_version": "Directive-2002-58-EC",
+      "source_ids": [
+        "SRC-EP-EURLEX",
+        "SRC-EP-EDPB-TECHNICAL-SCOPE"
+      ],
+      "notes": "Directive-level requirement. National transposition must be evaluated."
+    },
+    {
+      "requirement_id": "REQ-EP-002",
+      "regime": "EU-ePrivacy",
+      "topic": "terminal_equipment",
+      "requirement": "Storage of information or access to information already stored in a subscriber or user's terminal equipment is subject to consent unless a statutory exception under Article 5(3) applies.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "terminal_equipment_storage",
+          "terminal_equipment_access"
+        ],
+        "covered_actors": [
+          "service_provider",
+          "website_operator"
+        ]
+      },
+      "legal_bases": [
+        "consent"
+      ],
+      "purposes": [],
+      "data_categories": [
+        "terminal_equipment_information"
+      ],
+      "contexts": [
+        "cookies",
+        "tracking",
+        "terminal_equipment"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "consent": {
+        "required": true,
+        "conditions": [
+          "subject_to_national_transposition",
+          "article_5_3_exceptions"
+        ],
+        "withdrawal_required": true
+      },
+      "exceptions": [
+        "communication_transmission",
+        "strictly_necessary_service"
+      ],
+      "effective_from": "2002-07-31",
+      "effective_to": null,
+      "policy_version": "Directive-2002-58-EC",
+      "source_ids": [
+        "SRC-EP-EURLEX",
+        "SRC-EP-EDPB-TECHNICAL-SCOPE"
+      ],
+      "notes": "Do not treat this as a universal rule that all analytics or all cookies require consent; classification depends on the activity and applicable national implementation."
+    },
+    {
+      "requirement_id": "REQ-EP-003",
+      "regime": "EU-ePrivacy",
+      "topic": "direct_marketing",
+      "requirement": "Direct marketing by electronic communications is subject to the conditions established by Article 13 and applicable national implementation.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "electronic_direct_marketing"
+        ],
+        "covered_actors": [
+          "marketer",
+          "electronic_communications_provider"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [
+        "direct_marketing"
+      ],
+      "data_categories": [
+        "contact_data"
+      ],
+      "contexts": [
+        "electronic_marketing"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "exceptions": [
+        "existing_customer_similar_products_conditions"
+      ],
+      "effective_from": "2002-07-31",
+      "effective_to": null,
+      "policy_version": "Directive-2002-58-EC",
+      "source_ids": [
+        "SRC-EP-EURLEX",
+        "SRC-EP-CURIA-PLANET49"
+      ],
+      "notes": "National implementation must be checked."
+    },
+    {
+      "requirement_id": "REQ-IN-DPDP-ACT-001",
+      "regime": "India-DPDP-Act",
+      "topic": "scope",
+      "requirement": "The Act applies to digital personal data processed in India where the personal data is collected digitally or collected in non-digital form and subsequently digitised, and to certain processing outside India connected with offering goods or services to Data Principals in India.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "digital_personal_data_processing_in_india",
+          "offering_goods_or_services_to_data_principals_in_india"
+        ],
+        "covered_actors": [
+          "data_fiduciary",
+          "data_processor"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "digital_personal_data"
+      ],
+      "contexts": [],
+      "regions": [
+        "India"
+      ],
+      "exceptions": [],
+      "effective_from": "2027-05-13",
+      "effective_to": null,
+      "policy_version": "DPDP-Act-2023",
+      "source_ids": [
+        "SRC-IN-DPDP-ACT",
+        "SRC-IN-DPDP-ACT-COMMENCEMENT"
+      ],
+      "notes": "Calendar date is computed from the eighteen-month commencement period in G.S.R. 843(E), published 2025-11-13; retain the source period as authoritative and treat the calendar date as a computed modeling value."
+    },
+    {
+      "requirement_id": "REQ-IN-DPDP-ACT-002",
+      "regime": "India-DPDP-Act",
+      "topic": "lawful_processing",
+      "requirement": "A Data Fiduciary may process personal data for a lawful purpose on the basis of consent or specified legitimate uses under the Act.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "processing_of_digital_personal_data"
+        ],
+        "covered_actors": [
+          "data_fiduciary"
+        ]
+      },
+      "legal_bases": [
+        "consent",
+        "legitimate_use"
+      ],
+      "purposes": [],
+      "data_categories": [
+        "digital_personal_data"
+      ],
+      "contexts": [],
+      "exceptions": [
+        "specified_legitimate_uses"
+      ],
+      "effective_from": "2027-05-13",
+      "effective_to": null,
+      "policy_version": "DPDP-Act-2023",
+      "source_ids": [
+        "SRC-IN-DPDP-ACT",
+        "SRC-IN-DPDP-ACT-COMMENCEMENT"
+      ],
+      "notes": "Calendar date is computed from the eighteen-month commencement period in G.S.R. 843(E), published 2025-11-13; retain the source period as authoritative and treat the calendar date as a computed modeling value."
+    },
+    {
+      "requirement_id": "REQ-IN-DPDP-ACT-003",
+      "regime": "India-DPDP-Act",
+      "topic": "consent",
+      "requirement": "Consent must be free, specific, informed and unambiguous, with a clear affirmative action, and must be capable of withdrawal.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "consent_used_as_basis"
+        ],
+        "covered_actors": [
+          "data_fiduciary"
+        ]
+      },
+      "legal_bases": [
+        "consent"
+      ],
+      "purposes": [],
+      "data_categories": [
+        "digital_personal_data"
+      ],
+      "contexts": [],
+      "consent": {
+        "required": true,
+        "conditions": [
+          "free",
+          "specific",
+          "informed",
+          "unambiguous",
+          "clear_affirmative_action"
+        ],
+        "withdrawal_required": true
+      },
+      "exceptions": [],
+      "effective_from": "2027-05-13",
+      "effective_to": null,
+      "policy_version": "DPDP-Act-2023",
+      "source_ids": [
+        "SRC-IN-DPDP-ACT",
+        "SRC-IN-DPDP-ACT-COMMENCEMENT"
+      ],
+      "notes": "Calendar date is computed from the eighteen-month commencement period in G.S.R. 843(E), published 2025-11-13; retain the source period as authoritative and treat the calendar date as a computed modeling value."
+    },
+    {
+      "requirement_id": "REQ-IN-DPDP-ACT-004",
+      "regime": "India-DPDP-Act",
+      "topic": "notice",
+      "requirement": "The Data Fiduciary must give notice containing required information concerning the personal data and purpose of processing.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "collection_or_processing_of_personal_data"
+        ],
+        "covered_actors": [
+          "data_fiduciary"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "digital_personal_data"
+      ],
+      "contexts": [],
+      "exceptions": [],
+      "effective_from": "2027-05-13",
+      "effective_to": null,
+      "policy_version": "DPDP-Act-2023",
+      "source_ids": [
+        "SRC-IN-DPDP-ACT",
+        "SRC-IN-DPDP-ACT-COMMENCEMENT"
+      ],
+      "notes": "Calendar date is computed from the eighteen-month commencement period in G.S.R. 843(E), published 2025-11-13; retain the source period as authoritative and treat the calendar date as a computed modeling value."
+    },
+    {
+      "requirement_id": "REQ-IN-DPDP-ACT-005",
+      "regime": "India-DPDP-Act",
+      "topic": "withdrawal",
+      "requirement": "Withdrawal of consent must be as easy as giving consent, and processing must cease unless otherwise authorised under the Act.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "withdrawal_of_consent"
+        ],
+        "covered_actors": [
+          "data_fiduciary"
+        ]
+      },
+      "legal_bases": [
+        "consent"
+      ],
+      "purposes": [],
+      "data_categories": [
+        "digital_personal_data"
+      ],
+      "contexts": [],
+      "consent": {
+        "required": true,
+        "conditions": [
+          "withdrawal_mechanism_as_easy_as_consent"
+        ],
+        "withdrawal_required": true
+      },
+      "exceptions": [
+        "other_authorisation_under_act"
+      ],
+      "effective_from": "2027-05-13",
+      "effective_to": null,
+      "policy_version": "DPDP-Act-2023",
+      "source_ids": [
+        "SRC-IN-DPDP-ACT",
+        "SRC-IN-DPDP-ACT-COMMENCEMENT"
+      ],
+      "notes": "Calendar date is computed from the eighteen-month commencement period in G.S.R. 843(E), published 2025-11-13; retain the source period as authoritative and treat the calendar date as a computed modeling value."
+    },
+    {
+      "requirement_id": "REQ-IN-DPDP-ACT-006",
+      "regime": "India-DPDP-Act",
+      "topic": "data_subject_rights",
+      "requirement": "Data Principals have rights including access to information, correction and erasure, grievance redressal and nomination, subject to the Act.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "data_principal_request"
+        ],
+        "covered_actors": [
+          "data_fiduciary"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "digital_personal_data"
+      ],
+      "contexts": [],
+      "exceptions": [],
+      "effective_from": "2027-05-13",
+      "effective_to": null,
+      "policy_version": "DPDP-Act-2023",
+      "source_ids": [
+        "SRC-IN-DPDP-ACT",
+        "SRC-IN-DPDP-ACT-COMMENCEMENT"
+      ],
+      "notes": "Calendar date is computed from the eighteen-month commencement period in G.S.R. 843(E), published 2025-11-13; retain the source period as authoritative and treat the calendar date as a computed modeling value."
+    },
+    {
+      "requirement_id": "REQ-IN-DPDP-ACT-007",
+      "regime": "India-DPDP-Act",
+      "topic": "children",
+      "requirement": "Processing personal data of children requires verifiable parental consent and is subject to restrictions on detrimental processing, tracking or behavioural monitoring, and targeted advertising, subject to statutory exemptions.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "child_data"
+        ],
+        "covered_actors": [
+          "data_fiduciary"
+        ]
+      },
+      "legal_bases": [
+        "consent"
+      ],
+      "purposes": [],
+      "data_categories": [
+        "child_personal_data"
+      ],
+      "contexts": [],
+      "children": {
+        "applies": true,
+        "conditions": [
+          "verifiable_parental_consent",
+          "child_restrictions"
+        ]
+      },
+      "exceptions": [
+        "notified_exemptions"
+      ],
+      "effective_from": "2027-05-13",
+      "effective_to": null,
+      "policy_version": "DPDP-Act-2023",
+      "source_ids": [
+        "SRC-IN-DPDP-ACT",
+        "SRC-IN-DPDP-ACT-COMMENCEMENT"
+      ],
+      "notes": "Calendar date is computed from the eighteen-month commencement period in G.S.R. 843(E), published 2025-11-13; retain the source period as authoritative and treat the calendar date as a computed modeling value."
+    },
+    {
+      "requirement_id": "REQ-IN-DPDP-ACT-008",
+      "regime": "India-DPDP-Act",
+      "topic": "security",
+      "requirement": "Data Fiduciaries must implement reasonable security safeguards to prevent personal data breaches.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "processing_of_digital_personal_data"
+        ],
+        "covered_actors": [
+          "data_fiduciary"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "digital_personal_data"
+      ],
+      "contexts": [],
+      "exceptions": [],
+      "effective_from": "2027-05-13",
+      "effective_to": null,
+      "policy_version": "DPDP-Act-2023",
+      "source_ids": [
+        "SRC-IN-DPDP-ACT",
+        "SRC-IN-DPDP-ACT-COMMENCEMENT"
+      ],
+      "notes": "Calendar date is computed from the eighteen-month commencement period in G.S.R. 843(E), published 2025-11-13; retain the source period as authoritative and treat the calendar date as a computed modeling value."
+    },
+    {
+      "requirement_id": "REQ-IN-DPDP-ACT-009",
+      "regime": "India-DPDP-Act",
+      "topic": "international_transfer",
+      "requirement": "The Central Government may restrict transfer of personal data by a Data Fiduciary for processing outside India to notified countries or territories.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "processing_outside_india"
+        ],
+        "covered_actors": [
+          "data_fiduciary"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "digital_personal_data"
+      ],
+      "contexts": [
+        "international_transfer"
+      ],
+      "regions": [
+        "India"
+      ],
+      "exceptions": [],
+      "effective_from": "2027-05-13",
+      "effective_to": null,
+      "policy_version": "DPDP-Act-2023",
+      "source_ids": [
+        "SRC-IN-DPDP-ACT",
+        "SRC-IN-DPDP-ACT-COMMENCEMENT"
+      ],
+      "notes": "Calendar date is computed from the eighteen-month commencement period in G.S.R. 843(E), published 2025-11-13; retain the source period as authoritative and treat the calendar date as a computed modeling value."
+    },
+    {
+      "requirement_id": "REQ-IN-DPDP-ACT-010",
+      "regime": "India-DPDP-Act",
+      "topic": "significant_data_fiduciary",
+      "requirement": "A Significant Data Fiduciary is subject to additional governance obligations including appointment of a Data Protection Officer and independent data auditor and specified impact assessment and audit requirements.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "significant_data_fiduciary_designation"
+        ],
+        "covered_actors": [
+          "significant_data_fiduciary"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "digital_personal_data"
+      ],
+      "contexts": [],
+      "exceptions": [],
+      "effective_from": "2027-05-13",
+      "effective_to": null,
+      "policy_version": "DPDP-Act-2023",
+      "source_ids": [
+        "SRC-IN-DPDP-ACT",
+        "SRC-IN-DPDP-ACT-COMMENCEMENT"
+      ],
+      "notes": "Calendar date is computed from the eighteen-month commencement period in G.S.R. 843(E), published 2025-11-13; retain the source period as authoritative and treat the calendar date as a computed modeling value."
+    },
+    {
+      "requirement_id": "REQ-IN-DPDP-RULES-001",
+      "regime": "India-DPDP-Rules",
+      "topic": "commencement",
+      "requirement": "The Rules commence in phases specified by Rule 1.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "rule_specific_commencement"
+        ],
+        "covered_actors": [
+          "data_fiduciary",
+          "data_processor",
+          "consent_manager",
+          "significant_data_fiduciary"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [],
+      "contexts": [],
+      "exceptions": [],
+      "effective_from": "2025-11-13",
+      "effective_to": null,
+      "policy_version": "DPDP-Rules-2025",
+      "source_ids": [
+        "SRC-IN-DPDP-RULES",
+        "SRC-IN-DPDP-RULES-CORRIGENDUM"
+      ],
+      "notes": "Rules 1, 2 and 17–21 commence on publication; Rule 4 one year after publication; Rules 3, 5–16 and 22–23 eighteen months after publication."
+    },
+    {
+      "requirement_id": "REQ-IN-DPDP-RULES-002",
+      "regime": "India-DPDP-Rules",
+      "topic": "notice_and_consent",
+      "requirement": "The Rules provide implementation requirements concerning notices and consent mechanisms under the Act.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "notice",
+          "consent"
+        ],
+        "covered_actors": [
+          "data_fiduciary",
+          "consent_manager"
+        ]
+      },
+      "legal_bases": [
+        "consent"
+      ],
+      "purposes": [],
+      "data_categories": [
+        "digital_personal_data"
+      ],
+      "contexts": [],
+      "exceptions": [],
+      "effective_from": "2027-05-13",
+      "effective_to": null,
+      "policy_version": "DPDP-Rules-2025",
+      "source_ids": [
+        "SRC-IN-DPDP-RULES",
+        "SRC-IN-DPDP-RULES-CORRIGENDUM"
+      ],
+      "notes": "Calendar date is computed from Rule 1's eighteen-month commencement period; the notified period is authoritative."
+    },
+    {
+      "requirement_id": "REQ-IN-DPDP-RULES-003",
+      "regime": "India-DPDP-Rules",
+      "topic": "security_and_breach",
+      "requirement": "The Rules specify security safeguards and personal data breach-related obligations under the Act.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "security_safeguards",
+          "personal_data_breach"
+        ],
+        "covered_actors": [
+          "data_fiduciary",
+          "data_processor"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "digital_personal_data"
+      ],
+      "contexts": [
+        "security",
+        "data_breach"
+      ],
+      "exceptions": [],
+      "effective_from": "2027-05-13",
+      "effective_to": null,
+      "policy_version": "DPDP-Rules-2025",
+      "source_ids": [
+        "SRC-IN-DPDP-RULES",
+        "SRC-IN-DPDP-RULES-CORRIGENDUM"
+      ],
+      "notes": "Calendar date is computed from Rule 1's eighteen-month commencement period; the notified period is authoritative."
+    },
+    {
+      "requirement_id": "REQ-IN-DPDP-RULES-004",
+      "regime": "India-DPDP-Rules",
+      "topic": "children",
+      "requirement": "The Rules provide implementation details concerning verifiable parental consent and specified exemptions for processing children's personal data.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "child_data"
+        ],
+        "covered_actors": [
+          "data_fiduciary"
+        ]
+      },
+      "legal_bases": [
+        "consent"
+      ],
+      "purposes": [],
+      "data_categories": [
+        "child_personal_data"
+      ],
+      "contexts": [],
+      "children": {
+        "applies": true,
+        "conditions": [
+          "verifiable_parental_consent",
+          "specified_rule_exemptions"
+        ]
+      },
+      "exceptions": [
+        "specified_rule_exemptions"
+      ],
+      "effective_from": "2027-05-13",
+      "effective_to": null,
+      "policy_version": "DPDP-Rules-2025",
+      "source_ids": [
+        "SRC-IN-DPDP-RULES",
+        "SRC-IN-DPDP-RULES-CORRIGENDUM"
+      ],
+      "notes": "Calendar date is computed from Rule 1's eighteen-month commencement period; the notified period is authoritative."
+    },
+    {
+      "requirement_id": "REQ-IN-DPDP-RULES-005",
+      "regime": "India-DPDP-Rules",
+      "topic": "significant_data_fiduciary",
+      "requirement": "The Rules specify implementation requirements for Significant Data Fiduciaries, including governance, assessment and audit-related obligations.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "significant_data_fiduciary"
+        ],
+        "covered_actors": [
+          "significant_data_fiduciary"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "digital_personal_data"
+      ],
+      "contexts": [],
+      "exceptions": [],
+      "effective_from": "2027-05-13",
+      "effective_to": null,
+      "policy_version": "DPDP-Rules-2025",
+      "source_ids": [
+        "SRC-IN-DPDP-RULES",
+        "SRC-IN-DPDP-RULES-CORRIGENDUM"
+      ],
+      "notes": "Calendar date is computed from Rule 1's eighteen-month commencement period; the notified period is authoritative."
+    },
+    {
+      "requirement_id": "REQ-CA-CCPA-001",
+      "regime": "California-CCPA-CPRA",
+      "topic": "scope",
+      "requirement": "The CCPA applies to covered businesses and other regulated actors meeting the statutory applicability requirements and thresholds, subject to exemptions.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "covered_business",
+          "statutory_threshold",
+          "doing_business_in_california"
+        ],
+        "covered_actors": [
+          "business",
+          "service_provider",
+          "contractor",
+          "third_party"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "personal_information"
+      ],
+      "contexts": [],
+      "regions": [
+        "California"
+      ],
+      "exceptions": [
+        "statutory_exemptions"
+      ],
+      "effective_from": "2020-01-01",
+      "effective_to": null,
+      "policy_version": "CCPA-2026",
+      "source_ids": [
+        "SRC-CA-CCPA-STATUTE-2026"
+      ]
+    },
+    {
+      "requirement_id": "REQ-CA-CCPA-002",
+      "regime": "California-CCPA-CPRA",
+      "topic": "notice_at_collection",
+      "requirement": "Businesses must provide required notice at or before collection of personal information.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "collection_of_personal_information"
+        ],
+        "covered_actors": [
+          "business"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "personal_information"
+      ],
+      "contexts": [
+        "collection"
+      ],
+      "regions": [
+        "California"
+      ],
+      "exceptions": [],
+      "effective_from": "2020-01-01",
+      "effective_to": null,
+      "policy_version": "CCPA-2026",
+      "source_ids": [
+        "SRC-CA-CCPA-STATUTE-2026",
+        "SRC-CA-CCPA-REGS-2026"
+      ]
+    },
+    {
+      "requirement_id": "REQ-CA-CCPA-003",
+      "regime": "California-CCPA-CPRA",
+      "topic": "privacy_policy",
+      "requirement": "Covered businesses must make required disclosures in their privacy policy, including categories of information, purposes and applicable consumer rights and methods.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "covered_business"
+        ],
+        "covered_actors": [
+          "business"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "personal_information"
+      ],
+      "contexts": [],
+      "regions": [
+        "California"
+      ],
+      "exceptions": [],
+      "effective_from": "2020-01-01",
+      "effective_to": null,
+      "policy_version": "CCPA-2026",
+      "source_ids": [
+        "SRC-CA-CCPA-STATUTE-2026",
+        "SRC-CA-CCPA-REGS-2026"
+      ]
+    },
+    {
+      "requirement_id": "REQ-CA-CCPA-004",
+      "regime": "California-CCPA-CPRA",
+      "topic": "right_to_know",
+      "requirement": "Consumers have rights to request information about collection, use, disclosure and other statutory categories of personal information.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "consumer_request_to_know"
+        ],
+        "covered_actors": [
+          "business"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "personal_information"
+      ],
+      "contexts": [],
+      "regions": [
+        "California"
+      ],
+      "exceptions": [
+        "statutory_exceptions"
+      ],
+      "effective_from": "2020-01-01",
+      "effective_to": null,
+      "policy_version": "CCPA-2026",
+      "source_ids": [
+        "SRC-CA-CCPA-STATUTE-2026",
+        "SRC-CA-OAG-CCPA"
+      ]
+    },
+    {
+      "requirement_id": "REQ-CA-CCPA-005",
+      "regime": "California-CCPA-CPRA",
+      "topic": "right_to_delete",
+      "requirement": "Consumers have a right to request deletion of personal information, subject to statutory exceptions.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "consumer_deletion_request"
+        ],
+        "covered_actors": [
+          "business"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "personal_information"
+      ],
+      "contexts": [],
+      "regions": [
+        "California"
+      ],
+      "exceptions": [
+        "statutory_exceptions"
+      ],
+      "effective_from": "2020-01-01",
+      "effective_to": null,
+      "policy_version": "CCPA-2026",
+      "source_ids": [
+        "SRC-CA-CCPA-STATUTE-2026",
+        "SRC-CA-OAG-CCPA"
+      ]
+    },
+    {
+      "requirement_id": "REQ-CA-CCPA-006",
+      "regime": "California-CCPA-CPRA",
+      "topic": "sale_opt_out",
+      "requirement": "Consumers have the right to opt out of the sale of their personal information, subject to statutory definitions and exceptions.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "sale_of_personal_information"
+        ],
+        "covered_actors": [
+          "business"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [
+        "sale"
+      ],
+      "data_categories": [
+        "personal_information"
+      ],
+      "contexts": [],
+      "regions": [
+        "California"
+      ],
+      "opt_out": {
+        "available": true,
+        "conditions": [
+          "sale_definition_applies"
+        ],
+        "signals": [
+          "consumer_opt_out",
+          "opt_out_preference_signal"
+        ]
+      },
+      "exceptions": [],
+      "effective_from": "2020-01-01",
+      "effective_to": null,
+      "policy_version": "CCPA-2026",
+      "source_ids": [
+        "SRC-CA-CCPA-STATUTE-2026",
+        "SRC-CA-CCPA-REGS-2026",
+        "SRC-CA-OAG-CCPA"
+      ]
+    },
+    {
+      "requirement_id": "REQ-CA-CCPA-007",
+      "regime": "California-CCPA-CPRA",
+      "topic": "sharing_opt_out",
+      "requirement": "Consumers have the right to opt out of sharing of personal information for cross-context behavioural advertising where the statutory definition applies.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "sharing_for_cross_context_behavioural_advertising"
+        ],
+        "covered_actors": [
+          "business"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [
+        "cross_context_behavioural_advertising"
+      ],
+      "data_categories": [
+        "personal_information"
+      ],
+      "contexts": [
+        "advertising"
+      ],
+      "regions": [
+        "California"
+      ],
+      "opt_out": {
+        "available": true,
+        "conditions": [
+          "sharing_definition_applies"
+        ],
+        "signals": [
+          "consumer_opt_out",
+          "global_privacy_control"
+        ]
+      },
+      "exceptions": [],
+      "effective_from": "2023-01-01",
+      "effective_to": null,
+      "policy_version": "CCPA-2026",
+      "source_ids": [
+        "SRC-CA-CCPA-STATUTE-2026",
+        "SRC-CA-CCPA-REGS-2026",
+        "SRC-CA-OAG-CCPA"
+      ]
+    },
+    {
+      "requirement_id": "REQ-CA-CCPA-008",
+      "regime": "California-CCPA-CPRA",
+      "topic": "sensitive_personal_information",
+      "requirement": "Consumers have a right to limit certain uses and disclosures of sensitive personal information, subject to statutory conditions and exceptions.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "sensitive_personal_information"
+        ],
+        "covered_actors": [
+          "business"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "sensitive_personal_information"
+      ],
+      "contexts": [],
+      "regions": [
+        "California"
+      ],
+      "opt_out": {
+        "available": true,
+        "conditions": [
+          "statutory_sensitive_information_conditions"
+        ],
+        "signals": []
+      },
+      "exceptions": [],
+      "effective_from": "2023-01-01",
+      "effective_to": null,
+      "policy_version": "CCPA-2026",
+      "source_ids": [
+        "SRC-CA-CCPA-STATUTE-2026",
+        "SRC-CA-CCPA-REGS-2026"
+      ]
+    },
+    {
+      "requirement_id": "REQ-CA-CCPA-009",
+      "regime": "California-CCPA-CPRA",
+      "topic": "minors",
+      "requirement": "California law imposes enhanced consent requirements for certain sales or sharing involving minors, with age-specific rules.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "consumer_under_16",
+          "sale_or_sharing"
+        ],
+        "covered_actors": [
+          "business"
+        ]
+      },
+      "legal_bases": [
+        "consent"
+      ],
+      "purposes": [
+        "sale",
+        "sharing"
+      ],
+      "data_categories": [
+        "personal_information"
+      ],
+      "contexts": [
+        "sale",
+        "sharing"
+      ],
+      "regions": [
+        "California"
+      ],
+      "consent": {
+        "required": true,
+        "conditions": [
+          "age_specific_opt_in_requirements"
+        ],
+        "withdrawal_required": true
+      },
+      "children": {
+        "applies": true,
+        "conditions": [
+          "under_13_parental_consent",
+          "age_13_to_15_consumer_opt_in"
+        ]
+      },
+      "exceptions": [],
+      "effective_from": "2023-01-01",
+      "effective_to": null,
+      "policy_version": "CCPA-2026",
+      "source_ids": [
+        "SRC-CA-CCPA-STATUTE-2026",
+        "SRC-CA-CCPA-REGS-2026"
+      ]
+    },
+    {
+      "requirement_id": "REQ-CA-CCPA-010",
+      "regime": "California-CCPA-CPRA",
+      "topic": "non_discrimination",
+      "requirement": "A business generally may not discriminate against a consumer for exercising CCPA rights, subject to statutory exceptions.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "exercise_of_consumer_right"
+        ],
+        "covered_actors": [
+          "business"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "personal_information"
+      ],
+      "contexts": [],
+      "regions": [
+        "California"
+      ],
+      "exceptions": [
+        "statutory_exceptions"
+      ],
+      "effective_from": "2020-01-01",
+      "effective_to": null,
+      "policy_version": "CCPA-2026",
+      "source_ids": [
+        "SRC-CA-CCPA-STATUTE-2026",
+        "SRC-CA-OAG-CCPA"
+      ]
+    },
+    {
+      "requirement_id": "REQ-CA-CCPA-011",
+      "regime": "California-CCPA-CPRA",
+      "topic": "opt_out_preference_signals",
+      "requirement": "Covered businesses must process qualifying opt-out preference signals as required by California law and regulations.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "qualifying_opt_out_preference_signal"
+        ],
+        "covered_actors": [
+          "business"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [
+        "sale",
+        "sharing"
+      ],
+      "data_categories": [
+        "personal_information"
+      ],
+      "contexts": [
+        "online"
+      ],
+      "regions": [
+        "California"
+      ],
+      "opt_out": {
+        "available": true,
+        "conditions": [
+          "qualifying_signal"
+        ],
+        "signals": [
+          "global_privacy_control"
+        ]
+      },
+      "exceptions": [],
+      "effective_from": "2023-01-01",
+      "effective_to": null,
+      "policy_version": "CCPA-2026",
+      "source_ids": [
+        "SRC-CA-CCPA-REGS-2026",
+        "SRC-CA-OAG-CCPA"
+      ]
+    },
+    {
+      "requirement_id": "REQ-CA-CCPA-012",
+      "regime": "California-CCPA-CPRA",
+      "topic": "data_minimization",
+      "requirement": "Collection, use, retention and sharing of personal information are subject to purpose and minimization restrictions under California law.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "collection",
+          "use",
+          "retention",
+          "sharing"
+        ],
+        "covered_actors": [
+          "business"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "personal_information"
+      ],
+      "contexts": [],
+      "regions": [
+        "California"
+      ],
+      "exceptions": [],
+      "effective_from": "2023-01-01",
+      "effective_to": null,
+      "policy_version": "CCPA-2026",
+      "source_ids": [
+        "SRC-CA-CCPA-STATUTE-2026",
+        "SRC-CA-CCPA-REGS-2026"
+      ]
+    },
+    {
+      "requirement_id": "REQ-CA-CCPA-013",
+      "regime": "California-CCPA-CPRA",
+      "topic": "risk_assessments",
+      "requirement": "The current California regulatory framework establishes requirements concerning risk assessments for covered processing activities.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "covered_processing_activity",
+          "risk_assessment_requirement"
+        ],
+        "covered_actors": [
+          "business"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "personal_information"
+      ],
+      "contexts": [],
+      "regions": [
+        "California"
+      ],
+      "exceptions": [],
+      "effective_from": "2026-01-01",
+      "effective_to": null,
+      "policy_version": "CCPA-Regulations-2026",
+      "source_ids": [
+        "SRC-CA-CCPA-REGS-2026"
+      ]
+    },
+    {
+      "requirement_id": "REQ-CA-CCPA-014",
+      "regime": "California-CCPA-CPRA",
+      "topic": "cybersecurity_audit",
+      "requirement": "The current California regulatory framework establishes cybersecurity audit requirements for covered businesses meeting applicable conditions.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "covered_business",
+          "applicable_audit_threshold"
+        ],
+        "covered_actors": [
+          "business"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "personal_information"
+      ],
+      "contexts": [
+        "security"
+      ],
+      "regions": [
+        "California"
+      ],
+      "exceptions": [],
+      "effective_from": "2026-01-01",
+      "effective_to": null,
+      "policy_version": "CCPA-Regulations-2026",
+      "source_ids": [
+        "SRC-CA-CCPA-REGS-2026"
+      ],
+      "notes": "Specific certification deadlines are phased by applicable business size and begin in later years."
+    },
+    {
+      "requirement_id": "REQ-CA-CCPA-015",
+      "regime": "California-CCPA-CPRA",
+      "topic": "automated_decision_making",
+      "requirement": "The current California regulatory framework establishes requirements concerning automated decisionmaking technology for covered uses, including specified significant-decision contexts.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "automated_decisionmaking_technology",
+          "significant_decision"
+        ],
+        "covered_actors": [
+          "business"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [
+        "automated_decisionmaking"
+      ],
+      "data_categories": [
+        "personal_information"
+      ],
+      "contexts": [
+        "automated_decisionmaking"
+      ],
+      "regions": [
+        "California"
+      ],
+      "exceptions": [],
+      "effective_from": "2026-01-01",
+      "effective_to": null,
+      "policy_version": "CCPA-Regulations-2026",
+      "source_ids": [
+        "SRC-CA-CCPA-REGS-2026"
+      ],
+      "notes": "Certain significant-decision requirements have later compliance dates. Do not treat all ADMT obligations as immediately operative on the same date."
+    },
+    {
+      "requirement_id": "REQ-BR-LGPD-001",
+      "regime": "Brazil-LGPD",
+      "topic": "scope",
+      "requirement": "The LGPD applies to processing of personal data by public or private natural or legal persons in the circumstances established by Article 3, subject to statutory exclusions.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "processing_in_brazil",
+          "offering_goods_or_services_to_individuals_in_brazil",
+          "data_collected_in_brazil"
+        ],
+        "covered_actors": [
+          "controller",
+          "processor"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "personal_data"
+      ],
+      "contexts": [],
+      "regions": [
+        "Brazil"
+      ],
+      "exceptions": [
+        "statutory_exclusions"
+      ],
+      "effective_from": "2020-09-18",
+      "effective_to": null,
+      "policy_version": "LGPD-13-709-2018",
+      "source_ids": [
+        "SRC-BR-LGPD"
+      ],
+      "notes": "LGPD provisions other than the ANPD/CNPD institutional provisions and Articles 52–54 were effective 2020-09-18."
+    },
+    {
+      "requirement_id": "REQ-BR-LGPD-002",
+      "regime": "Brazil-LGPD",
+      "topic": "lawful_basis",
+      "requirement": "Processing of personal data must rely on one of the legal hypotheses established by Article 7.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "personal_data_processing"
+        ],
+        "covered_actors": [
+          "controller"
+        ]
+      },
+      "legal_bases": [
+        "consent",
+        "legal_or_regulatory_obligation",
+        "public_administration",
+        "research",
+        "contract",
+        "exercise_of_rights",
+        "life_protection",
+        "physical_safety",
+        "health",
+        "legitimate_interest",
+        "credit_protection"
+      ],
+      "purposes": [],
+      "data_categories": [
+        "personal_data"
+      ],
+      "contexts": [],
+      "exceptions": [],
+      "effective_from": "2020-09-18",
+      "effective_to": null,
+      "policy_version": "LGPD-13-709-2018",
+      "source_ids": [
+        "SRC-BR-LGPD"
+      ],
+      "notes": "LGPD provisions other than the ANPD/CNPD institutional provisions and Articles 52–54 were effective 2020-09-18."
+    },
+    {
+      "requirement_id": "REQ-BR-LGPD-003",
+      "regime": "Brazil-LGPD",
+      "topic": "sensitive_data",
+      "requirement": "Sensitive personal data processing is subject to the specific legal hypotheses in Article 11.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "sensitive_personal_data_processing"
+        ],
+        "covered_actors": [
+          "controller"
+        ]
+      },
+      "legal_bases": [
+        "consent",
+        "legal_or_regulatory_obligation",
+        "public_administration",
+        "research",
+        "exercise_of_rights",
+        "life_protection",
+        "physical_safety",
+        "health",
+        "fraud_prevention",
+        "security"
+      ],
+      "purposes": [],
+      "data_categories": [
+        "sensitive_personal_data"
+      ],
+      "contexts": [],
+      "exceptions": [],
+      "effective_from": "2020-09-18",
+      "effective_to": null,
+      "policy_version": "LGPD-13-709-2018",
+      "source_ids": [
+        "SRC-BR-LGPD"
+      ],
+      "notes": "LGPD provisions other than the ANPD/CNPD institutional provisions and Articles 52–54 were effective 2020-09-18."
+    },
+    {
+      "requirement_id": "REQ-BR-LGPD-004",
+      "regime": "Brazil-LGPD",
+      "topic": "children_and_adolescents",
+      "requirement": "Processing of personal data of children and adolescents must be carried out in their best interests, with specific highlighted consent requirements for children subject to statutory exceptions.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "child_or_adolescent_data"
+        ],
+        "covered_actors": [
+          "controller"
+        ]
+      },
+      "legal_bases": [
+        "consent"
+      ],
+      "purposes": [],
+      "data_categories": [
+        "child_personal_data",
+        "adolescent_personal_data"
+      ],
+      "contexts": [],
+      "regions": [
+        "Brazil"
+      ],
+      "consent": {
+        "required": true,
+        "conditions": [
+          "specific_highlighted_consent_for_child",
+          "parent_or_legal_guardian"
+        ],
+        "withdrawal_required": true
+      },
+      "children": {
+        "applies": true,
+        "conditions": [
+          "best_interests"
+        ]
+      },
+      "exceptions": [
+        "statutory_child_processing_exceptions"
+      ],
+      "effective_from": "2020-09-18",
+      "effective_to": null,
+      "policy_version": "LGPD-13-709-2018",
+      "source_ids": [
+        "SRC-BR-LGPD"
+      ],
+      "notes": "LGPD provisions other than the ANPD/CNPD institutional provisions and Articles 52–54 were effective 2020-09-18."
+    },
+    {
+      "requirement_id": "REQ-BR-LGPD-005",
+      "regime": "Brazil-LGPD",
+      "topic": "data_subject_rights",
+      "requirement": "Data subjects have statutory rights including confirmation, access, correction, deletion, portability, information and review-related rights, subject to applicable conditions.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "data_subject_request"
+        ],
+        "covered_actors": [
+          "controller"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "personal_data"
+      ],
+      "contexts": [],
+      "exceptions": [
+        "statutory_exceptions"
+      ],
+      "effective_from": "2020-09-18",
+      "effective_to": null,
+      "policy_version": "LGPD-13-709-2018",
+      "source_ids": [
+        "SRC-BR-LGPD"
+      ],
+      "notes": "LGPD provisions other than the ANPD/CNPD institutional provisions and Articles 52–54 were effective 2020-09-18."
+    },
+    {
+      "requirement_id": "REQ-BR-LGPD-006",
+      "regime": "Brazil-LGPD",
+      "topic": "international_transfer",
+      "requirement": "International transfers require an LGPD-authorised transfer basis and applicable transfer mechanism under Articles 33–36 and ANPD regulation.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "international_transfer"
+        ],
+        "covered_actors": [
+          "controller",
+          "processor"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "personal_data"
+      ],
+      "contexts": [
+        "international_transfer"
+      ],
+      "regions": [
+        "Brazil"
+      ],
+      "exceptions": [
+        "adequacy",
+        "standard_contractual_clauses",
+        "specific_contractual_clauses",
+        "global_corporate_rules",
+        "other_article_33_mechanisms"
+      ],
+      "effective_from": "2020-09-18",
+      "effective_to": null,
+      "policy_version": "LGPD-13-709-2018-with-ANPD-Resolution-19-2024",
+      "source_ids": [
+        "SRC-BR-LGPD",
+        "SRC-BR-ANPD-TRANSFERS-19-2024",
+        "SRC-BR-ANPD-ADEQUACY-32-2026"
+      ],
+      "notes": "Resolution 19/2024 governs specified transfer mechanisms and is amended by the 2025 corrigendum. Resolution 32/2026 recognizes the EU/EEA destination for adequacy purposes. The underlying LGPD lawful basis remains a separate concept."
+    },
+    {
+      "requirement_id": "REQ-BR-LGPD-007",
+      "regime": "Brazil-LGPD",
+      "topic": "security",
+      "requirement": "Controllers and processors must adopt security, technical and administrative measures capable of protecting personal data against unauthorised access and accidental or unlawful situations.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "personal_data_processing"
+        ],
+        "covered_actors": [
+          "controller",
+          "processor"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "personal_data"
+      ],
+      "contexts": [
+        "security"
+      ],
+      "regions": [
+        "Brazil"
+      ],
+      "exceptions": [],
+      "effective_from": "2020-09-18",
+      "effective_to": null,
+      "policy_version": "LGPD-13-709-2018",
+      "source_ids": [
+        "SRC-BR-LGPD",
+        "SRC-BR-ANPD-INCIDENT-15-2024"
+      ],
+      "notes": "LGPD provisions other than the ANPD/CNPD institutional provisions and Articles 52–54 were effective 2020-09-18."
+    },
+    {
+      "requirement_id": "REQ-BR-LGPD-008",
+      "regime": "Brazil-LGPD",
+      "topic": "enforcement",
+      "requirement": "The ANPD has regulatory and enforcement powers, including application of administrative sanctions under the LGPD and applicable ANPD regulations.",
+      "applicability": {
+        "applies": true,
+        "triggers": [
+          "regulatory_noncompliance"
+        ],
+        "covered_actors": [
+          "controller",
+          "processor"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "personal_data"
+      ],
+      "contexts": [],
+      "regions": [
+        "Brazil"
+      ],
+      "exceptions": [],
+      "effective_from": "2021-08-01",
+      "effective_to": null,
+      "policy_version": "LGPD-with-ANPD-sanctions-framework",
+      "source_ids": [
+        "SRC-BR-LGPD",
+        "SRC-BR-ANPD-SANCTIONS-4-2023",
+        "SRC-BR-ANPD-DPO-18-2024"
+      ],
+      "notes": "Administrative sanctions in Articles 52–54 entered into force 2021-08-01; ANPD process/dosimetry regulations are separately versioned."
+    },
+    {
+      "requirement_id": "REQ-US-STATE-001",
+      "regime": "US-State-Model",
+      "topic": "applicability",
+      "requirement": "US state privacy regimes may use jurisdiction-specific entity, revenue, consumer, data-volume or business-activity thresholds.",
+      "applicability": {
+        "applies": false,
+        "triggers": [
+          "state_specific_threshold"
+        ],
+        "covered_actors": [
+          "state_specific_covered_entity"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "personal_information"
+      ],
+      "contexts": [],
+      "regions": [
+        "US"
+      ],
+      "exceptions": [
+        "state_specific_exemptions"
+      ],
+      "effective_from": null,
+      "effective_to": null,
+      "policy_version": "GENERIC-MODEL-1.0",
+      "source_ids": [
+        "SRC-US-STATE-MODEL"
+      ],
+      "notes": "Model only. Not a statement of any individual state's law."
+    },
+    {
+      "requirement_id": "REQ-US-STATE-002",
+      "regime": "US-State-Model",
+      "topic": "consumer_rights",
+      "requirement": "State privacy regimes may provide combinations of access, correction, deletion, portability, appeal and other consumer rights.",
+      "applicability": {
+        "applies": false,
+        "triggers": [
+          "state_specific_consumer_right"
+        ],
+        "covered_actors": [
+          "state_specific_covered_entity"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "personal_information"
+      ],
+      "contexts": [],
+      "regions": [
+        "US"
+      ],
+      "exceptions": [
+        "state_specific_exemptions"
+      ],
+      "effective_from": null,
+      "effective_to": null,
+      "policy_version": "GENERIC-MODEL-1.0",
+      "source_ids": [
+        "SRC-US-STATE-MODEL"
+      ],
+      "notes": "Model only."
+    },
+    {
+      "requirement_id": "REQ-US-STATE-003",
+      "regime": "US-State-Model",
+      "topic": "sale_targeted_advertising",
+      "requirement": "Some state privacy regimes provide opt-out rights concerning sale of personal data, targeted advertising or similar activities.",
+      "applicability": {
+        "applies": false,
+        "triggers": [
+          "state_specific_sale_definition",
+          "targeted_advertising"
+        ],
+        "covered_actors": [
+          "state_specific_covered_entity"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [
+        "sale",
+        "targeted_advertising"
+      ],
+      "data_categories": [
+        "personal_information"
+      ],
+      "contexts": [
+        "advertising"
+      ],
+      "regions": [
+        "US"
+      ],
+      "opt_out": {
+        "available": true,
+        "conditions": [
+          "state_specific_conditions"
+        ],
+        "signals": [
+          "state_specific_preference_signal"
+        ]
+      },
+      "exceptions": [
+        "state_specific_exemptions"
+      ],
+      "effective_from": null,
+      "effective_to": null,
+      "policy_version": "GENERIC-MODEL-1.0",
+      "source_ids": [
+        "SRC-US-STATE-MODEL"
+      ],
+      "notes": "Model only; individual state definitions and requirements must be sourced separately."
+    },
+    {
+      "requirement_id": "REQ-US-STATE-004",
+      "regime": "US-State-Model",
+      "topic": "sensitive_data",
+      "requirement": "Some state regimes impose heightened requirements for sensitive personal data, including consent or other restrictions.",
+      "applicability": {
+        "applies": false,
+        "triggers": [
+          "sensitive_data"
+        ],
+        "covered_actors": [
+          "state_specific_covered_entity"
+        ]
+      },
+      "legal_bases": [
+        "state_specific_consent",
+        "state_specific_exception"
+      ],
+      "purposes": [],
+      "data_categories": [
+        "sensitive_personal_data"
+      ],
+      "contexts": [],
+      "regions": [
+        "US"
+      ],
+      "consent": {
+        "required": false,
+        "conditions": [
+          "state_specific_requirement"
+        ],
+        "withdrawal_required": false
+      },
+      "exceptions": [
+        "state_specific_exemptions"
+      ],
+      "effective_from": null,
+      "effective_to": null,
+      "policy_version": "GENERIC-MODEL-1.0",
+      "source_ids": [
+        "SRC-US-STATE-MODEL"
+      ],
+      "notes": "Model only."
+    },
+    {
+      "requirement_id": "REQ-US-STATE-005",
+      "regime": "US-State-Model",
+      "topic": "children",
+      "requirement": "State regimes may impose additional requirements for processing data of children or minors, with age thresholds and consent mechanisms varying by jurisdiction.",
+      "applicability": {
+        "applies": false,
+        "triggers": [
+          "minor_or_child_data"
+        ],
+        "covered_actors": [
+          "state_specific_covered_entity"
+        ]
+      },
+      "legal_bases": [
+        "state_specific_consent"
+      ],
+      "purposes": [],
+      "data_categories": [
+        "child_or_minor_data"
+      ],
+      "contexts": [],
+      "regions": [
+        "US"
+      ],
+      "children": {
+        "applies": true,
+        "conditions": [
+          "state_specific_age_threshold",
+          "state_specific_consent_requirement"
+        ]
+      },
+      "exceptions": [
+        "state_specific_exemptions"
+      ],
+      "effective_from": null,
+      "effective_to": null,
+      "policy_version": "GENERIC-MODEL-1.0",
+      "source_ids": [
+        "SRC-US-STATE-MODEL"
+      ],
+      "notes": "Model only."
+    },
+    {
+      "requirement_id": "REQ-US-STATE-006",
+      "regime": "US-State-Model",
+      "topic": "privacy_notice",
+      "requirement": "State privacy regimes may require notices describing categories of personal data, purposes, rights and other jurisdiction-specific information.",
+      "applicability": {
+        "applies": false,
+        "triggers": [
+          "state_specific_notice_requirement"
+        ],
+        "covered_actors": [
+          "state_specific_covered_entity"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "personal_information"
+      ],
+      "contexts": [],
+      "regions": [
+        "US"
+      ],
+      "exceptions": [
+        "state_specific_exemptions"
+      ],
+      "effective_from": null,
+      "effective_to": null,
+      "policy_version": "GENERIC-MODEL-1.0",
+      "source_ids": [
+        "SRC-US-STATE-MODEL"
+      ],
+      "notes": "Model only."
+    },
+    {
+      "requirement_id": "REQ-US-STATE-007",
+      "regime": "US-State-Model",
+      "topic": "processor_relationship",
+      "requirement": "State privacy regimes may distinguish controllers and processors and impose contractual or operational obligations on processor relationships.",
+      "applicability": {
+        "applies": false,
+        "triggers": [
+          "controller_processor_relationship"
+        ],
+        "covered_actors": [
+          "controller",
+          "processor"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "personal_information"
+      ],
+      "contexts": [
+        "vendor_processing"
+      ],
+      "regions": [
+        "US"
+      ],
+      "exceptions": [
+        "state_specific_exemptions"
+      ],
+      "effective_from": null,
+      "effective_to": null,
+      "policy_version": "GENERIC-MODEL-1.0",
+      "source_ids": [
+        "SRC-US-STATE-MODEL"
+      ],
+      "notes": "Model only."
+    },
+    {
+      "requirement_id": "REQ-US-STATE-008",
+      "regime": "US-State-Model",
+      "topic": "appeals",
+      "requirement": "Some state privacy regimes provide consumers with an appeal mechanism following denial of a privacy request.",
+      "applicability": {
+        "applies": false,
+        "triggers": [
+          "denied_consumer_request"
+        ],
+        "covered_actors": [
+          "state_specific_covered_entity"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [
+        "personal_information"
+      ],
+      "contexts": [
+        "consumer_request"
+      ],
+      "regions": [
+        "US"
+      ],
+      "exceptions": [
+        "state_specific_conditions"
+      ],
+      "effective_from": null,
+      "effective_to": null,
+      "policy_version": "GENERIC-MODEL-1.0",
+      "source_ids": [
+        "SRC-US-STATE-MODEL"
+      ],
+      "notes": "Model only."
+    },
+    {
+      "requirement_id": "REQ-US-STATE-009",
+      "regime": "US-State-Model",
+      "topic": "effective_dates",
+      "requirement": "State privacy requirements must be evaluated using jurisdiction-specific effective and compliance dates.",
+      "applicability": {
+        "applies": false,
+        "triggers": [
+          "state_specific_effective_date"
+        ],
+        "covered_actors": [
+          "state_specific_covered_entity"
+        ]
+      },
+      "legal_bases": [],
+      "purposes": [],
+      "data_categories": [],
+      "contexts": [],
+      "regions": [
+        "US"
+      ],
+      "exceptions": [],
+      "effective_from": null,
+      "effective_to": null,
+      "policy_version": "GENERIC-MODEL-1.0",
+      "source_ids": [
+        "SRC-US-STATE-MODEL"
+      ],
+      "notes": "Model only. Individual state laws must be separately sourced."
+    }
+  ]
 }

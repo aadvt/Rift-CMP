@@ -342,6 +342,10 @@ Exemptions must be represented as conditions rather than universal exclusions.
 
 ## 28. Effective Dates / Versioning
 
+### Computed calendar dates
+The official commencement instruments specify periods from publication. For machine comparison, the project computes **2026-11-13** for the one-year group and **2027-05-13** for the eighteen-month group from the Gazette publication date of 2025-11-13. These are modeling calculations; the source's stated periods remain authoritative.
+
+
 The Act received Presidential assent on:
 
 **11 August 2023**

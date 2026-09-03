@@ -296,6 +296,10 @@ For the product, represent requirements using:
 
 ## 23. Effective-Date Model
 
+### Computed calendar dates
+The official commencement instruments specify periods from publication. For machine comparison, the project computes **2026-11-13** for the one-year group and **2027-05-13** for the eighteen-month group from the Gazette publication date of 2025-11-13. These are modeling calculations; the source's stated periods remain authoritative.
+
+
 The compliance engine must not assume:
 
 `Rules published = all Rules immediately enforceable`

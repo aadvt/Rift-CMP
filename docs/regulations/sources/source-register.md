@@ -231,3 +231,16 @@ It represents common modeling dimensions across US state privacy regimes. Indivi
 - Historical sources must remain available when needed for version comparison.
 - Effective dates must be recorded at the requirement or provision level where applicable.
 - Conflicts between sources must be recorded in `conflicts/conflicts.md`.
+
+## 2026-09-03 Final Verification
+
+The source register was rechecked against current primary/official sources.
+
+### Verified changes
+
+- India DPDP Act commencement: G.S.R. 843(E), 13 November 2025.
+- India DPDP Rules: G.S.R. 846(E), with the official corrigendum listed by MeitY.
+- EU ePrivacy: Directive 2002/58/EC plus final EDPB Guidelines 2/2023 version 2.0.
+- California: CCPA and CCPA Regulations effective 1 January 2026; 2025 rulemaking package includes risk assessments, cybersecurity audits and ADMT with later compliance dates for specified obligations.
+- Brazil: LGPD effective-date phasing corrected; current ANPD regulations include Resolutions 18/2024, 15/2024, 19/2024 (as corrected in 2025), 4/2023, and 2/2022.
+- Brazil: Resolution 32/2026 recognizing the EU/EEA adequacy status was added.

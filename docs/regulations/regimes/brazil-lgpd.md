@@ -280,6 +280,8 @@ Additional statutory exceptions and sector-specific rules must be evaluated acco
 
 ## 21. Effective Dates / Versioning
 
+LGPD commencement was phased: ANPD's official FAQ records the institutional provisions on 2018-12-28, the remaining provisions (excluding administrative sanctions) on 2020-09-18, and Articles 52–54 on 2021-08-01.
+
 - LGPD enacted: **14 August 2018**
 - LGPD entered into force in stages; the main data-processing provisions became applicable in 2020.
 - Administrative sanctions under LGPD became applicable from **1 August 2021**.

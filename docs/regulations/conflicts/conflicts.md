@@ -52,3 +52,12 @@ The research model must not use a single field such as:
 
 ```text
 consent_required = true
+
+## 2026-09-03 Verification Updates
+
+The final verification pass identified the following source/version corrections:
+
+- **CONFLICT-013 — Brazil LGPD effective dates:** The LGPD did not become generally effective only on 2021-08-01. ANPD's official FAQ states that the institutional provisions entered into force on 2018-12-28, the remaining provisions (excluding administrative sanctions) on 2020-09-18, and Articles 52–54 on 2021-08-01. The matrix therefore uses 2020-09-18 for substantive LGPD requirements and 2021-08-01 for administrative sanctions.
+- **CONFLICT-014 — Brazil international transfers:** ANPD Resolution 19/2024 remains in force with the 2025 corrigendum, and Resolution 32/2026 now recognizes the European Union and specified EEA destinations as adequate for LGPD transfer purposes. Adequacy must remain distinct from the underlying lawful basis for processing.
+- **CONFLICT-015 — EU ePrivacy technical scope:** EDPB Guidelines 2/2023 final version 2.0, published 2024-10-16, should be used as current official guidance for Article 5(3) technical scope. The guidance does not create a universal rule that every analytics implementation requires consent.
+- **CONFLICT-016 — India DPDP commencement:** The Act and Rules use phased commencement periods. The matrix uses computed calendar dates (2026-11-13 and 2027-05-13) only as modeling values and preserves the authoritative commencement periods in the source notes.
