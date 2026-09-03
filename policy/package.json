@@ -1,0 +1,14 @@
+{
+  "name": "@rift-cmp/policy",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./model": "./model.ts",
+    "./rules": "./rules.ts",
+    "./disposition": "./disposition.ts",
+    "./evaluate": "./evaluate.ts"
+  },
+  "types": "./index.ts"
+}

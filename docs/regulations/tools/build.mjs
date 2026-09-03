@@ -10,7 +10,7 @@
  *
  * Emits:
  *   matrix/requirements.csv        tabular view for review and spreadsheets
- *   generated/requirements.ts      typed data for a future engine to import
+ *   generated/requirements.ts      typed data, imported by policy/rules.ts
  *   generated/vocabulary.ts        the controlled vocabulary as union types
  *
  * The TypeScript output is **data and types only**. It contains no evaluation

@@ -20,6 +20,17 @@ Phase 5 adds an **aggregate analytics read API** and an **operator dashboard**. 
 
 Phase 6A is a **security hardening pass over that MVP**, and it changed one contract on purpose. A site public key ships in page source, so it was never evidence that a person decided anything — yet it was the only credential `POST /api/v1/consent` asked for, which meant anyone could append a permanent record claiming a named principal had consented. Recording a decision now also requires a **consent session**, bound to a principal whose secret the caller holds. Alongside it: opt-in server-side consent enforcement for analytics ingestion (the API re-derives the decision from the log instead of trusting a browser's gate), rate limiting, origin validation, immutability guards on the authorisation and transfer tables, and revocable dashboard sessions that no longer carry the organisation secret in a cookie. [docs/security.md](docs/security.md) sets all of it out as *enforced*, *defence in depth*, or *still a limitation* — including what a consent session deliberately does not prove.
 
+Phase 7A turns that research into the **policy engine**. The 102 structured
+requirements Phase 6B and 6C produced were read by nothing; `policy/` now reads
+them and answers one question — *given this processing activity and this context,
+what requirements apply?* It is generic by construction: the single table that
+turns a requirement into a verdict is keyed on canonical topic and names no
+regime, and a test fails the build if one appears in it. It is also deliberately
+**not wired into any route**. The platform's existing gate is a fact about a
+recorded decision; the engine is a statement about what a regime requires, and
+joining them means refusing live traffic on the strength of a research artifact.
+That is a product decision and a later phase. See [docs/policy-engine.md](docs/policy-engine.md).
+
 ## Repository layout
 
 | Path | Purpose |
@@ -29,6 +40,7 @@ Phase 6A is a **security hardening pass over that MVP**, and it changed one cont
 | `api/` | Next.js App Router app: the three API planes under `app/api/`, the operator dashboard under `app/dashboard/`, its server-only session and API client in `lib/dashboard/`, and the test suite in `tests/` |
 | `shared/` | Shared TypeScript event, tenancy, consent, transfer, authorisation, audit, analytics, and API contract types |
 | `secure-transfer/` | The crypto boundary: `envelope.ts` (types, canonical AAD, digest, shape validation) is Rift-safe; `fiduciary.ts` (key generation, seal, open) belongs to the fiduciaries and is never imported by `api/` |
+| `policy/` | The policy engine: the generic model, the topic disposition table, matrix compilation and the evaluator. Reads the Phase 6B matrix; imports no route and no database |
 | `database/` | Prisma schema, generated client, migrations, credential/tenancy helpers, the consent and transfer service layers, the orchestration layer (`authorisation.ts`), the audit and analytics read models (`audit.ts`, `analytics.ts`), and seed data |
 
 ## What this repo owns
@@ -68,6 +80,10 @@ Phase 6A is a **security hardening pass over that MVP**, and it changed one cont
   graph, and a test fails the build if it ever is
 - Prisma model and PostgreSQL storage for `organisations`, `websites`, `sessions`,
   `events`, the seven consent tables, and the three secure routing tables
+- The policy engine in `policy/`: a deterministic, side-effect-free evaluator
+  over the Phase 6B requirement matrix, answering what a set of regimes requires
+  of a processing activity. Cites every rule it relies on, resolves conflicts
+  conservatively, and never returns `ALLOW` from absence of evidence
 - Shared event, consent and transfer contracts to prevent SDK/API drift
 
 It does **not** own the compliance engine or any consent UI. Nor does it own
@@ -92,6 +108,7 @@ Start with the first one; it is the entry point and links to the rest.
 - [SDK API](docs/sdk-api.md) — the public interface a customer's developer calls
 - [Database Schema](docs/database-schema.md)
 - [Discovery](docs/discovery.md)
+- [Policy Engine](docs/policy-engine.md) - what a regime requires of an activity, and why it is not wired into a route
 - [Security Model](docs/security.md) — what is enforced, what is defence in depth, what is not done
 - [Integration Contract](docs/integration-contract.md)
 
@@ -312,8 +329,8 @@ republishes it to `api/public/js/rift-cmp.js`.
 From the repo root:
 
 ```bash
-npm run test:unit   # vitest: 37 tests, no database, a few seconds
-npm test            # vitest: all 215 tests; the integration half needs Postgres
+npm run test:unit   # vitest: 218 tests, no database, a few seconds
+npm test            # vitest: all 355 tests; the integration half needs Postgres
 npm run typecheck   # tsc --noEmit across the api workspace
 npm run lint        # eslint
 npm run build       # builds the SDK bundle, then next build
@@ -323,7 +340,7 @@ The suite is split into two vitest projects, configured in `api/vitest.config.ts
 
 | Project | Files | Tests | Needs a database |
 | --- | --- | --- | --- |
-| `unit` | `keys.test.ts`, `secure-transfer-crypto.test.ts`, `dashboard-components.test.tsx` | 37 | no |
+| `unit` | `keys.test.ts`, `secure-transfer-crypto.test.ts`, `dashboard-components.test.tsx`, `discovery-classification.test.ts`, `rate-limit.test.ts`, `origin-validation.test.ts`, `sdk-limits.test.ts`, `policy-rules.test.ts`, `policy-engine.test.ts`, `policy-boundary.test.ts` | 218 | no |
 | `integration` | everything else under `api/tests/` | 178 | yes |
 
 The split exists because crypto, key-format and component tests have no business
@@ -417,5 +434,6 @@ Keep the following aligned when making changes:
 - [api/app/api/v1/events/route.ts](api/app/api/v1/events/route.ts)
 - [api/app/api/v1/consent/route.ts](api/app/api/v1/consent/route.ts)
 - [api/lib/auth.ts](api/lib/auth.ts)
+- [docs/policy-engine.md](docs/policy-engine.md), [policy/disposition.ts](policy/disposition.ts) and [policy/model.ts](policy/model.ts) - the engine reads `docs/regulations/generated/`, so a matrix rebuild is a change to its input
 
 This project intentionally keeps the API focused on ingestion, the consent record and authorised data movement. The analytics/dashboard side still reads the database directly for its own reporting and builds the compliance engine on top of the consent vocabulary; `/api/v1/analytics/*` is a narrow, tenant-scoped alternative for aggregate activity, not a replacement for that access.

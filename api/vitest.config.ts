@@ -21,6 +21,9 @@ const UNIT_TESTS = [
   "tests/rate-limit.test.ts",
   "tests/origin-validation.test.ts",
   "tests/sdk-limits.test.ts",
+  "tests/policy-rules.test.ts",
+  "tests/policy-engine.test.ts",
+  "tests/policy-boundary.test.ts",
 ];
 
 export default defineConfig({

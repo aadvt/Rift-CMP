@@ -154,6 +154,24 @@ secure-transfer/
 - `fiduciary.ts` belongs to the source and target fiduciaries — mock actors in this prototype, separate systems Rift has no access to in any real deployment. It is textbook hybrid public-key encryption assembled from `node:crypto`: ephemeral X25519 ECDH, HKDF-SHA256 to derive the key, AES-256-GCM to seal. No new dependency and no novel cryptography, which in a proof of concept is a feature.
 - `api/` imports only `envelope.ts`, and so does `database/transfers.ts`. `api/tests/transfer-boundary.test.ts` walks every `.ts`/`.tsx` file under `api/` (excluding `tests/`, which acts as the fiduciaries) and fails if any of them contains a real import of the fiduciary module. Rift does not merely decline to decrypt; the code to do so is not in its dependency graph.
 
+### Policy engine (`policy/`)
+
+- A workspace package that answers *given this processing activity and this context, what requirements apply?* It reads the Phase 6B requirement matrix and holds **no legal content of its own**: a wrong requirement is fixed in `docs/regulations/matrix/requirements.json` and rebuilt, because there is nowhere else it could be fixed.
+- Split so that being generic is structural rather than a matter of discipline, in the same spirit as `secure-transfer/`:
+
+```text
+policy/
+  model.ts        the generic vocabulary - jurisdiction, actor, rule, verdict
+  disposition.ts  the ONE table that turns a topic into a verdict   <- names no regime
+  rules.ts        matrix -> Rule[], and which rules a context reaches
+  evaluate.ts     the evaluator: one pure function
+```
+
+- `disposition.ts` is keyed on canonical topic and **contains no regime name**; `api/tests/policy-rules.test.ts` reads the file and fails the build if one appears. Adding an eighth regime to the matrix therefore adds rows to the matrix and changes no engine code. "A notice requirement obliges you to give notice" is not a fact about the GDPR.
+- `evaluate` is pure: no clock, no I/O, no state between calls. `asOf` is a required input, because an evaluator that reads the clock stops producing the same answer for the same question the moment some requirement's `effective_from` passes.
+- It resolves conservatively, and **absence never permits**: no matching rule, an unclassifiable topic, a condition it cannot evaluate and a missing jurisdiction are all `REVIEW`. `ALLOW` requires a rule that positively says so — and no context in the current matrix produces one, which a test pins down.
+- It is **not imported by any route, page or database module**. That is the whole of its relationship to the running platform today, and [policy-engine.md](policy-engine.md) sets out why.
+
 ### Database (`database/`)
 - Stores the canonical event record model plus tenant, website and session metadata, the consent domain, and the secure routing tables.
 - Analytics tables are `organisations`, `websites`, `sessions`, and `events`; consent tables are `principals`, `purposes`, `policies`, `policy_versions`, `notices`, `notice_purposes`, and `consent_records`; secure routing tables are `data_recipients`, `transfer_authorisations`, and `transfer_records`. All are described in [database-schema.md](database-schema.md).
@@ -241,11 +259,11 @@ Our side owns:
 
 The other side owns:
 - analytics dashboards and views
-- the compliance engine: which purposes require consent, in which jurisdiction, for how long
+- the compliance engine *as enforcement*: acting on a requirement, and deciding what a product does when a regime demands more than a recorded decision provides. Since Phase 7A this repo carries the **evaluator** for those requirements in `policy/`, which says what applies and cites why; it enforces nothing and no route consults it
 - consent UX (banners, preference centres) and enforcement
 - downstream business logic that reads the database
 - the fiduciary systems at either end of a transfer, and above all **the target's key management**: generating the X25519 key pair, keeping the private half out of Rift's reach, and rotating it. Rift's inability to decrypt is only worth as much as that side's custody of the key
 
 The shared contract between these teams is the event schema in [event-schema.md](event-schema.md), the consent vocabulary in [consent.md](consent.md), the trust model in [secure-transfer.md](secure-transfer.md), the end-to-end flow in [lifecycle.md](lifecycle.md), and the API contract in [api-spec.md](api-spec.md). These must be agreed before any change is made.
 
-The split on consent is the important one: we record structure, they judge it. Nothing in our schema, API or SDK encodes a retention period, a jurisdiction, or a rule that a given purpose requires consent.
+The split on consent is the important one: we record structure, they judge it. Nothing in our **schema, API or SDK** encodes a retention period, a jurisdiction, or a rule that a given purpose requires consent — and Phase 7A did not change that. `policy/` reasons about jurisdictions, but it is none of those three: no table stores its output, no endpoint returns it, and no request is refused because of it. The moment a route consults it, this paragraph stops being true and both sides need to agree what replaces it.

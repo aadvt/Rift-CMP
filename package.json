@@ -6,6 +6,7 @@
     "sdk",
     "api",
     "secure-transfer",
+    "policy",
     "shared",
     "database"
   ],
