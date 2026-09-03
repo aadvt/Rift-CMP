@@ -99,6 +99,11 @@ rift-cmp/
   database/         Prisma schema and the service layers: keys, tenancy, consent,
                     transfers, authorisation (orchestration), audit and analytics
                     (read models). Every function takes its tenant explicitly.
+  policy/           the policy engine and the jurisdiction resolver: the generic
+                    model, one topic disposition table, matrix compilation, a
+                    pure evaluator, and a versioned region -> jurisdiction
+                    mapping. Reads the Phase 6B matrix; imports no route and no
+                    database, and cannot geolocate.
   api/              Next.js App Router. Three API planes under app/api/, and the
                     operator dashboard under app/dashboard/.
   docs/             this document and the ones it links to
@@ -463,10 +468,28 @@ caveat — each one is a thing the MVP genuinely does not do.
   `limit` rows from each of three tables and sorts in memory, so a very lopsided
   distribution can push older entries of one kind out of the window. A deliberate
   trade for keeping the domains unjoined.
-- **No compliance rule engine.** The only rule applied is "the decision in force
-  must be `GRANTED`". Whether a purpose requires consent at all, whether a
-  decision has gone stale, and what any jurisdiction demands are outside this
-  platform by design.
+- **The compliance engine exists but enforces nothing.** `policy/` answers what
+  a set of regimes requires of a processing activity, deterministically and with
+  a citation on every part of the answer - but it is not wired into a route. The
+  only rule the *platform* applies is still "the decision in force must be
+  `GRANTED`". The two are different questions: one is a fact about a recorded
+  decision, the other a statement about what a regime requires, and joining them
+  means refusing live traffic on the strength of a research artifact. Whether a
+  given consent record is fresh, specific or granular enough to satisfy a
+  requirement is asked nowhere. See [policy-engine.md](policy-engine.md).
+- **The engine cannot answer a Member-State question.** Jurisdiction is
+  region-level, because that is the grain the matrix carries. Nor can it match
+  on an applicability trigger: those are free text in the research, 102 distinct
+  values across 102 records, and matching them would be a string comparison
+  dressed as a legal conclusion.
+- **Jurisdiction resolution reads signals it is given and gathers nothing.** It
+  has no field for an IP address and refuses one if passed, so it is only as
+  good as the observations a caller already holds. It carries the EU-27 plus the
+  three non-EU EEA states, India, Brazil and California; every other region -
+  including `GB`, whose UK GDPR the matrix does not carry - resolves to nothing,
+  which is reported as "not carried" and must never be read as "nothing
+  applies". Nothing about a resolution is persisted, so there is also no audit
+  trail of what was resolved for whom.
 - **Recipients cannot be updated, rotated or removed.** There is no `PATCH`, no
   second active key, and no delete. Rotating a recipient's key means registering
   a new recipient.
@@ -503,7 +526,7 @@ not invented from a wishlist.
 | 1 | **User accounts and RBAC** | Removes the one compromise everything else inherits: the shared organisation secret, the cookie that holds it, the absence of attribution in the audit trail, and the impossibility of a read-only auditor all collapse into this |
 | 2 | **Origin enforcement and per-site rate limiting** | `websites.domain` is already stored and never checked, and ingestion has no limit of any kind — together, the two gaps that make a public key more powerful than it was meant to be |
 | 3 | **Retention and erasure** | The one gap that is also a legal obligation for a consent platform; the schema doc has recorded it since Phase 3, and the append-only trigger blocks `UPDATE` only, so a deletion job is already possible |
-| 4 | **A compliance rule engine above the consent vocabulary** | The vocabulary was designed to be read by one and nothing reads it yet. It is the difference between recording decisions and enforcing them |
+| 4 | **Wiring the policy engine to the consent domain** | The engine now reads the vocabulary and says what is required; nothing acts on it. Closing that gap means deciding what the platform does when a regime demands more than a recorded decision provides - and giving the matrix a controlled trigger vocabulary so applicability can be evaluated rather than cited |
 | 5 | **Name resolution in API responses** | The dashboard renders UUIDs for notices and policy versions because no endpoint turns one into a name. A small addition that makes the consent log readable |
 | 6 | **Pagination cursors** | Every list is `limit`-only, so a tenant with real volume cannot reach its older rows at all — and the audit merge already misbehaves when the limit bites |
 | 7 | **A served, versioned SDK bundle with SRI** | The install snippet points at an unversioned path filled in by a build step. A versioned URL plus an integrity hash makes what a customer page loads verifiable |

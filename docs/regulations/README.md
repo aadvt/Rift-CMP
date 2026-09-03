@@ -51,7 +51,7 @@ regulations/
 │   ├── policy-version.schema.json
 │   └── vocabulary.json          # controlled vocabulary; every enum resolves here
 ├── generated/                   # GENERATED - do not edit
-│   ├── requirements.ts          # typed matrix data for a future engine
+│   ├── requirements.ts          # typed matrix data; read by policy/
 │   └── vocabulary.ts            # vocabulary as TypeScript union types
 └── tools/
     ├── README.md
@@ -70,6 +70,14 @@ and everything under `generated/` are produced from it by
 ```bash
 node docs/regulations/tools/validate.mjs   # exits non-zero on any inconsistency
 ```
+
+**As of Phase 7A the matrix has a consumer.** `policy/` compiles these records
+into a rule set and evaluates them; `generated/requirements.ts` is its input, and
+nothing in the engine restates a legal proposition. A requirement that is wrong
+is fixed here and rebuilt. Two constraints the engine discovered are recorded in
+[`../policy-engine.md`](../policy-engine.md): applicability triggers cannot be
+matched while they remain free text, and no context in the current matrix yields
+an outright permission.
 
 Current state, and an honest account of what has and has not been converted, is
 in [`matrix/coverage.md`](matrix/coverage.md). The largest remaining gap is

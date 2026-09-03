@@ -16,6 +16,7 @@
     "test:integration": "vitest run --project integration"
   },
   "dependencies": {
+    "@rift-cmp/policy": "*",
     "@rift-cmp/shared": "*",
     "database": "*",
     "motion": "^13.2.0",
