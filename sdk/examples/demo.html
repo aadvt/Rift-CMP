@@ -5,64 +5,143 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Rift-CMP SDK Demo</title>
     <style>
-      body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 40rem; }
+      body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 44rem; }
       section { margin-bottom: 2rem; }
       button { margin-right: 0.5rem; }
       pre { background: #f4f4f5; padding: 0.75rem; overflow-x: auto; }
+      dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.35rem 1rem; margin: 0; }
+      dt { font-weight: 600; }
+      dd { margin: 0; font-variant-numeric: tabular-nums; }
+      .allowed { color: #15803d; }
+      .blocked { color: #b91c1c; }
+      small { color: #52525b; }
     </style>
   </head>
   <body>
     <h1>Rift-CMP Demo</h1>
+    <p>
+      <small>
+        This page runs the same consent experience a visitor gets: the real
+        banner, the real preference centre, the real gate. Nothing here is
+        simulated, and the page holds no credential beyond the public
+        <code>pk_</code> key that is meant to ship to browsers.
+      </small>
+    </p>
+
+    <section>
+      <h2>Consent</h2>
+      <button id="reopen">Manage preferences</button>
+      <button id="refresh">Refresh from API</button>
+      <p>
+        <small>
+          The banner appears on its own for anything still undecided. Silence is
+          never read as a decision, so it will not appear once every purpose has
+          an answer &mdash; use &ldquo;Manage preferences&rdquo; to reopen it.
+        </small>
+      </p>
+      <h3>Effective state</h3>
+      <pre id="state">(none)</pre>
+    </section>
 
     <section>
       <h2>Analytics</h2>
       <button id="track-button">Send test_click</button>
-      <p><small>Events are only sent while the consent gate below allows them.</small></p>
+      <p>
+        <small>
+          Whether this reaches the API is the whole point of the diagnostics
+          below. Nothing is queued while analytics is blocked.
+        </small>
+      </p>
     </section>
 
     <section>
-      <h2>Consent</h2>
-      <!--
-        Deliberately not a consent banner. These buttons only exercise the SDK's
-        consent API so the pipeline can be driven by hand; building the actual
-        banner UI is out of scope for this phase.
-      -->
-      <button id="grant">Grant analytics</button>
-      <button id="deny">Deny analytics</button>
-      <button id="withdraw">Withdraw analytics</button>
-      <button id="refresh">Refresh from API</button>
-      <h3>Effective state</h3>
-      <pre id="state">(none)</pre>
+      <h2>Diagnostics</h2>
+      <dl>
+        <dt>Analytics consent</dt><dd id="d-status">&mdash;</dd>
+        <dt>Gate says</dt><dd id="d-gate">&mdash;</dd>
+        <dt>Consent version</dt><dd id="d-version">&mdash;</dd>
+        <dt>Consent session</dt><dd id="d-session">&mdash;</dd>
+        <dt>Last track() call</dt><dd id="d-last">&mdash;</dd>
+      </dl>
+      <p>
+        <small>
+          &ldquo;Gate says&rdquo; is this page's own check, which only saves a
+          round trip. The refusal that counts is the API's: it re-derives the
+          decision from the append-only log, because code running in a
+          visitor's browser is never evidence of anything. That server-side
+          check is per-site and off by default &mdash; see
+          <code>docs/enforcement.md</code>.
+        </small>
+      </p>
     </section>
 
     <script src="../dist/index.global.js"></script>
     <script>
       const analyticsClient = window.analytics?.analytics ?? window.analytics;
 
-      analyticsClient.init("site_demo", "pk_demo_12345", { apiUrl: "http://127.0.0.1:3000" });
-
-      // The SDK never decides that analytics requires consent - an integrator
-      // wires the gate up explicitly, like this.
+      // The gate is installed before init(), so it is already in place when
+      // init() emits its automatic session_start and page_view. init() defers
+      // its first flush for this reason, but installing the gate first means
+      // there is no window to get wrong in the first place.
+      //
+      // The SDK never decides that analytics requires consent. An integrator
+      // wires that up explicitly, like this.
       analyticsClient.setConsentCheck((purpose) => analyticsClient.consent.isGranted(purpose));
 
-      const output = document.getElementById("state");
+      analyticsClient.init("site_demo", "pk_demo_12345", { apiUrl: "http://127.0.0.1:3000" });
+
+      const el = (id) => document.getElementById(id);
+      let lastTrack = "—";
+
+      function render(state) {
+        const decisions = state ?? analyticsClient.consent.getCachedState();
+        el("state").textContent = decisions.length
+          ? JSON.stringify(decisions, null, 2)
+          : "(no decisions yet)";
+
+        const analytics = decisions.find((d) => d.purpose_code === "analytics");
+        el("d-status").textContent = analytics ? analytics.status : "undecided";
+
+        const allowed = analyticsClient.consent.isGranted("analytics");
+        el("d-gate").textContent = allowed ? "allowed" : "blocked";
+        el("d-gate").className = allowed ? "allowed" : "blocked";
+
+        // Which version of the notice the visitor actually answered. A notice
+        // that changes materially needs asking again, and this is how you see
+        // that a decision predates the current text.
+        el("d-version").textContent =
+          (analytics && (analytics.config_version ?? analytics.consent_version)) ?? "—";
+
+        // Presence only. Printing the token would put a bearer credential on
+        // screen for anyone standing behind you.
+        el("d-session").textContent = analyticsClient.consent.getSessionToken() ? "present" : "none";
+
+        el("d-last").textContent = lastTrack;
+      }
 
       // A UI subscribes to state; the SDK knows nothing about the UI.
-      analyticsClient.consent.onChange((state) => {
-        output.textContent = state.length ? JSON.stringify(state, null, 2) : "(no decisions yet)";
+      analyticsClient.consent.onChange(render);
+
+      el("track-button").addEventListener("click", async () => {
+        const queued = await analyticsClient.track("test_click", { source: "demo_button" });
+        lastTrack = queued
+          ? "queued (watch the network tab for the API's answer)"
+          : "refused by the consent gate, never queued";
+        render();
       });
 
-      document.getElementById("track-button").addEventListener("click", () => {
-        const sent = analyticsClient.track("test_click", { source: "demo_button" });
-        console.log("track() returned", sent, "- false means the consent gate blocked it");
+      el("reopen").addEventListener("click", () => analyticsClient.banner.showPreferences());
+      el("refresh").addEventListener("click", async () => {
+        await analyticsClient.consent.getState();
+        render();
       });
 
-      document.getElementById("grant").addEventListener("click", () => analyticsClient.consent.grant("analytics"));
-      document.getElementById("deny").addEventListener("click", () => analyticsClient.consent.deny("analytics"));
-      document.getElementById("withdraw").addEventListener("click", () => analyticsClient.consent.withdraw("analytics"));
-      document.getElementById("refresh").addEventListener("click", () => analyticsClient.consent.getState());
-
-      analyticsClient.consent.getState();
+      (async () => {
+        await analyticsClient.consent.getState();
+        // Shows the banner only if something is still undecided.
+        await analyticsClient.banner.show();
+        render();
+      })();
     </script>
   </body>
 </html>

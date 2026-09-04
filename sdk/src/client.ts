@@ -71,8 +71,22 @@ export class AnalyticsClient {
 
       void this.trackInternal("page_view");
 
+      // Deliberately scheduled rather than flushed on the spot.
+      //
+      // The documented install order is `init()` and then `setConsentCheck()`,
+      // on the next line. An eager flush here runs inside `init()`, in the same
+      // tick, and so beats that next line: the queue would drain under the
+      // default permissive check, and `session_start` and `page_view` would
+      // leave the browser before the integrator's gate existed and before any
+      // consent session existed to attach to them. The visitor would not have
+      // been asked yet.
+      //
+      // `scheduleFlush()` is idempotent and `queueEvent()` already leaves one
+      // behind, so nothing is stranded: a queue restored from storage still
+      // drains, one interval later, by which time the gate is installed and
+      // `flushQueue()` re-reads it.
       if (this.eventQueue.length > 0) {
-        void this.flushQueue();
+        this.scheduleFlush();
       }
 
       return {
@@ -280,6 +294,28 @@ export class AnalyticsClient {
       return;
     }
 
+    // Consent is re-read here, at the moment of sending, and not only when each
+    // event was queued.
+    //
+    // Those are different moments, and a visitor can withdraw between them. A
+    // queue that only checked on the way in would let a decision be outrun by
+    // its own latency: an event admitted while consent stood would still leave
+    // the browser a second later, after the person had said stop. Whether it
+    // escaped came down to how far through the 2s flush window the withdrawal
+    // landed, which is a race nobody should be relying on.
+    //
+    // The batch is dropped rather than re-queued. Holding it would only ask the
+    // same question again later and keep personal data in `localStorage` in the
+    // meantime, which is the opposite of what a withdrawal asked for.
+    //
+    // This is the client's own gate being honest. It is not the enforcement:
+    // the API re-derives the decision from the append-only log, because code
+    // running in the visitor's browser is never evidence of anything.
+    if (!this.canSend("analytics")) {
+      this.dropBatch(this.eventQueue.slice());
+      return;
+    }
+
     const batch = this.eventQueue.slice();
     this.eventQueue = [];
     this.cancelScheduledFlush();
@@ -401,6 +437,21 @@ export class AnalyticsClient {
   // duplicate the API already ignores.
   private flushBeacon() {
     if (typeof fetch === "undefined") {
+      return;
+    }
+
+    // The same send-time gate `flushQueue()` applies. Unload is a send like any
+    // other, and it is the one most likely to be reached after a withdrawal:
+    // the visitor refuses, then closes the tab or navigates away, and this hook
+    // runs. Without the check the queue would leave on the way out, carrying
+    // exactly the events the refusal was about.
+    //
+    // Dropped rather than left behind, for the same reason as in `flushQueue()`:
+    // a queue kept in `localStorage` past a refusal is personal data retained
+    // against the decision, and re-sending it on the next page load is the same
+    // send one navigation later.
+    if (!this.canSend("analytics")) {
+      this.dropBatch(this.getPendingEvents());
       return;
     }
 

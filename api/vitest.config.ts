@@ -21,6 +21,7 @@ const UNIT_TESTS = [
   "tests/rate-limit.test.ts",
   "tests/origin-validation.test.ts",
   "tests/sdk-limits.test.ts",
+  "tests/sdk-queue-consent.test.ts",
   "tests/policy-rules.test.ts",
   "tests/policy-engine.test.ts",
   "tests/policy-boundary.test.ts",
@@ -43,7 +44,10 @@ const UNIT_TESTS = [
  * loop would make a fresh clone fail with a missing-executable error - the same
  * misleading failure the unit/integration split exists to prevent.
  */
-const BROWSER_TESTS = ["tests/crawler-browser.test.ts"];
+const BROWSER_TESTS = [
+  "tests/crawler-browser.test.ts",
+  "tests/consent-journey.browser.test.ts",
+];
 
 export default defineConfig({
   resolve: {

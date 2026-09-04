@@ -89,7 +89,18 @@ An object describing what was initialised, or `null` if initialisation threw:
 ### Side effects
 
 On success `init()` emits `session_start` (only when a new session begins) and
-then `page_view`, and drains anything left in the queue from a previous page.
+then `page_view`, and schedules a drain of anything left in the queue from a
+previous page.
+
+That drain is *scheduled*, not immediate, and deliberately so. `init()` runs
+before the next line of your snippet, so a flush issued from inside it would go
+out under whatever gate existed at that moment — for an integrator following
+this page's order, none — carrying `session_start` and `page_view` out of the
+browser before the visitor had been asked anything, and before a consent
+session existed to attach to them. Deferring the flush to the normal 2 s window
+gives `setConsentCheck()` time to land. Installing the gate *before* `init()`,
+as [Full example](#full-example) shows, removes the window
+entirely.
 
 ### Errors
 
@@ -281,6 +292,18 @@ Events are queued, not sent immediately:
 - failures retry up to **3** times with exponential backoff from 250 ms
 - a `403` is **not** retried — it means consent is refused, which retrying cannot
   change — and the batch is dropped with a warning
+
+The consent check is re-read **at the moment of sending**, on both the timed
+flush and the unload flush, and not only when each event was queued. Those are
+different moments and a visitor can withdraw between them: an event admitted
+while consent stood would otherwise still leave the browser a second later, or
+on the way out of the page, after the person had said stop. Whether it escaped
+would come down to where in the 2 s window the withdrawal landed.
+
+A batch the gate refuses at send time is **dropped**, including its
+`localStorage` copy — not held for a later attempt. Keeping it would retain
+personal data past a refusal and re-offer it on the next page load, which is
+the same send one navigation later.
 
 Because retries and unload flushes can replay a batch, ingestion is idempotent on
 `event_id`: the first write wins and later copies are ignored. This is what makes
