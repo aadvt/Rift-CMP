@@ -773,3 +773,577 @@ button.primary:hover {
     animation: none;
   }
 }
+
+/* --- Setup journey -------------------------------------------------------- */
+
+/*
+ * The step indicator.
+ *
+ * A horizontal rail on a desktop and a vertical list on a phone, because five
+ * labels squeezed onto a 360px viewport become five abbreviations nobody can
+ * read. The connecting line is drawn with a pseudo-element on the marker rather
+ * than a border on the item, so it never appears before the first step or after
+ * the last one.
+ */
+.journey {
+  margin: 0 0 26px;
+}
+
+.journey-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.journey-step {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1 1 0;
+  min-width: 0;
+  position: relative;
+  padding: 10px 12px 10px 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.journey-step + .journey-step::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  width: 8px;
+  height: 1px;
+  background: var(--border-strong);
+}
+
+.journey-marker {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  background: var(--surface);
+}
+
+.journey-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.journey-step-done .journey-marker {
+  background: var(--ok-soft);
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+.journey-step-current {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.journey-step-current .journey-marker {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+/* --- Journey furniture ---------------------------------------------------- */
+
+.entry-form {
+  display: grid;
+  gap: 10px;
+  max-width: 520px;
+}
+
+.entry-form label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.entry-form input {
+  font-size: 16px; /* 16px or iOS Safari zooms the page on focus. */
+  padding: 11px 13px;
+}
+
+.entry-form .hint {
+  margin: 0;
+}
+
+.entry-form button {
+  justify-self: start;
+}
+
+.lede {
+  margin: 0 0 14px;
+  font-size: 15px;
+}
+
+.small {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.row-between {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.chips {
+  margin: 12px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  font-size: 12px;
+}
+
+.findings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.findings strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.markets-form {
+  margin: 0 0 14px;
+}
+
+.market-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 10px 0 12px;
+  font-size: 14px;
+}
+
+.market-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.disclosure {
+  margin-top: 14px;
+}
+
+.disclosure summary {
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px 0;
+}
+
+.reasons {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+/*
+ * A limit, not an alarm.
+ *
+ * Deliberately neutral rather than red: a capability the product does not have
+ * is not the operator's mistake, and colouring it like a failure teaches people
+ * to skip warnings that do matter.
+ */
+.note {
+  border-left: 3px solid var(--border-strong);
+}
+
+.note-title {
+  margin: 0 0 6px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.note-body {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.note-body p {
+  margin: 0 0 8px;
+}
+
+.note-body p:last-child {
+  margin-bottom: 0;
+}
+
+/* --- Generated configuration ---------------------------------------------- */
+
+.config-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.config-groups li {
+  flex: 1 1 150px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  background: var(--surface);
+}
+
+.config-group-count {
+  display: block;
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.config-group-label {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.review-card {
+  border-left: 3px solid var(--warn);
+}
+
+.review-row {
+  display: grid;
+  gap: 10px;
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+
+.review-name {
+  margin: 0;
+  font-weight: 600;
+}
+
+.review-row p {
+  margin: 0;
+}
+
+.review-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.recommendation-list {
+  margin-top: 12px;
+}
+
+.recommendation {
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+
+.recommendation-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+
+.recommendation-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.recommendation-facts dt {
+  color: var(--muted);
+}
+
+.recommendation-facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+button.quiet {
+  margin-top: 10px;
+  font-size: 12px;
+  padding: 5px 10px;
+}
+
+/* Visible only to screen readers: states that colour alone would otherwise carry. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- Phones --------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  /*
+   * The rail becomes a list. Five steps across a phone would otherwise force
+   * each label to about six characters, which is not a label.
+   */
+  .journey-steps {
+    display: grid;
+    gap: 0;
+  }
+
+  .journey-step {
+    flex: none;
+    padding: 7px 0;
+  }
+
+  .journey-step + .journey-step::before {
+    left: 11px;
+    top: -4px;
+    width: 1px;
+    height: 8px;
+  }
+
+  .config-groups li {
+    flex-basis: 100%;
+  }
+
+  /* Stacked, because a two-column grid on a narrow screen gives the value ~90px. */
+  .recommendation-facts {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .recommendation-facts dt {
+    margin-top: 8px;
+    font-size: 12px;
+  }
+
+  /* Full-width controls: easier to hit, and they stop wrapping mid-row. */
+  .review-form select,
+  .review-form button {
+    flex: 1 1 100%;
+  }
+
+  .row-actions button,
+  .row-actions form,
+  .entry-form button {
+    width: 100%;
+  }
+
+  .row-actions button {
+    width: 100%;
+  }
+}
+
+/* --- Site status cards ---------------------------------------------------- */
+
+.site-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}
+
+.site-status {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.site-status header {
+  margin: 0;
+}
+
+.site-status-domain {
+  margin: 0;
+  font-weight: 600;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.site-status .small {
+  margin: 2px 0 0;
+}
+
+.site-status-facts {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.site-status-facts dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.site-status-facts dd {
+  margin: 1px 0 0;
+}
+
+.site-status .findings {
+  margin: 0;
+}
+
+.site-status-attention {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.site-status .row-actions {
+  margin: 0;
+  gap: 14px;
+  font-size: 13px;
+}
+
+/* --- Consent experience --------------------------------------------------- */
+
+.purpose-rows {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.purpose-rows > li {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.purpose-rows > li:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.purpose-rows p {
+  margin: 0;
+}
+
+.purpose-rows .chips {
+  margin-top: 8px;
+}
+
+/* --- Visitor preview ------------------------------------------------------ */
+
+.preview-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+/*
+ * A pair of mutually exclusive buttons. `aria-pressed` carries the state, so a
+ * screen reader hears which one is active rather than inferring it from the
+ * fill — the same reason the journey rail spells its states out.
+ */
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.segmented button {
+  border: none;
+  border-radius: 0;
+  background: var(--surface);
+  font-size: 13px;
+  padding: 7px 13px;
+}
+
+.segmented button + button {
+  border-left: 1px solid var(--border-strong);
+}
+
+.segmented button[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.preview-stage {
+  display: flex;
+  justify-content: center;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--neutral-soft);
+  overflow: auto;
+}
+
+.preview-frame {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  max-width: 100%;
+}
+
+@media (max-width: 640px) {
+  .site-status-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-controls {
+    flex-direction: column;
+  }
+
+  .segmented {
+    width: 100%;
+  }
+
+  .segmented button {
+    flex: 1;
+  }
+
+  .preview-stage {
+    padding: 8px;
+  }
+}

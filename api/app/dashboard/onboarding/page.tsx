@@ -1,49 +1,57 @@
 import type {
-  ConsentProposalResponse,
+  AnalyticsSummary,
+  OverrideListResponse,
   PurposeSummary,
+  RecommendedPolicyResponse,
   ScanListResponse,
+  ScanStatusResponse,
+  VendorRecommendation,
   WebsiteSummary,
 } from "@rift-cmp/shared";
 import { apiGet, requestOrigin } from "@/lib/dashboard/api";
-import { EmptyState, ErrorState, PageHeader, Section, StatusBadge, TableWrap } from "../_components/ui";
-import { buildQuery, FilterBar, readFilter, SiteFilter } from "../_components/filters";
+import { EmptyState, ErrorState, PageHeader, Section, StatusBadge } from "../_components/ui";
+import { JourneyProgress, NotYetAvailable, type JourneyStepId } from "../_components/journey";
+import { ScanPoller } from "../_components/scan-poller";
 import { SdkSnippet } from "../_components/sdk-snippet";
+import { readFilter } from "../_components/filters";
+import {
+  acceptGeneratedPolicy,
+  cancelScan,
+  clearRecommendationOverride,
+  createSiteFromUrl,
+  rescan,
+  setRecommendationOverride,
+} from "./actions";
 
 /**
- * Onboarding: one screen from "we scanned your site" to "paste this".
+ * Setup: one continuous journey from a website address to a protected site.
  *
- * Phase 8B says a website owner should not have to understand the policy
- * engine, the database, jurisdiction resolution or anything cryptographic, and
- * should see six things: their website, its protection status, the trackers
- * found, the regulations that apply, a recommended configuration, and a way to
- * activate. That is the order of this page.
+ * Website -> Scan -> Configure -> Install -> Verify. The operator's job is to
+ * enter a URL, look at what Rift found, accept or adjust what Rift proposes, and
+ * paste one snippet. Everything else - which technologies exist, which regimes
+ * are in play, which vendor belongs to which purpose - is Rift's job.
  *
- * ## What "recommended" means here, precisely
+ * ## Where the operator's judgement is still required, and why
  *
- * Everything under *Recommended configuration* is a **proposal**, computed on
- * demand and stored nowhere. Rift does not declare a purpose on an operator's
- * behalf, and the reason is the one the Configure screen already gives: a
- * purpose is operator-declared free text, so only the operator knows which of
- * theirs covers a detected vendor, and a guessed mapping would be confident,
- * unauditable and often wrong.
+ * Accepting the generated policy approves an immutable version of Rift's
+ * recommendations. It does **not** declare purposes, and that is a deliberate
+ * property of the platform rather than an unfinished edge: a purpose is
+ * operator-declared free text describing that operator's own processing, so a
+ * guessed mapping would be confident, unauditable and often wrong. The journey
+ * therefore shows what is still undeclared and links to Configure rather than
+ * quietly inventing purpose codes on someone's behalf.
  *
- * So each suggested purpose shows the technologies behind it and the evidence
- * that produced it, and the action is a link to Configure rather than a button
- * that writes. "Activate" is declaring the purposes and pasting the snippet —
- * both deliberate acts by a person.
+ * ## What this screen will not claim
  *
- * ## Why the regulations block is worded the way it is
- *
- * It reports what the policy engine considered applicable and, alongside it,
- * everything the engine would not decide. That second list is usually longer,
- * and showing only the first would present a research artifact as a compliance
- * verdict. The engine returns REVIEW far more often than it returns an
- * obligation; a screen that hid that would be the dishonest part of this phase.
+ * "Connected" describes setup. It is never a statement that a site is compliant,
+ * because nothing in this product decides that. The policy engine returns
+ * REVIEW far more often than it returns an obligation, and the open questions
+ * are shown next to the answers for exactly that reason.
  */
 
 export const dynamic = "force-dynamic";
 
-/** Markets an operator can declare, limited to what the matrix can answer for. */
+/** Markets an operator can declare, limited to what the requirement matrix answers for. */
 const MARKETS: Array<{ code: string; label: string }> = [
   { code: "DE", label: "European Union" },
   { code: "IN", label: "India" },
@@ -51,266 +59,613 @@ const MARKETS: Array<{ code: string; label: string }> = [
   { code: "BR", label: "Brazil" },
 ];
 
-function Chip({ children }: { children: React.ReactNode }) {
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        padding: "3px 9px",
-        borderRadius: 999,
-        border: "1px solid var(--line, #d9dee5)",
-        fontSize: 12,
-        marginRight: 6,
-        marginBottom: 6,
-      }}
-    >
-      {children}
-    </span>
-  );
+/** Scanner confidence, said in words an operator can act on. */
+const CONFIDENCE_LABEL: Record<string, string> = {
+  high: "Confirmed",
+  medium: "Likely",
+  low: "Uncertain",
+};
+
+/** What Rift proposes to do about a vendor, in plain language. */
+const ACTION_LABEL: Record<string, string> = {
+  allow: "No consent gate",
+  require_consent: "Controlled until consent",
+  block: "Not loaded",
+  ignore: "Out of scope",
+  review: "Needs your decision",
+};
+
+const REQUIREMENT_LABEL: Record<string, string> = {
+  required: "Consent required",
+  not_required: "No consent requirement found",
+  conditional: "Conditional",
+  unknown: "Not determined",
+};
+
+function marketsFrom(params: Record<string, string | string[] | undefined>): string[] {
+  const raw = params.market;
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === "string") return [raw];
+  return ["DE"];
 }
 
-export default async function OnboardingPage({
+/** A vendor Rift could not confidently place. These are the rows to look at first. */
+function needsReview(r: VendorRecommendation): boolean {
+  return !r.overridden && (r.recommended_action === "review" || r.confidence === "low");
+}
+
+export default async function SetupPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
   const siteId = readFilter(params, "site_id");
-  const markets = (Array.isArray(params.market)
-    ? params.market
-    : params.market
-      ? [params.market]
-      : ["DE"]) as string[];
+  const error = readFilter(params, "error");
+  const accepted = readFilter(params, "accepted") === "1";
+  const markets = marketsFrom(params);
+  const marketQuery = markets.map((m) => `market=${encodeURIComponent(m)}`).join("&");
 
-  const sites = await apiGet<{ sites: WebsiteSummary[] }>("/api/v1/sites");
-  if (!sites.ok) {
-    return <ErrorState title="Could not load websites" message={sites.message} />;
+  const sitesResult = await apiGet<{ sites: WebsiteSummary[] }>("/api/v1/sites");
+  if (!sitesResult.ok) {
+    return <ErrorState title="Could not load your websites" message={sitesResult.message} />;
   }
 
-  const selected =
-    sites.data.sites.find((s) => s.site_id === siteId) ?? sites.data.sites[0] ?? null;
+  const sites = sitesResult.data.sites;
+  const site = sites.find((s) => s.site_id === siteId) ?? sites[0] ?? null;
 
-  if (!selected) {
+  // Step 1: no site yet.
+  if (!site) {
     return (
       <>
         <PageHeader
-          title="Get started"
-          description="Add a website, scan it, and Rift will suggest a starting configuration."
+          title="Protect your website with Rift"
+          description="Enter your website and Rift will scan it, work out what is running on it, prepare your privacy configuration, and generate your installation snippet."
         />
-        <EmptyState
-          title="No websites yet"
-          hint="Add one under Websites, then come back here."
-        />
+        <JourneyProgress current="website" />
+        {error ? <ErrorState title="That did not work" message={error} /> : null}
+        <Section>
+          <form action={createSiteFromUrl} className="card entry-form">
+            <label htmlFor="website_url">Your website address</label>
+            <input
+              id="website_url"
+              name="website_url"
+              type="text"
+              inputMode="url"
+              autoComplete="url"
+              placeholder="https://example.com"
+              required
+              aria-describedby="website_url_hint"
+            />
+            <p id="website_url_hint" className="hint">
+              Rift opens your site in a real browser and reports what it loads. It
+              reads only what any visitor would.
+            </p>
+            <button type="submit" className="primary">
+              Scan my website
+            </button>
+          </form>
+        </Section>
       </>
     );
   }
 
-  const query = markets.map((m) => `market=${encodeURIComponent(m)}`).join("&");
-  const [proposalResult, scansResult, purposesResult, origin] = await Promise.all([
-    apiGet<ConsentProposalResponse>(
-      `/api/v1/sites/${selected.site_id}/consent-proposal?${query}`,
-    ),
-    apiGet<ScanListResponse>(`/api/v1/sites/${selected.site_id}/scans?limit=1`),
-    apiGet<{ purposes: PurposeSummary[] }>("/api/v1/purposes"),
-    requestOrigin(),
-  ]);
+  const startUrl = `https://${site.domain}`;
 
-  const proposal = proposalResult.ok ? proposalResult.data.proposal : null;
-  const latestScan = scansResult.ok ? (scansResult.data.scans[0] ?? null) : null;
-  const declared = purposesResult.ok
+  const [scansResult, policyResult, overridesResult, purposesResult, activityResult, origin] =
+    await Promise.all([
+      apiGet<ScanListResponse>(`/api/v1/sites/${site.site_id}/scans?limit=5`),
+      apiGet<RecommendedPolicyResponse>(
+        `/api/v1/sites/${site.site_id}/consent-policy${marketQuery ? `?${marketQuery}` : ""}`,
+      ),
+      apiGet<OverrideListResponse>(`/api/v1/sites/${site.site_id}/consent-policy/overrides`),
+      apiGet<{ purposes: PurposeSummary[] }>("/api/v1/purposes"),
+      apiGet<AnalyticsSummary>(`/api/v1/analytics/summary?site_id=${site.site_id}`),
+      requestOrigin(),
+    ]);
+
+  const scans = scansResult.ok ? scansResult.data.scans : [];
+  const latestScan = scans[0] ?? null;
+  const policy = policyResult.ok ? policyResult.data.policy : null;
+  const activeVersion = policyResult.ok ? policyResult.data.active_version : null;
+  const overrides = overridesResult.ok ? overridesResult.data.overrides : [];
+  const declaredPurposes = purposesResult.ok
     ? purposesResult.data.purposes.filter((p) => p.is_active)
     : [];
 
-  // "Protected" is deliberately a description of setup, not a compliance claim.
-  const hasScan = latestScan?.status === "completed";
-  const hasPurposes = declared.length > 0;
-  const stage = !hasScan ? "scan" : !hasPurposes ? "configure" : "install";
+  // Real evidence the snippet has run: the ingestion plane has seen this site.
+  const totals = activityResult.ok ? activityResult.data.totals : null;
+  const hasReceivedData = Boolean(totals && totals.total_events > 0);
+
+  const scanRunning = latestScan?.status === "queued" || latestScan?.status === "running";
+  const scanCompleted = latestScan?.status === "completed";
+
+  const step: JourneyStepId = !latestScan
+    ? "scan"
+    : scanRunning || !scanCompleted
+      ? "scan"
+      : !activeVersion
+        ? "configure"
+        : !hasReceivedData
+          ? "install"
+          : "verify";
+
+  const reviewItems = policy ? policy.recommendations.filter(needsReview) : [];
 
   return (
     <>
       <PageHeader
-        title="Get started"
-        description="What we found on your site, what appears to apply, and the one snippet to install."
+        title={site.domain}
+        description="What Rift found on your site, what it proposes, and the one snippet that activates it."
       />
+      <JourneyProgress current={step} />
+      <ScanPoller active={Boolean(scanRunning)} />
 
-      <FilterBar action="/dashboard/onboarding">
-        <SiteFilter sites={sites.data.sites} value={selected.site_id} />
-      </FilterBar>
-
-      {/* 1. Website + 2. Protection status */}
-      <Section title="Your website">
-        <div className="card">
-          <p style={{ margin: 0, fontWeight: 600 }}>{selected.name}</p>
-          <p style={{ margin: "4px 0 12px", color: "var(--muted, #5a626b)" }}>
-            {selected.domain}
-          </p>
-          <p style={{ margin: 0 }}>
-            <StatusBadge
-              status={
-                stage === "install"
-                  ? "ready to install"
-                  : stage === "configure"
-                    ? "needs purposes"
-                    : "not scanned yet"
-              }
-            />
-          </p>
-          <p style={{ marginTop: 12, marginBottom: 0, fontSize: 13, color: "var(--muted, #5a626b)" }}>
-            {stage === "scan"
-              ? "Run a scan under Scans to see what this site loads."
-              : stage === "configure"
-                ? "The scan finished. Declare the purposes below, then install the snippet."
-                : "Purposes are declared. Paste the snippet and the banner will appear for visitors."}
-          </p>
-          <p style={{ marginTop: 10, marginBottom: 0, fontSize: 12, color: "var(--muted, #767e88)" }}>
-            This status describes how far setup has got. It is not a statement
-            that the site is compliant — nothing here decides that.
-          </p>
+      {error ? <ErrorState title="That did not work" message={error} /> : null}
+      {accepted ? (
+        <div className="card note" role="status">
+          <p className="note-title">Configuration accepted</p>
+          <div className="note-body">
+            <p>
+              Rift saved this as an approved version. Approved versions cannot be
+              edited - accepting again creates a new one, so the record of what
+              was approved and when stays intact.
+            </p>
+          </div>
         </div>
-      </Section>
+      ) : null}
 
-      {/* 3. Detected trackers */}
-      <Section title="What we found">
-        {!hasScan ? (
-          <EmptyState
-            title="No completed scan"
-            hint="Start one under Scans. A scan renders your pages in a real browser and reports what they load."
-          />
-        ) : proposal && proposal.purposes.length + proposal.unmapped_technologies.length === 0 ? (
-          <EmptyState
-            title="No third-party technologies were identified"
-            hint="That may be correct, or the crawl may not have reached the pages that load them."
-          />
+      <Section title="Scan">
+        {!latestScan ? (
+          <div className="card">
+            <p>Rift has not looked at this site yet.</p>
+            <form action={rescan}>
+              <input type="hidden" name="site_id" value={site.site_id} />
+              <input type="hidden" name="start_url" value={startUrl} />
+              <button type="submit" className="primary">
+                Scan {site.domain}
+              </button>
+            </form>
+          </div>
         ) : (
           <div className="card">
-            {proposal?.purposes.flatMap((p) => p.technologies).map((name) => (
-              <Chip key={name}>{name}</Chip>
-            ))}
-            {proposal?.unmapped_technologies.map((t) => (
-              <Chip key={t.name}>
-                {t.name} · unclassified
-              </Chip>
-            ))}
-            {proposal && proposal.unmapped_technologies.length > 0 ? (
-              <p style={{ marginTop: 12, marginBottom: 0, fontSize: 13, color: "var(--muted, #5a626b)" }}>
-                Unclassified means we saw it and could not name it. Those are the
-                rows worth looking at first.
+            <p className="row-between">
+              <span>
+                <StatusBadge status={latestScan.status} />
+              </span>
+              <span className="muted small">
+                {latestScan.status === "running"
+                  ? "Rift is opening your pages in a real browser."
+                  : latestScan.status === "queued"
+                    ? "Waiting for a browser to become free."
+                    : null}
+              </span>
+            </p>
+
+            <ScanFindings scanId={latestScan.scan_id} />
+
+            {latestScan.status === "failed" ? (
+              <p className="small">
+                The scan stopped early. Anything it managed to collect before
+                stopping is still shown above - a failed scan is not an empty one.
               </p>
             ) : null}
+
+            <div className="row-actions">
+              {scanRunning ? (
+                <form action={cancelScan}>
+                  <input type="hidden" name="site_id" value={site.site_id} />
+                  <input type="hidden" name="scan_id" value={latestScan.scan_id} />
+                  <button type="submit">
+                    Stop scan
+                  </button>
+                </form>
+              ) : (
+                <form action={rescan}>
+                  <input type="hidden" name="site_id" value={site.site_id} />
+                  <input type="hidden" name="start_url" value={startUrl} />
+                  <button type="submit">
+                    Scan again
+                  </button>
+                </form>
+              )}
+            </div>
           </div>
         )}
       </Section>
 
-      {/* 4. Applicable regulations */}
-      <Section title="What appears to apply">
-        <div className="card">
-          <form method="get" style={{ marginBottom: 14 }}>
-            <input type="hidden" name="site_id" value={selected.site_id} />
-            <p style={{ margin: "0 0 8px", fontSize: 13 }}>
-              Which markets do you offer this service in? This is a decision you
-              make about your business — we do not try to work it out from
-              anyone&apos;s location.
-            </p>
-            {MARKETS.map((m) => (
-              <label key={m.code} style={{ marginRight: 14, fontSize: 14 }}>
-                <input
-                  type="checkbox"
-                  name="market"
-                  value={m.code}
-                  defaultChecked={markets.includes(m.code)}
-                />{" "}
-                {m.label}
-              </label>
-            ))}
-            <button type="submit" className="button" style={{ marginLeft: 10 }}>
-              Update
-            </button>
-          </form>
-
-          {proposal && proposal.regimes.length > 0 ? (
-            <p style={{ margin: 0 }}>
-              {proposal.regimes.map((r) => (
-                <Chip key={r}>{r}</Chip>
-              ))}
-            </p>
-          ) : (
-            <p style={{ margin: 0, fontSize: 14 }}>
-              No market selected, so nothing was resolved. That is not a finding
-              that nothing applies.
-            </p>
-          )}
-
-          {proposal && proposal.open_questions.length > 0 ? (
-            <details style={{ marginTop: 14 }}>
-              <summary style={{ cursor: "pointer", fontSize: 14 }}>
-                {proposal.open_questions.length} things this cannot decide for you
-              </summary>
-              <ul style={{ marginTop: 10, fontSize: 13, lineHeight: 1.6 }}>
-                {proposal.open_questions.slice(0, 12).map((q, i) => (
-                  <li key={`${q.reason}-${i}`}>{q.detail}</li>
-                ))}
-              </ul>
-            </details>
-          ) : null}
-        </div>
-      </Section>
-
-      {/* 5. Recommended configuration */}
-      <Section title="Recommended configuration">
-        {!proposal || proposal.purposes.length === 0 ? (
-          <EmptyState
-            title="Nothing to suggest yet"
-            hint="Suggestions come from a completed scan. Until then, declare purposes yourself under Configure."
-          />
-        ) : (
-          <>
-            <TableWrap>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Suggested purpose</th>
-                    <th>Because we saw</th>
-                    <th>Confidence</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {proposal.purposes.map((p) => (
-                    <tr key={p.suggested_code}>
-                      <td>
-                        <strong>{p.suggested_name}</strong>
-                        <div style={{ fontSize: 12, color: "var(--muted, #5a626b)" }}>
-                          {p.suggested_description}
-                        </div>
-                      </td>
-                      <td style={{ fontSize: 13 }}>{p.technologies.join(", ")}</td>
-                      <td>
-                        <StatusBadge status={p.confidence} />
-                      </td>
-                      <td style={{ fontSize: 13 }}>
-                        {p.already_declared ? "Already declared" : "Not declared yet"}
-                      </td>
-                    </tr>
+      {scanCompleted ? (
+        <>
+          <Section title="What appears to apply">
+            <div className="card">
+              <form method="get" className="markets-form">
+                <input type="hidden" name="site_id" value={site.site_id} />
+                <p className="small">
+                  Which markets do you offer this service in? That is a decision
+                  about your business - Rift does not try to infer it from
+                  anybody&apos;s location.
+                </p>
+                <div className="market-options">
+                  {MARKETS.map((m) => (
+                    <label key={m.code} className="market-option">
+                      <input
+                        type="checkbox"
+                        name="market"
+                        value={m.code}
+                        defaultChecked={markets.includes(m.code)}
+                      />{" "}
+                      {m.label}
+                    </label>
                   ))}
-                </tbody>
-              </table>
-            </TableWrap>
-            <p style={{ marginTop: 12, fontSize: 13, color: "var(--muted, #5a626b)" }}>
-              These are suggestions, not settings. Nothing is applied until you
-              declare a purpose yourself on the{" "}
-              <a href={`/dashboard/configure${buildQuery({ site_id: selected.site_id })}`}>
-                Configure
-              </a>{" "}
-              screen — only you know which of your purposes covers which vendor.
-            </p>
-          </>
-        )}
-      </Section>
+                </div>
+                <button type="submit">
+                  Update
+                </button>
+              </form>
 
-      {/* 6. Activate */}
-      <Section title="Install">
-        <SdkSnippet site={selected} origin={origin} hasPurposes={hasPurposes} />
-      </Section>
+              {policy && policy.regimes.length > 0 ? (
+                <p className="chips">
+                  {policy.regimes.map((r) => (
+                    <span className="chip" key={r}>
+                      {r}
+                    </span>
+                  ))}
+                </p>
+              ) : (
+                <p className="small">
+                  No market selected, so nothing was resolved. That is not a
+                  finding that nothing applies.
+                </p>
+              )}
+
+              {policy && policy.open_questions.length > 0 ? (
+                <details className="disclosure">
+                  <summary>
+                    {policy.open_questions.length} things Rift will not decide for you
+                  </summary>
+                  <ul className="reasons">
+                    {policy.open_questions.slice(0, 12).map((q, i) => (
+                      <li key={`${q.reason}-${i}`}>{q.detail}</li>
+                    ))}
+                  </ul>
+                </details>
+              ) : null}
+            </div>
+          </Section>
+
+          <Section title="Your Rift configuration">
+            {!policy || policy.recommendations.length === 0 ? (
+              <EmptyState
+                title="Nothing to configure yet"
+                hint="The scan found no third-party technologies. That may be correct, or the crawl may not have reached the pages that load them."
+              />
+            ) : (
+              <>
+                <div className="card">
+                  <p className="lede">
+                    Rift analysed {site.domain} and prepared this configuration
+                    from what it found.
+                  </p>
+                  <ConfigurationSummary recommendations={policy.recommendations} />
+
+                  {activeVersion ? (
+                    <p className="small">
+                      Version {activeVersion.version} is approved and serving.
+                      Accepting again creates a new version.
+                    </p>
+                  ) : null}
+
+                  <form action={acceptGeneratedPolicy} className="row-actions">
+                    <input type="hidden" name="site_id" value={site.site_id} />
+                    <input type="hidden" name="markets" value={markets.join(",")} />
+                    <button type="submit" className="primary">
+                      {activeVersion ? "Accept updated configuration" : "Use Rift configuration"}
+                    </button>
+                  </form>
+
+                  {policy.undeclared_purposes.length > 0 ? (
+                    <p className="small">
+                      {policy.undeclared_purposes.length} purpose
+                      {policy.undeclared_purposes.length === 1 ? "" : "s"} referenced
+                      here {policy.undeclared_purposes.length === 1 ? "is" : "are"} not
+                      declared yet ({policy.undeclared_purposes.join(", ")}). Accepting
+                      approves Rift&apos;s recommendations; declaring a purpose is still
+                      yours to do on{" "}
+                      <a href={`/dashboard/configure?site_id=${site.site_id}`}>Configure</a>,
+                      because only you know which of your purposes covers which vendor.
+                    </p>
+                  ) : null}
+                </div>
+
+                {reviewItems.length > 0 ? (
+                  <div className="card review-card">
+                    <p className="note-title">
+                      {reviewItems.length} item{reviewItems.length === 1 ? "" : "s"} need
+                      your attention
+                    </p>
+                    <p className="small">
+                      Rift found evidence of these but could not confidently
+                      determine what they do. Leaving one unresolved is a valid
+                      choice - unresolved is not the same as requiring consent.
+                    </p>
+                    {reviewItems.map((r) => (
+                      <ReviewRow
+                        key={r.detector_id}
+                        recommendation={r}
+                        siteId={site.site_id}
+                        markets={markets.join(",")}
+                        purposes={declaredPurposes}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+
+                <details className="disclosure card">
+                  <summary>Review every technology ({policy.recommendations.length})</summary>
+                  <div className="recommendation-list">
+                    {policy.recommendations.map((r) => (
+                      <RecommendationDetail
+                        key={r.detector_id}
+                        recommendation={r}
+                        siteId={site.site_id}
+                        markets={markets.join(",")}
+                        overridden={overrides.some((o) => o.detector_id === r.detector_id)}
+                      />
+                    ))}
+                  </div>
+                </details>
+              </>
+            )}
+          </Section>
+        </>
+      ) : null}
+
+      {activeVersion ? (
+        <Section title="Install">
+          <SdkSnippet site={site} origin={origin} hasPurposes={declaredPurposes.length > 0} />
+        </Section>
+      ) : null}
+
+      {activeVersion ? (
+        <Section title="Verify">
+          <div className="card">
+            {hasReceivedData ? (
+              <>
+                <p className="row-between">
+                  <StatusBadge status="connected" />
+                  <span className="muted small">
+                    {totals?.total_events.toLocaleString()} events received
+                  </span>
+                </p>
+                <p>
+                  Rift has received data from {site.domain}, so the snippet is
+                  installed and running.
+                </p>
+              </>
+            ) : (
+              <>
+                <p>
+                  <StatusBadge status="waiting" />
+                </p>
+                <p>
+                  Nothing has arrived from {site.domain} yet. Once the snippet is on
+                  a page a visitor loads, this will change on its own.
+                </p>
+                <p className="small">
+                  If it stays empty: the snippet may not be on the page yet, the
+                  page may be cached, or a Content Security Policy may be blocking
+                  the script.
+                </p>
+              </>
+            )}
+          </div>
+
+          <NotYetAvailable title="Rift cannot actively check your installation">
+            <p>
+              This panel reports whether Rift has <em>received</em> data, which is
+              real evidence that the snippet ran. It is not an active check of your
+              site: there is no endpoint that fetches your page and confirms the
+              script, the site identity, and the consent and tracking controls
+              individually.
+            </p>
+            <p>
+              A site that has had no visitors since installing will show as waiting
+              even though the snippet is correctly in place, and this screen will
+              not tell those two situations apart.
+            </p>
+          </NotYetAvailable>
+        </Section>
+      ) : null}
     </>
+  );
+}
+
+/** Counts from the scan, fetched separately so a status poll stays cheap. */
+async function ScanFindings({ scanId }: { scanId: string }) {
+  const result = await apiGet<ScanStatusResponse>(`/api/v1/scans/${scanId}`);
+  if (!result.ok) return null;
+
+  const s = result.data.summary;
+  const found: Array<[string, number]> = [
+    ["pages", s.pages_scanned],
+    ["cookies", s.cookies_found],
+    ["scripts", s.scripts_found],
+    ["third-party domains", s.third_party_domains],
+    ["technologies", s.technologies_detected],
+  ];
+
+  return (
+    <>
+      <ul className="findings">
+        {found.map(([label, count]) => (
+          <li key={label}>
+            <strong>{count.toLocaleString()}</strong> {label}
+          </li>
+        ))}
+      </ul>
+      {s.limit_reached ? (
+        <p className="small">
+          The crawl stopped at a limit ({s.limit_reached}), so every count above is
+          a floor rather than a total.
+        </p>
+      ) : null}
+      {s.pages_failed > 0 ? (
+        <p className="small">
+          {s.pages_failed} page{s.pages_failed === 1 ? "" : "s"} could not be
+          reached. The rest were still scanned.
+        </p>
+      ) : null}
+    </>
+  );
+}
+
+/** How the generated configuration groups what was found. */
+function ConfigurationSummary({ recommendations }: { recommendations: VendorRecommendation[] }) {
+  const groups = new Map<string, number>();
+  for (const r of recommendations) {
+    const key =
+      !r.overridden && needsReview(r)
+        ? "Needs your decision"
+        : (ACTION_LABEL[r.recommended_action] ?? r.recommended_action);
+    groups.set(key, (groups.get(key) ?? 0) + 1);
+  }
+
+  return (
+    <ul className="config-groups">
+      {[...groups].map(([label, count]) => (
+        <li key={label}>
+          <span className="config-group-count">{count}</span>
+          <span className="config-group-label">{label}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** One vendor Rift could not place, with the decision the operator can make. */
+function ReviewRow({
+  recommendation,
+  siteId,
+  markets,
+  purposes,
+}: {
+  recommendation: VendorRecommendation;
+  siteId: string;
+  markets: string;
+  purposes: PurposeSummary[];
+}) {
+  const r = recommendation;
+  return (
+    <div className="review-row">
+      <div>
+        <p className="review-name">{r.vendor_name}</p>
+        <p className="muted small">{r.detector_id}</p>
+        <p className="small">{r.reason}</p>
+      </div>
+      <form action={setRecommendationOverride} className="review-form">
+        <input type="hidden" name="site_id" value={siteId} />
+        <input type="hidden" name="markets" value={markets} />
+        <input type="hidden" name="detector_id" value={r.detector_id} />
+
+        <label htmlFor={`action-${r.detector_id}`} className="sr-only">
+          What should Rift do about {r.vendor_name}?
+        </label>
+        <select id={`action-${r.detector_id}`} name="action" defaultValue="require_consent">
+          <option value="require_consent">Control until consent</option>
+          <option value="allow">Allow without consent</option>
+          <option value="block">Do not load</option>
+          <option value="ignore">Out of scope</option>
+        </select>
+
+        {purposes.length > 0 ? (
+          <>
+            <label htmlFor={`purpose-${r.detector_id}`} className="sr-only">
+              Purpose for {r.vendor_name}
+            </label>
+            <select id={`purpose-${r.detector_id}`} name="purpose_code" defaultValue="">
+              <option value="">No purpose</option>
+              {purposes.map((p) => (
+                <option key={p.code} value={p.code}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </>
+        ) : null}
+
+        <button type="submit">
+          Classify
+        </button>
+      </form>
+      <p className="small muted">
+        Your choice overrides Rift&apos;s recommendation for this technology across
+        the whole site.
+      </p>
+    </div>
+  );
+}
+
+/** The full explanation behind one line of the configuration. */
+function RecommendationDetail({
+  recommendation,
+  siteId,
+  markets,
+  overridden,
+}: {
+  recommendation: VendorRecommendation;
+  siteId: string;
+  markets: string;
+  overridden: boolean;
+}) {
+  const r = recommendation;
+  return (
+    <div className="recommendation">
+      <p className="recommendation-head">
+        <strong>{r.vendor_name}</strong>
+        <StatusBadge status={CONFIDENCE_LABEL[r.confidence] ?? r.confidence} />
+        {r.overridden ? <StatusBadge status="your decision" /> : null}
+      </p>
+      <dl className="recommendation-facts">
+        <dt>Detected as</dt>
+        <dd>{r.category}</dd>
+        <dt>Rift proposes</dt>
+        <dd>{ACTION_LABEL[r.recommended_action] ?? r.recommended_action}</dd>
+        <dt>Consent</dt>
+        <dd>{REQUIREMENT_LABEL[r.consent_requirement] ?? r.consent_requirement}</dd>
+        {r.suggested_purpose ? (
+          <>
+            <dt>Purpose</dt>
+            <dd>{r.suggested_purpose}</dd>
+          </>
+        ) : null}
+        <dt>Evidence</dt>
+        <dd>
+          {r.evidence.length > 0 ? r.evidence.map((e) => e.detail).join("; ") : "None recorded."}
+        </dd>
+        {r.rule_references.length > 0 ? (
+          <>
+            <dt>Rules cited</dt>
+            <dd>{r.rule_references.join(", ")}</dd>
+          </>
+        ) : null}
+      </dl>
+      {!r.observed_in_latest_scan ? (
+        <p className="small">
+          The latest scan did not see this. It is kept rather than dropped: a vendor
+          vanishing is usually a crawl that reached fewer pages, not a vendor that
+          was removed.
+        </p>
+      ) : null}
+      {overridden ? (
+        <form action={clearRecommendationOverride}>
+          <input type="hidden" name="site_id" value={siteId} />
+          <input type="hidden" name="markets" value={markets} />
+          <input type="hidden" name="detector_id" value={r.detector_id} />
+          <button type="submit" className="quiet">
+            Use Rift&apos;s recommendation instead
+          </button>
+        </form>
+      ) : null}
+    </div>
   );
 }

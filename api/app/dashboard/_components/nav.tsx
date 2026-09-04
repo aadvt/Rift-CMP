@@ -14,7 +14,7 @@ import { motion, useReducedMotion } from "motion/react";
  */
 const LINKS = [
   { href: "/dashboard", label: "Overview" },
-  { href: "/dashboard/onboarding", label: "Get started" },
+  { href: "/dashboard/onboarding", label: "Setup" },
   // Onboarding order: register a site, scan it, decide what the findings mean,
   // then install the tag. Scans come before Discovery because that is the order
   // an operator meets them — a scan runs before the tag exists on the page, and
@@ -24,7 +24,8 @@ const LINKS = [
   { href: "/dashboard/configure", label: "Configure" },
   { href: "/dashboard/policy", label: "Policy" },
   { href: "/dashboard/discovery", label: "Discovery" },
-  { href: "/dashboard/consent", label: "Consent" },
+  { href: "/dashboard/consent-experience", label: "Consent experience" },
+  { href: "/dashboard/consent", label: "Consent records" },
   { href: "/dashboard/transfers", label: "Transfers" },
   { href: "/dashboard/analytics", label: "Analytics" },
   { href: "/dashboard/integration", label: "Integration" },
