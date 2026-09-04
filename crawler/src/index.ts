@@ -55,3 +55,19 @@ export type {
   Evidence,
   Confidence,
 } from "./types";
+export {
+  diffScans,
+  fingerprint,
+  fingerprintCookie,
+  fingerprintScript,
+  fingerprintRequest,
+  fingerprintStorage,
+  fingerprintTechnology,
+  type ChangeStatus,
+  type DiffEntry,
+  type DiffResourceKind,
+  type DiffableScan,
+  type Fingerprint,
+  type ScanDiff,
+  type ScanDiffCounts,
+} from "./diff";

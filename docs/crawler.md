@@ -70,6 +70,7 @@ GET /api/v1/scans/{scanId}/results
 | Detectors | `crawler/src/detectors.ts` |
 | Playwright orchestration | `crawler/src/crawl.ts` |
 | Worker | `crawler/src/worker.ts` |
+| Diff and fingerprints | `crawler/src/diff.ts` |
 | Persistence | `database/scans.ts` |
 | Wire contract | `shared/scan.ts` |
 | HTTP surface | [`scan-api.md`](scan-api.md) |
@@ -90,14 +91,18 @@ throughput nobody needs yet. The boundary is what matters: replacing
 Run it with:
 
 ```bash
+npx playwright install chromium   # one-off: npm install does not fetch a browser
 npm -w @rift-cmp/crawler run worker
 ```
+
+Without the browser binary every scan fails `browser_launch_failed`. That is the
+first thing to check when a fresh clone cannot scan anything.
 
 ## Crawl boundaries
 
 | Limit | Default | Why |
 | --- | --- | --- |
-| `maxPages` | 100 | Enough to characterise a site; small enough to finish |
+| `maxPages` | 100 | Enough to characterise a site; small enough to finish. Exact: the batch is capped by the remaining budget, so concurrency cannot overshoot it |
 | `maxDepth` | 3 | Beyond this is usually pagination, not new technology |
 | `maxDurationMs` | 10 min | A hard stop regardless of what the site does |
 | `concurrency` | 2 | Polite; a scan is not a load test |
@@ -438,6 +443,64 @@ one row per request — the same reasoning as `discovered_components`. One page 
 issue hundreds of requests to one host, and storing each would let a hostile page
 write unbounded rows while telling an operator nothing the count does not.
 
+## Recurring scans: what changed
+
+A scan on its own is an inventory. The value of scanning the same site twice is
+the difference between them, and Phase 8A asks for "a reusable resource
+identity/fingerprint so recurring scans can determine NEW / REMOVED / CHANGED /
+UNCHANGED".
+
+`crawler/src/diff.ts` is that. `diffScans(before, after)` compares two sets of
+observations and classifies every cookie, script, request, storage key and
+technology. It is pure, deterministic and order-independent, and it is **not
+wired to an endpoint** — see the note at the end of this section.
+
+The whole design rests on one split, and getting it wrong fails silently in one
+of two directions:
+
+| | identity | material |
+| --- | --- | --- |
+| means | what makes this the *same* resource across scans | what, if it differs, means it *changed* |
+| too wide | every scan reports everything as removed + new | — |
+| too narrow | — | a real regression reports unchanged |
+
+A diff claiming the site replaced its entire stack every night is one nobody
+keeps reading; a diff that reports a cookie quietly losing `Secure` as
+`unchanged` is actively misleading. So both are written out per resource kind
+rather than derived from "all fields":
+
+| Resource | Identity | Material |
+| --- | --- | --- |
+| Cookie | name + domain + path — the tuple a browser itself uses | `secure`, `http_only`, `same_site`, `third_party`, and whether it is persistent |
+| Script | URL, already query-stripped | `third_party`, host |
+| Request | host + resource type + method | `third_party` |
+| Storage | kind + origin + key name | — |
+| Technology | detector id, not display name | category, confidence, `crosses_border`, destination |
+
+**Counts and per-scan volumes are in neither.** `request_count` rising from 12 to
+14 is a change in how many pages this crawl reached, not in what the site runs;
+treating it as material would make the diff a function of the crawl budget. The
+same goes for `observed_on` and for a technology's evidence, both of which vary
+with crawl order.
+
+Two consequences worth stating:
+
+- A cookie's **expiry is material as a boolean**, not as an instant. An expiry
+  that slides forward a day on every scan is the same policy; diffing the
+  timestamp would report a change nightly. A session cookie becoming persistent
+  still shows up.
+- **Diffing against a failed scan reports everything as `new`.** That is not a
+  finding that the site changed. Compare against the last *completed* scan.
+
+### Not exposed over HTTP yet
+
+The diff is a library function. Nothing in `api/` calls it, and there is no
+`GET /scans/{id}/diff`. That is a deliberate stopping point rather than an
+oversight: the reusable identity Phase 8A asked for exists and is tested, but
+choosing the endpoint shape — which scan is the baseline, whether a diff is
+computed on read or stored on write, what a UI polls — is an API contract
+decision, and the scan API belongs to whoever owns that contract.
+
 ## Known limitations
 
 - **DNS rebinding is narrowed, not closed.** See above. The network half of the
@@ -455,7 +518,10 @@ write unbounded rows while telling an operator nothing the count does not.
 - **IndexedDB is declared in the storage vocabulary but not enumerated.** Only
   `localStorage` and `sessionStorage` are read.
 - **The worker is a single in-process loop.** No retry, no backoff, no
-  distributed claim beyond the conditional update.
+  distributed claim beyond the conditional update. Phase 8A's "retries" under
+  the safe-MVP list is **not implemented**: a page that fails is recorded and
+  stepped over, and a scan that fails is not retried at all. A transient DNS
+  blip therefore becomes a permanent hole in an inventory.
 - **No screenshots, no form interaction, no clicking.** Deliberate.
 
 ## What the scanner will never do

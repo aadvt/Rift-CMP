@@ -342,12 +342,27 @@ npm run build
 Then restart the API, or run `npm run dev` from the repo root, so the copy step
 republishes it to `api/public/js/rift-cmp.js`.
 
+### 8b) Install the scanner's browser
+
+The Playwright crawler needs a Chromium binary, and `npm install` does **not**
+fetch one. Without it every scan fails with `browser_launch_failed` and
+`npm run test:browser` cannot run at all:
+
+```bash
+npx playwright install chromium
+```
+
+This is a one-off, about 115 MB. It is a separate step because a browser binary
+is a large download that most work in this repo never needs — the API, the SDK,
+the policy engine and the 407 unit tests all run without it.
+
 ### 9) Running the checks
 
 From the repo root:
 
 ```bash
-npm run test:unit   # vitest: 270 tests, no database, a few seconds
+npm run test:unit   # vitest: 407 tests, no database, a few seconds
+npm run test:browser # vitest: 20 tests driving a real Chromium; see below
 npm test            # vitest: all 355 tests; the integration half needs Postgres
 npm run typecheck   # tsc --noEmit across the api workspace
 npm run lint        # eslint

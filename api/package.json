@@ -14,7 +14,8 @@
     "predev": "node scripts/copy-sdk.mjs",
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
-    "smoke": "tsx scripts/smoke.mjs"
+    "smoke": "tsx scripts/smoke.mjs",
+    "test:browser": "vitest run --project browser"
   },
   "dependencies": {
     "@rift-cmp/policy": "*",

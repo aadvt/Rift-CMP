@@ -35,6 +35,15 @@ export interface CrawlOptions {
   limits?: Partial<CrawlLimits>;
   /** Injected in tests so DNS behaviour can be exercised deterministically. */
   resolver?: Resolver;
+  /**
+   * Permit loopback and private targets. **Tests only.**
+   *
+   * The rendering half of the crawler cannot otherwise be exercised: the SSRF
+   * guard refuses 127.0.0.1, so the alternative is pointing tests at the live
+   * internet. Never set by the worker or reachable from the HTTP API - see the
+   * note in `ssrf.ts`.
+   */
+  allowPrivateTargets?: boolean;
   /** Structured progress, without values or headers. See docs/crawler.md. */
   onEvent?: (event: CrawlEvent) => void;
   signal?: AbortSignal;
@@ -126,7 +135,10 @@ export async function crawl(options: CrawlOptions): Promise<ScanResult> {
     throw new ScanFatalError(`Start URL rejected: ${entry.reason}`, "invalid_start_url");
   }
 
-  const guard = await assertNavigable(entry.url, { resolver: options.resolver });
+  const guard = await assertNavigable(entry.url, {
+    resolver: options.resolver,
+    allowPrivateTargets: options.allowPrivateTargets,
+  });
   if (!guard.allowed) {
     // Deliberately fatal. A start URL pointing at private space is not a page
     // failure to be recorded and stepped over; it is a request we must refuse.
@@ -199,7 +211,16 @@ export async function crawl(options: CrawlOptions): Promise<ScanResult> {
       // Concurrency is a slice of the queue rather than a worker pool: the
       // queue is short-lived and bounded, and a pool would add failure modes
       // for no throughput that matters at these limits.
-      const batch = queue.splice(0, Math.max(1, limits.concurrency));
+      //
+      // The slice is also capped by what is left of the page budget. Taking a
+      // full batch and checking the limit only at the top of the loop
+      // overshoots `maxPages` by up to `concurrency - 1`: with a budget of 2 and
+      // a concurrency of 2, the first pass visits the entry page and the second
+      // takes two more, for three. A page limit that a caller can exceed is not
+      // a limit, and this is the only bound between a hostile site and the
+      // crawl budget it can consume.
+      const remaining = limits.maxPages - pages.length;
+      const batch = queue.splice(0, Math.max(1, Math.min(limits.concurrency, remaining)));
 
       const results = await Promise.all(
         batch.map((item) =>
@@ -208,6 +229,7 @@ export async function crawl(options: CrawlOptions): Promise<ScanResult> {
             scopeOrigin,
             robots,
             resolver: options.resolver,
+            allowPrivateTargets: options.allowPrivateTargets,
             budget,
             noteLimit,
             emit,
@@ -337,6 +359,7 @@ interface VisitContext {
   scopeOrigin: string;
   robots: RobotsPolicy;
   resolver?: Resolver;
+  allowPrivateTargets?: boolean;
   budget: Budget;
   noteLimit: (name: string) => void;
   emit: (event: CrawlEvent) => void;
@@ -404,7 +427,10 @@ async function visitPage(
 
   // Re-checked per page, not once per scan: a link or redirect is an
   // attacker-controlled path from an allowed origin to a disallowed one.
-  const guard = await assertNavigable(url, { resolver: ctx.resolver });
+  const guard = await assertNavigable(url, {
+    resolver: ctx.resolver,
+    allowPrivateTargets: ctx.allowPrivateTargets,
+  });
   if (!guard.allowed) {
     ctx.emit({ event: "page_skipped_ssrf", url, error: guard.reason });
     return finish({ ...base, error: `ssrf_blocked:${guard.reason}` });
@@ -500,7 +526,10 @@ async function visitPage(
     // actually landed, not only where we intended to go.
     const landed = page.url();
     if (landed !== url) {
-      const landedGuard = await assertNavigable(landed, { resolver: ctx.resolver });
+      const landedGuard = await assertNavigable(landed, {
+        resolver: ctx.resolver,
+        allowPrivateTargets: ctx.allowPrivateTargets,
+      });
       if (!landedGuard.allowed) {
         await page.close().catch(() => {});
         return finish({

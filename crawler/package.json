@@ -11,7 +11,8 @@
     "./robots": "./src/robots.ts",
     "./detectors": "./src/detectors.ts",
     "./types": "./src/types.ts",
-    "./worker": "./src/worker.ts"
+    "./worker": "./src/worker.ts",
+    "./diff": "./src/diff.ts"
   },
   "types": "./src/index.ts",
   "scripts": {
