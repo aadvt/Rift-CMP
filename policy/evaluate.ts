@@ -38,6 +38,7 @@ function cite(rule: Rule): Citation {
     ruleId: rule.id,
     regime: rule.regime,
     topic: rule.topic,
+    applies: rule.applies,
     authorityLevel: rule.authorityLevel,
     text: rule.text,
     triggers: rule.triggers,

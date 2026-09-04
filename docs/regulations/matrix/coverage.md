@@ -184,6 +184,26 @@ conversion, and claiming a retrieval date would be false.
 a model assembled during research, and every requirement resting on it carries
 `authority_level: "derived"`.
 
+## What was reconciled in Phase 10A
+
+- **`REQ-BR-LGPD-016` was marked as an applying obligation while stating an
+  absence.** Its text is "LGPD does not create a CCPA-style universal
+  sale/sharing opt-out", but it carried `applicability.applies: true` on the
+  `sale_and_sharing` topic - the same topic the CCPA records that *do* create
+  that right carry. `REQ-EP-023` states the same kind of absence about
+  children's data and correctly carries `applies: false`, described above as
+  "a statement of absence, not a rule".
+
+  Nothing could tell the two apart, so a consumer deriving available privacy
+  controls from topic offered a Brazilian visitor a sale opt-out the LGPD does
+  not confer. The record now carries `applies: false` and
+  `requirement_type: definition`, with the reasoning in its `notes`.
+
+  **No legal proposition was changed**: the requirement text is untouched, and
+  the correction aligns two records that already said the same kind of thing.
+  It was found by building `api/lib/rights.ts`, which is the first consumer to
+  read absence records at all.
+
 ## Fields still thinly populated
 
 Present on some records, absent on most. A future engine must treat absence as

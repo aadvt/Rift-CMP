@@ -642,4 +642,15 @@ work — see the known limitations in [secure-transfer.md](secure-transfer.md).
   their un-approved form are **not** stored — a stored draft is a second thing
   that looks like configuration, which is the ambiguity approval exists to
   remove. Adds no column to any existing table.
+- `20260904140000_add_consent_proof_and_rights` adds evidence columns to
+  `consent_records` (`jurisdictions`, `mechanism`, `policy_config_version`,
+  `vendors`, `proof_hash`), retention metadata to `purposes`, and the
+  `rights_requests` table. Every consent column is nullable: records written
+  before it have no evidence, and backfilling a value nobody observed would
+  manufacture what the columns exist to provide. Retention has no default and no
+  derivation — null means "not stated", not "none". `rights_requests` carries
+  two composite foreign keys, so a request can never name a site from another
+  tenant nor a principal from another site. The append-only trigger on
+  `consent_records` is untouched, and adding columns is DDL that does not pass
+  through it.
 - Never edit a migration that has been applied — add a new one.

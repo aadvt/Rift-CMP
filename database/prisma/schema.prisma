@@ -27,6 +27,7 @@ model Organisation {
   dashboardSessions DashboardSession[]
   consentPolicyVersions ConsentPolicyVersion[]
   recommendationOverrides ConsentRecommendationOverride[]
+  rightsRequests    RightsRequest[]
   scans      Scan[]
 
   @@map("organisations")
@@ -62,6 +63,7 @@ model Website {
   discoveredStorage    DiscoveredStorage[]
   consentPolicyVersions ConsentPolicyVersion[]
   recommendationOverrides ConsentRecommendationOverride[]
+  rightsRequests    RightsRequest[]
   discoveryViolations  DiscoveryViolation[]
   consentSessions      ConsentSession[]
   scans                Scan[]
@@ -154,6 +156,7 @@ model Principal {
   consentRecords  ConsentRecord[]
   consentSessions ConsentSession[]
   transferAuthorisations TransferAuthorisation[]
+  rightsRequests  RightsRequest[]
 
   @@unique([siteId, externalId])
   @@unique([id, siteId])
@@ -169,6 +172,18 @@ model Purpose {
   name           String
   description    String
   isActive       Boolean  @default(true) @map("is_active")
+  /// The operator's own retention statement for this purpose, in their words.
+  ///
+  /// Free text and nullable on purpose. The platform has no basis to invent a
+  /// period - retention turns on the processing, the regime and facts only the
+  /// fiduciary holds - so this records what they say rather than computing
+  /// what they should say. Null means "not stated", which a rights response
+  /// reports as such rather than as "none".
+  retentionNote  String?  @map("retention_note")
+  /// Machine-readable where the operator chose to give one, e.g. `P2Y`.
+  /// Never derived from `retentionNote`; a parser inferring a period from prose
+  /// would be inventing the number this field exists to avoid inventing.
+  retentionPeriod String? @map("retention_period")
   createdAt      DateTime @default(now()) @map("created_at")
 
   organisation   Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
@@ -280,6 +295,34 @@ model ConsentRecord {
   recordedAt      DateTime @default(now()) @map("recorded_at")
   /// Free-form context (UI surface, SDK version...). Never legal rules.
   metadata        Json?
+
+  // ── Phase 10A: evidence ────────────────────────────────────────────────────
+  //
+  // What a decision has to carry to be provable later. Each is nullable
+  // because every record written before 10A has none, and backfilling a value
+  // nobody observed would manufacture the evidence this exists to provide.
+
+  /// Jurisdictions in play when the decision was taken, as the resolver read
+  /// them. A snapshot: the operator's markets change, and a record has to keep
+  /// meaning what it meant.
+  jurisdictions   String[] @default([]) 
+  /// How the decision was expressed: "banner" | "preference_centre" | "api" | ...
+  /// Operator-declared vocabulary; the platform does not police it.
+  mechanism       String?
+  /// The consent policy version being served when the decision was taken, so a
+  /// record can be read against the configuration the visitor actually saw.
+  policyConfigVersion String? @map("policy_config_version")
+  /// Vendors the decision was about, where the surface named any. Display
+  /// names only - no hosts, no evidence, nothing about the person.
+  vendors         String[] @default([])
+  /// SHA-256 over the record's evidence fields, computed at write time.
+  ///
+  /// This is a receipt, not a signature and not a chain. It lets a principal
+  /// who kept the digest check that the record they are later shown is the one
+  /// that was issued. It proves nothing against someone who can write the
+  /// table - the append-only trigger is what guards that - and docs/consent-proof.md
+  /// says so rather than letting the word "proof" do work it cannot.
+  proofHash       String?  @map("proof_hash")
 
   // Composite foreign keys keep every reference inside one tenant, in the same
   // way Phase 1 ties an event's session to its site.
@@ -919,4 +962,77 @@ model ConsentRecommendationOverride {
   @@unique([siteId, detectorId])
   @@index([organisationId])
   @@map("consent_recommendation_overrides")
+}
+
+// ─── Phase 10A: rights requests ──────────────────────────────────────────────
+//
+// A person asking a fiduciary to do something with their data. Rift records the
+// request, its state and the evidence around it; it does not fulfil it.
+//
+// That split is the honest one. Fulfilling an access or deletion request means
+// reaching into systems Rift does not own - the customer's own database, their
+// warehouse, their vendors - and a platform that marked a request "completed"
+// on the strength of its own tables would be certifying something it cannot see.
+// So this is a workflow record with an audit trail, and the operator does the
+// work.
+
+/// One request from a data principal.
+///
+/// Deliberately not called a "DSAR": the vocabulary differs by regime and the
+/// available request types are decided by the policy engine from the
+/// jurisdictions in play, not by a fixed list encoded here. See
+/// docs/privacy-rights.md.
+model RightsRequest {
+  id             String @id @default(uuid())
+  organisationId String @map("organisation_id")
+  siteId         String @map("site_id")
+  principalId    String @map("principal_id")
+
+  /// access | correction | deletion | export | objection | restriction |
+  /// withdraw | opt_out_sale | opt_out_sharing | complaint | appeal
+  ///
+  /// A string rather than an enum, for the same reason `consent_records.status`
+  /// is: the set differs by regime and will grow, and a type migration per
+  /// regime would put the platform in the business of deciding which rights
+  /// exist.
+  kind String
+
+  /// received | in_progress | completed | refused | withdrawn
+  status String @default("received")
+
+  /// Jurisdictions in play when the request was made, as the resolver read them.
+  jurisdictions String[] @default([])
+  /// Requirement ids the engine cited as making this kind of request available.
+  /// Empty means it was accepted without the matrix supporting it - which is
+  /// allowed, and is visible rather than silent.
+  ruleReferences String[] @default([]) @map("rule_references")
+
+  /// What the principal said, in their words. Bounded by the API.
+  message String?
+  /// What the operator did, in theirs. The only record of the outcome.
+  resolutionNote String? @map("resolution_note")
+
+  /// Where the principal wants the answer sent, when they gave one.
+  ///
+  /// The one field here that can hold personal data, and it is optional: a
+  /// request made through a browser session that already identifies the
+  /// principal needs no contact detail at all, and asking for one would collect
+  /// more than the request requires.
+  contact String?
+
+  receivedAt  DateTime  @default(now()) @map("received_at")
+  respondedAt DateTime? @map("responded_at")
+  /// When the operator says a response is due. Operator-declared: statutory
+  /// deadlines differ by regime and Rift does not compute them.
+  dueAt       DateTime? @map("due_at")
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  website      Website      @relation(fields: [siteId, organisationId], references: [id, organisationId], onDelete: Cascade)
+  principal    Principal    @relation(fields: [principalId, siteId], references: [id, siteId], onDelete: Cascade)
+
+  @@unique([id, organisationId])
+  @@index([organisationId, receivedAt])
+  @@index([siteId, status])
+  @@index([principalId])
+  @@map("rights_requests")
 }

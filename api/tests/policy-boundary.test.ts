@@ -176,6 +176,10 @@ describe("the engine is not entangled with the platform", () => {
       // Phase 9A. Generates a recommended policy a human approves; like the
       // first entry it annotates for a person and gates nothing.
       "api/lib/autopilot.ts",
+      // Phase 10A. Asks which privacy controls the jurisdictions in play
+      // indicate. It reports availability for a person to act on and refuses
+      // no request on the strength of it.
+      "api/lib/rights.ts",
     ]);
     const roots = ["app", "lib"].map((d) => path.join(repoRoot, "api", d));
     const offenders: string[] = [];

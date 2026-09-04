@@ -32,6 +32,7 @@ const UNIT_TESTS = [
   "tests/consent-experience.test.ts",
   "tests/autopilot.test.ts",
   "tests/enforcement.test.ts",
+  "tests/rights-availability.test.ts",
 ];
 
 /**

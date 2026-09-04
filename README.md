@@ -73,6 +73,16 @@ it cannot see a server-to-server transfer - which is why the API re-derives
 consent from the append-only log instead of trusting a client-side flag. See
 [docs/enforcement.md](docs/enforcement.md).
 
+Phase 10A makes a decision **provable** and works out which privacy controls a
+person should be offered. A consent record now carries the jurisdictions,
+mechanism, configuration version and vendors it was taken under, plus a receipt
+digest a principal can recompute - stated as a receipt rather than a signature,
+since it is neither signed nor chained. Available controls are derived per
+request from the policy engine, because the regimes genuinely differ: California
+has a sale opt-out, the LGPD explicitly does not, and India has grievance
+redressal with no GDPR analogue. Retention is what the operator writes, never a
+period the platform invents. See [docs/privacy-rights.md](docs/privacy-rights.md).
+
 ## Repository layout
 
 | Path | Purpose |
@@ -157,6 +167,7 @@ Start with the first one; it is the entry point and links to the rest.
 - [Discovery](docs/discovery.md)
 - [Policy Engine](docs/policy-engine.md) - what a regime requires of an activity, and why it is not wired into a route
 - [Jurisdiction Resolution](docs/jurisdiction-resolution.md) - whose law is in play, and why an IP address never reaches it
+- [Consent Proof and Privacy Rights](docs/privacy-rights.md) - what a decision carries to be provable, and which controls apply where
 - [Enforcement](docs/enforcement.md) - acting on an approved policy, and the boundary of what a browser can stop
 - [Consent Autopilot](docs/consent-autopilot.md) - generating a recommended policy, and the human approval that publishes it
 - [Consent Experience](docs/consent-experience.md) - the banner, the preference centre, and the one snippet a customer pastes
@@ -396,7 +407,7 @@ the policy engine and the 407 unit tests all run without it.
 From the repo root:
 
 ```bash
-npm run test:unit    # vitest: 541 tests, no database, a few seconds
+npm run test:unit    # vitest: 570 tests, no database, a few seconds
 npm run test:browser # vitest: 20 tests driving a real Chromium; needs the
                      # browser install in step 8b
 npm test             # vitest: unit plus integration; the integration half
@@ -417,7 +428,7 @@ The suite is split into two vitest projects, configured in `api/vitest.config.ts
 
 | Project | Files | Tests | Needs a database |
 | --- | --- | --- | --- |
-| `unit` | `keys.test.ts`, `secure-transfer-crypto.test.ts`, `dashboard-components.test.tsx`, `discovery-classification.test.ts`, `rate-limit.test.ts`, `origin-validation.test.ts`, `sdk-limits.test.ts`, `policy-rules.test.ts`, `policy-engine.test.ts`, `policy-boundary.test.ts`, `jurisdiction-resolution.test.ts`, `crawler-ssrf.test.ts`, `crawler-url.test.ts`, `crawler-detectors.test.ts`, `crawler-diff.test.ts`, `consent-experience.test.ts`, `autopilot.test.ts`, `enforcement.test.ts` | 541 | no |
+| `unit` | `keys.test.ts`, `secure-transfer-crypto.test.ts`, `dashboard-components.test.tsx`, `discovery-classification.test.ts`, `rate-limit.test.ts`, `origin-validation.test.ts`, `sdk-limits.test.ts`, `policy-rules.test.ts`, `policy-engine.test.ts`, `policy-boundary.test.ts`, `jurisdiction-resolution.test.ts`, `crawler-ssrf.test.ts`, `crawler-url.test.ts`, `crawler-detectors.test.ts`, `crawler-diff.test.ts`, `consent-experience.test.ts`, `autopilot.test.ts`, `enforcement.test.ts`, `rights-availability.test.ts` | 570 | no |
 | `browser` | `crawler-browser.test.ts` | 20 | no, but needs Chromium |
 | `integration` | everything else under `api/tests/` | 324 | yes |
 
