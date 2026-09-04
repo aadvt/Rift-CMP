@@ -259,3 +259,187 @@ export async function clearOverride(
   });
   return result.count > 0;
 }
+
+// ─── Phase 10A: rights requests ──────────────────────────────────────────────
+
+export interface RightsRequestSummary {
+  request_id: string;
+  site_id: string;
+  principal_external_id: string;
+  kind: string;
+  status: string;
+  jurisdictions: string[];
+  rule_references: string[];
+  message: string | null;
+  resolution_note: string | null;
+  /** Present only to the operator; never returned on the browser plane. */
+  contact: string | null;
+  received_at: string;
+  responded_at: string | null;
+  due_at: string | null;
+}
+
+type RightsRow = {
+  id: string;
+  siteId: string;
+  kind: string;
+  status: string;
+  jurisdictions: string[];
+  ruleReferences: string[];
+  message: string | null;
+  resolutionNote: string | null;
+  contact: string | null;
+  receivedAt: Date;
+  respondedAt: Date | null;
+  dueAt: Date | null;
+  principal?: { externalId: string } | null;
+};
+
+export function toRightsRequestSummary(row: RightsRow): RightsRequestSummary {
+  return {
+    request_id: row.id,
+    site_id: row.siteId,
+    principal_external_id: row.principal?.externalId ?? "",
+    kind: row.kind,
+    status: row.status,
+    jurisdictions: row.jurisdictions,
+    rule_references: row.ruleReferences,
+    message: row.message,
+    resolution_note: row.resolutionNote,
+    contact: row.contact,
+    received_at: row.receivedAt.toISOString(),
+    responded_at: row.respondedAt?.toISOString() ?? null,
+    due_at: row.dueAt?.toISOString() ?? null,
+  };
+}
+
+export type SubmitRightsResult =
+  | { ok: true; request: RightsRequestSummary }
+  | { ok: false; code: "principal_not_found"; message: string };
+
+/**
+ * Record one request from a principal.
+ *
+ * The principal must already exist: a rights request is made *about* recorded
+ * data, and minting a principal to receive one would create the subject the
+ * request is supposed to be about. A browser that has never decided anything
+ * has nothing to ask after.
+ */
+export async function submitRightsRequest(
+  prisma: PrismaClient,
+  input: {
+    organisationId: string;
+    siteId: string;
+    principalExternalId: string;
+    kind: string;
+    jurisdictions: string[];
+    ruleReferences: string[];
+    message?: string | null;
+    contact?: string | null;
+  },
+): Promise<SubmitRightsResult> {
+  const principal = await prisma.principal.findFirst({
+    where: { siteId: input.siteId, externalId: input.principalExternalId },
+    select: { id: true },
+  });
+  if (!principal) {
+    return {
+      ok: false,
+      code: "principal_not_found",
+      message: "No principal with that identifier exists for this site.",
+    };
+  }
+
+  const row = await prisma.rightsRequest.create({
+    data: {
+      organisationId: input.organisationId,
+      siteId: input.siteId,
+      principalId: principal.id,
+      kind: input.kind,
+      jurisdictions: input.jurisdictions,
+      ruleReferences: input.ruleReferences,
+      message: input.message ?? null,
+      contact: input.contact ?? null,
+    },
+    include: { principal: { select: { externalId: true } } },
+  });
+
+  return { ok: true, request: toRightsRequestSummary(row) };
+}
+
+export async function listRightsRequests(
+  prisma: PrismaClient,
+  organisationId: string,
+  options: { siteId?: string; principalExternalId?: string; limit?: number } = {},
+): Promise<RightsRequestSummary[]> {
+  const rows = await prisma.rightsRequest.findMany({
+    where: {
+      organisationId,
+      ...(options.siteId ? { siteId: options.siteId } : {}),
+      ...(options.principalExternalId
+        ? { principal: { externalId: options.principalExternalId } }
+        : {}),
+    },
+    orderBy: { receivedAt: "desc" },
+    take: Math.min(options.limit ?? 100, 500),
+    include: { principal: { select: { externalId: true } } },
+  });
+  return rows.map(toRightsRequestSummary);
+}
+
+export type UpdateRightsResult =
+  | { ok: true; request: RightsRequestSummary }
+  | { ok: false; code: "not_found"; message: string };
+
+/**
+ * Move a request along.
+ *
+ * Mutable, unlike a consent record, and for a reason worth stating: a consent
+ * decision is a fact about what somebody chose, while a request's status is a
+ * fact about what an operator has done so far. Freezing the second would mean a
+ * request could never be answered.
+ *
+ * What is *not* mutable is `kind`, `received_at` or the principal — what was
+ * asked, by whom and when. Only the handling changes.
+ */
+export async function updateRightsRequest(
+  prisma: PrismaClient,
+  input: {
+    organisationId: string;
+    requestId: string;
+    status?: string;
+    resolutionNote?: string | null;
+    dueAt?: Date | null;
+  },
+): Promise<UpdateRightsResult> {
+  const existing = await prisma.rightsRequest.findFirst({
+    where: { id: input.requestId, organisationId: input.organisationId },
+    select: { id: true },
+  });
+  if (!existing) {
+    return {
+      ok: false,
+      code: "not_found",
+      message: `No rights request found with id: ${input.requestId}.`,
+    };
+  }
+
+  const terminal = input.status === "completed" || input.status === "refused";
+
+  const row = await prisma.rightsRequest.update({
+    where: { id: input.requestId },
+    data: {
+      ...(input.status ? { status: input.status } : {}),
+      ...(input.resolutionNote !== undefined
+        ? { resolutionNote: input.resolutionNote }
+        : {}),
+      ...(input.dueAt !== undefined ? { dueAt: input.dueAt } : {}),
+      // Stamped when the request reaches a terminal state, so "how long did
+      // this take" is answerable without reconstructing it from a log.
+      ...(terminal ? { respondedAt: new Date() } : {}),
+    },
+    include: { principal: { select: { externalId: true } } },
+  });
+
+  return { ok: true, request: toRightsRequestSummary(row) };
+}

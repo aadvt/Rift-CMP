@@ -277,6 +277,17 @@ export interface Citation {
   readonly ruleId: string;
   readonly regime: Regime;
   readonly topic: Topic | undefined;
+  /**
+   * False where the record states an *absence* - "this regime creates no such
+   * right" - rather than a requirement.
+   *
+   * Carried on the citation because a consumer reading `considered` cannot
+   * otherwise tell the two apart, and they mean opposite things. A rights
+   * screen that treated `REQ-BR-LGPD-016` ("LGPD does not create a CCPA-style
+   * sale opt-out") as indicating a sale opt-out would offer a Brazilian visitor
+   * a control that regime does not confer.
+   */
+  readonly applies: boolean;
   readonly authorityLevel: AuthorityLevel | undefined;
   readonly text: string;
   readonly triggers: readonly string[];

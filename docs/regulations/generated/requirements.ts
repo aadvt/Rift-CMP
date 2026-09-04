@@ -838,10 +838,10 @@ export const REQUIREMENT_MATRIX = {
       "topic": "sale_and_sharing",
       "topic_canonical": "sale_and_sharing",
       "requirement": "LGPD does not create a CCPA-style universal sale/sharing opt-out",
-      "requirement_type": "obligation",
+      "requirement_type": "definition",
       "authority_level": "statute",
       "applicability": {
-        "applies": true,
+        "applies": false,
         "triggers": [
           "LGPD processing"
         ],
@@ -873,7 +873,7 @@ export const REQUIREMENT_MATRIX = {
       "source_ids": [
         "SRC-BR-LGPD"
       ],
-      "notes": "Provision: Article 18 | Basis/permission as stated in CSV: Applicable legal basis and rights | Research status: verified | Promoted from requirements.csv; structured fields derived only from that row."
+      "notes": "Provision: Article 18 | Basis/permission as stated in CSV: Applicable legal basis and rights | Research status: verified | Promoted from requirements.csv; structured fields derived only from that row. | Phase 10A data-consistency fix: `applicability.applies` set to false and `requirement_type` changed from `obligation` to `definition`. The record states an ABSENCE - that LGPD creates no CCPA-style sale/sharing opt-out - and was marked as an applying obligation on the `sale_and_sharing` topic, which is the same topic the CCPA records that DO create that right carry. A consumer keying on topic could not tell them apart, and a rights screen therefore offered a Brazilian visitor an opt-out the LGPD does not confer. `REQ-EP-023` is the precedent: it states the same kind of absence about children's data and correctly carries `applies: false`, which matrix/coverage.md describes as 'a statement of absence, not a rule'. No legal proposition was changed; the requirement text is untouched."
     },
     {
       "requirement_id": "REQ-CA-CCPA-001",

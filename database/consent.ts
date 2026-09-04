@@ -8,6 +8,7 @@ import type {
   PurposeSummary,
 } from "@rift-cmp/shared";
 import { resolveEffectiveConsent } from "@rift-cmp/shared";
+import { proofHash } from "@rift-cmp/shared/consent-proof";
 import type { Prisma, PrismaClient } from "./generated/client";
 
 /**
@@ -335,6 +336,21 @@ export async function recordConsentDecision(
     source?: string;
     decidedAt?: Date;
     metadata?: Prisma.InputJsonValue | null;
+
+    // ── Phase 10A: evidence ──────────────────────────────────────────────────
+    //
+    // Optional throughout. A caller that supplies none writes a record exactly
+    // as it would have before, which is what keeps every existing path working
+    // and stops the platform inventing context it did not observe.
+
+    /** Jurisdictions in play, as the caller resolved them. */
+    jurisdictions?: readonly string[];
+    /** How the decision was expressed: "banner", "preference_centre", "api". */
+    mechanism?: string | null;
+    /** The consent configuration version being served at the time. */
+    policyConfigVersion?: string | null;
+    /** Vendors the surface named. Display names only. */
+    vendors?: readonly string[];
   },
 ): Promise<RecordConsentResult> {
   const purpose = await prisma.purpose.findFirst({
@@ -402,6 +418,29 @@ export async function recordConsentDecision(
     select: { id: true },
   });
 
+  const decidedAt = input.decidedAt ?? new Date();
+  const jurisdictions = [...(input.jurisdictions ?? [])];
+  const vendors = [...(input.vendors ?? [])];
+  const source = input.source ?? "api";
+
+  // The receipt digest is computed here, at write time, over the evidence as
+  // stored. Computing it on read would let it drift from the row it describes,
+  // which is precisely what a receipt exists to rule out.
+  const proof = proofHash({
+    siteId: input.siteId,
+    principalExternalId: input.principalExternalId,
+    purposeCode: input.purposeCode,
+    status: input.status,
+    decidedAt,
+    noticeId: input.noticeId ?? null,
+    policyVersionId,
+    policyConfigVersion: input.policyConfigVersion ?? null,
+    jurisdictions,
+    vendors,
+    mechanism: input.mechanism ?? null,
+    source,
+  });
+
   const record = await prisma.consentRecord.create({
     data: {
       organisationId: input.organisationId,
@@ -411,8 +450,13 @@ export async function recordConsentDecision(
       noticeId: input.noticeId ?? null,
       policyVersionId,
       status: input.status,
-      source: input.source ?? "api",
-      decidedAt: input.decidedAt ?? new Date(),
+      source,
+      decidedAt,
+      jurisdictions,
+      vendors,
+      mechanism: input.mechanism ?? null,
+      policyConfigVersion: input.policyConfigVersion ?? null,
+      proofHash: proof,
       ...(input.metadata == null ? {} : { metadata: input.metadata }),
     },
     include: CONSENT_RECORD_INCLUDE,

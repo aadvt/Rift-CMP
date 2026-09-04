@@ -468,6 +468,13 @@ caveat — each one is a thing the MVP genuinely does not do.
   `limit` rows from each of three tables and sorts in memory, so a very lopsided
   distribution can push older entries of one kind out of the window. A deliberate
   trade for keeping the domains unjoined.
+- **A decision is provable, and rights are jurisdiction-specific.** Phase 10A
+  records the evidence a decision was taken under and issues a receipt a
+  principal can recompute — a receipt, not a signature, and not a chain. Which
+  privacy controls to offer is asked of the policy engine per request, because
+  the regimes differ. Rift records rights requests and does **not** fulfil them:
+  access and deletion reach into systems it does not hold. See
+  [privacy-rights.md](privacy-rights.md).
 - **Enforcement is real but bounded, and the bound is the point.** Phase 9B
   applies an approved policy in the browser - blocking gated `fetch`, XHR,
   beacons, pixels and script insertion - and re-derives consent server-side for

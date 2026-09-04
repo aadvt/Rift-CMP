@@ -15,7 +15,8 @@
     "./analytics": "./analytics.ts",
     "./scan": "./scan.ts",
     "./consent-config": "./consent-config.ts",
-    "./discovery": "./discovery.ts"
+    "./discovery": "./discovery.ts",
+    "./consent-proof": "./consent-proof.ts"
   },
   "types": "./index.ts",
   "dependencies": {
