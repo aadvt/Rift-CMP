@@ -29,3 +29,4 @@ export * from "./audit";
 export * from "./analytics";
 export * from "./discovery";
 export * from "./tracker-catalogue";
+export * from "./scans";

@@ -5,6 +5,7 @@
   "workspaces": [
     "sdk",
     "api",
+    "crawler",
     "secure-transfer",
     "policy",
     "shared",

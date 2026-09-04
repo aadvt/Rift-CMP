@@ -25,6 +25,7 @@ model Organisation {
   notices    Notice[]
   recipients DataRecipient[]
   dashboardSessions DashboardSession[]
+  scans      Scan[]
 
   @@map("organisations")
 }
@@ -59,6 +60,7 @@ model Website {
   discoveredStorage    DiscoveredStorage[]
   discoveryViolations  DiscoveryViolation[]
   consentSessions      ConsentSession[]
+  scans                Scan[]
 
   @@unique([id, organisationId])
   @@index([organisationId])
@@ -560,4 +562,246 @@ model DashboardSession {
 
   @@index([organisationId])
   @@map("dashboard_sessions")
+}
+
+// ─── Scanner: Playwright website scans ───────────────────────────────────────
+//
+// Phase 8A. A *complement* to the in-page discovery domain above, not a
+// replacement for it, and the two answer different questions on purpose:
+//
+//   - `discovered_components` records what a real visitor's browser actually
+//     did, which is the only way to evidence that a tracker fired while consent
+//     was withdrawn. It needs the tag installed and only ever sees pages people
+//     actually visit.
+//   - `scans` records what a robot saw on a site at one moment, logged out.
+//     It works before signup, which is what onboarding needs, and it can reach
+//     pages nobody has visited yet.
+//
+// They are deliberately not merged. Collapsing "observed in production" and
+// "observed by a crawler" into one table would destroy the distinction that
+// makes the first evidentiary, and docs/discovery.md is explicit that a crawler
+// structurally cannot produce that evidence.
+//
+// Every row here is an *observation*, never a legal conclusion. No table in
+// this section carries a "consent required" column, and that absence is the
+// architecture: the compliance layer reads these rows and decides.
+
+/// One scan of one site, and its lifecycle.
+model Scan {
+  id     String @id @default(uuid())
+  siteId String @map("site_id")
+  /// Denormalised from the site so every tenant-scoped read filters on an
+  /// indexed column here rather than joining through `websites` first.
+  organisationId String @map("organisation_id")
+
+  /// queued | running | completed | failed | cancelled
+  status String @default("queued")
+  /// baseline | necessary_only | analytics | advertising | all.
+  /// Only `baseline` is implemented; the column exists so an observation is
+  /// stamped with the state it was made under from the very first row.
+  mode String @default("baseline")
+
+  startUrl       String  @map("start_url")
+  crawlerVersion String? @map("crawler_version")
+  /// The resolved limits the crawl actually ran with, so a result can be read
+  /// against the budget that produced it rather than against today's defaults.
+  config Json?
+
+  /// Machine-readable failure code plus a truncated message. Never a stack.
+  errorCode    String? @map("error_code")
+  errorMessage String? @map("error_message")
+
+  /// Denormalised counts, so the onboarding UI can render a summary without
+  /// aggregating six child tables on every poll.
+  pagesDiscovered      Int @default(0) @map("pages_discovered")
+  pagesScanned         Int @default(0) @map("pages_scanned")
+  pagesFailed          Int @default(0) @map("pages_failed")
+  cookiesFound         Int @default(0) @map("cookies_found")
+  scriptsFound         Int @default(0) @map("scripts_found")
+  requestsObserved     Int @default(0) @map("requests_observed")
+  storageItemsFound    Int @default(0) @map("storage_items_found")
+  thirdPartyDomains    Int @default(0) @map("third_party_domains")
+  technologiesDetected Int @default(0) @map("technologies_detected")
+
+  consentUiDetected Boolean @default(false) @map("consent_ui_detected")
+  /// The signals behind `consent_ui_detected`, so the UI can answer "why".
+  consentUiSignals Json? @map("consent_ui_signals")
+
+  /// Which limit, if any, stopped the crawl early. Null means it finished
+  /// naturally; anything else means the counts are a floor, not a total.
+  limitReached String? @map("limit_reached")
+  robotsSource String? @map("robots_source")
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+
+  website      Website      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  pages        ScanPage[]
+  cookies      ScanCookie[]
+  scripts      ScanScript[]
+  requests     ScanRequest[]
+  storage      ScanStorage[]
+  technologies ScanTechnology[]
+
+  /// Tenant-leading, so a scoped list never scans another tenant's rows.
+  @@index([organisationId, createdAt])
+  @@index([siteId, createdAt])
+  /// The worker claims work with this; status leads because the queue is short
+  /// and the table is not.
+  @@index([status, createdAt])
+  @@map("scans")
+}
+
+/// One page the crawler attempted. A failed page is still a row: "we tried and
+/// could not" is information the onboarding UI needs to show honestly.
+model ScanPage {
+  id     String @id @default(uuid())
+  scanId String @map("scan_id")
+
+  url         String
+  finalUrl    String? @map("final_url")
+  status      Int?
+  title       String?
+  contentType String? @map("content_type")
+  depth       Int
+  /// Empty array when there were no redirects.
+  redirectChain Json    @map("redirect_chain")
+  rendered      Boolean
+  /// Null when the page rendered. Otherwise a short reason - `timeout`,
+  /// `disallowed_by_robots`, `ssrf_blocked:private_address`.
+  error      String?
+  durationMs Int      @map("duration_ms")
+  startedAt  DateTime @map("started_at")
+
+  scan Scan @relation(fields: [scanId], references: [id], onDelete: Cascade)
+
+  @@unique([scanId, url])
+  @@index([scanId])
+  @@map("scan_pages")
+}
+
+/// A cookie present in the browser context after the crawl.
+///
+/// **No value column exists.** Playwright hands the value over whether we want
+/// it or not; it is discarded at the crawler boundary and there is deliberately
+/// nowhere here to put it, so a later change cannot start persisting one by
+/// accident without someone first adding a column and explaining why.
+model ScanCookie {
+  id     String @id @default(uuid())
+  scanId String @map("scan_id")
+
+  name     String
+  domain   String
+  path     String
+  expires  DateTime?
+  secure   Boolean
+  httpOnly Boolean   @map("http_only")
+  sameSite String?   @map("same_site")
+
+  isThirdParty Boolean @map("is_third_party")
+  firstSeenOn  String  @map("first_seen_on")
+
+  scan Scan @relation(fields: [scanId], references: [id], onDelete: Cascade)
+
+  @@unique([scanId, name, domain, path])
+  @@index([scanId])
+  @@map("scan_cookies")
+}
+
+/// A script the page loaded. Inline scripts are counted, never captured.
+model ScanScript {
+  id     String @id @default(uuid())
+  scanId String @map("scan_id")
+
+  /// Null for inline scripts - the body is deliberately not stored.
+  url          String?
+  host         String?
+  inline       Boolean
+  isThirdParty Boolean @map("is_third_party")
+  observedOn   String  @map("observed_on")
+
+  scan Scan @relation(fields: [scanId], references: [id], onDelete: Cascade)
+
+  @@index([scanId])
+  @@index([scanId, host])
+  @@map("scan_scripts")
+}
+
+/// Network activity, aggregated per host, resource type and method.
+///
+/// Aggregated rather than one row per request, following the same reasoning as
+/// `discovered_components`: a single page can issue hundreds of requests to one
+/// host, and storing each would let one hostile page write unbounded rows while
+/// telling an operator nothing the count does not already say. Query strings and
+/// fragments are stripped at capture, and no header, body or cookie is recorded.
+model ScanRequest {
+  id     String @id @default(uuid())
+  scanId String @map("scan_id")
+
+  host         String
+  resourceType String  @map("resource_type")
+  method       String
+  /// Origin + path of one representative request. Never a query string.
+  samplePath   String? @map("sample_path")
+  isThirdParty Boolean @map("is_third_party")
+  requestCount Int     @default(1) @map("request_count")
+  failedCount  Int     @default(0) @map("failed_count")
+  /// A representative status; requests to one host can differ.
+  status Int?
+
+  scan Scan @relation(fields: [scanId], references: [id], onDelete: Cascade)
+
+  @@unique([scanId, host, resourceType, method])
+  @@index([scanId])
+  @@index([scanId, isThirdParty])
+  @@map("scan_requests")
+}
+
+/// Browser storage **key names**. Values are never read from the page.
+model ScanStorage {
+  id     String @id @default(uuid())
+  scanId String @map("scan_id")
+
+  /// local_storage | session_storage | indexed_db
+  kind       String
+  name       String
+  origin     String
+  observedOn String @map("observed_on")
+
+  scan Scan @relation(fields: [scanId], references: [id], onDelete: Cascade)
+
+  @@unique([scanId, kind, name, origin])
+  @@index([scanId])
+  @@map("scan_storage")
+}
+
+/// A technology a detector identified, with the evidence that identified it.
+///
+/// `evidence` and `confidence` are not decoration. An onboarding UI has to be
+/// able to answer "why do you think my site uses this?", and a classification a
+/// customer cannot interrogate is one they cannot correct.
+model ScanTechnology {
+  id     String @id @default(uuid())
+  scanId String @map("scan_id")
+
+  detectorId String @map("detector_id")
+  name       String
+  category   String
+  /// high | medium | low. Host-only matches are `low` on purpose.
+  confidence String
+  /// Array of `{ type, value }`. Bounded per finding by the crawler.
+  evidence Json
+
+  destinationCountry String? @map("destination_country")
+  crossesBorder      Boolean @default(false) @map("crosses_border")
+
+  scan Scan @relation(fields: [scanId], references: [id], onDelete: Cascade)
+
+  @@unique([scanId, detectorId])
+  @@index([scanId])
+  @@index([scanId, category])
+  @@map("scan_technologies")
 }

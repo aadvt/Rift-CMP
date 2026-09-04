@@ -34,6 +34,64 @@ export async function requestOrigin(): Promise<string> {
   return `${protocol}://${host}`;
 }
 
+/**
+ * Writes through the same public API the dashboard reads from.
+ *
+ * The dashboard has been read-only until now, which meant every write — adding
+ * a site, starting a scan, declaring a purpose — was a `curl` an operator had to
+ * assemble by hand. Those flows go through here rather than touching the
+ * database, for the same reason the reads do: if a screen needs something the
+ * API cannot express, the API is what should change.
+ *
+ * The organisation secret is read from the session server-side and never
+ * reaches the browser.
+ */
+export async function apiSend<T>(
+  path: string,
+  options: { method: "POST" | "PATCH" | "DELETE"; body?: unknown },
+): Promise<ApiResult<T>> {
+  const key = await readSessionKey();
+  if (!key) {
+    return { ok: false, status: 401, code: "unauthorized", message: "Not signed in." };
+  }
+
+  try {
+    const response = await fetch(`${await requestOrigin()}${path}`, {
+      method: options.method,
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
+      cache: "no-store",
+    });
+
+    const body = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      const error = (body as { error?: { code?: string; message?: string } }).error;
+      return {
+        ok: false,
+        status: response.status,
+        // The API's `code` is the stable part of an error; the message is for
+        // humans. Both are carried so a form can show one and branch on the other.
+        code: error?.code ?? "request_failed",
+        message: error?.message ?? `Request failed with status ${response.status}.`,
+      };
+    }
+
+    return { ok: true, data: body as T };
+  } catch (error) {
+    console.error("[rift-cmp] dashboard API write failed", error);
+    return {
+      ok: false,
+      status: 503,
+      code: "api_unreachable",
+      message: "The platform API could not be reached.",
+    };
+  }
+}
+
 export async function apiGet<T>(path: string): Promise<ApiResult<T>> {
   const key = await readSessionKey();
   if (!key) {

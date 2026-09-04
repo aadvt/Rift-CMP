@@ -19,6 +19,9 @@ This is the contract between Rift-CMP’s SDK/API/database side and the other si
 | Orchestration: "is this action currently authorised?" | ✅ | — |
 | Unified audit trail across consent, authorisations and transfers | ✅ | — |
 | Aggregate analytics read API (`/api/v1/analytics/*`) | ✅ | — |
+| Website scanner: Playwright crawl, scan API, scan persistence | ✅ | — |
+| Deciding what a scan finding means legally, and what consent it needs | — | ✅ |
+| Onboarding UI built on scan results | — | ✅ |
 | Operator dashboard: an internal tool, built as a consumer of the API above | ✅ | — |
 | Deciding whether a purpose required consent in the first place | — | ✅ |
 | Customer-facing dashboards, exports and analytics over the audit trail | — | ✅ |
@@ -115,6 +118,42 @@ The single shared contract is the event schema defined in [event-schema.md](even
 The SDK and API must implement the same schema without drift. The analytics side must read the database using the same semantics.
 
 The SDK's own public surface — what a customer's developer may call, and what is internal and may change — is documented separately in [sdk-api.md](sdk-api.md).
+
+## Shared artifact: the scan contract
+
+The third shared artifact is the scan contract in
+[`../shared/scan.ts`](../shared/scan.ts), documented in
+[crawler.md](crawler.md) and [scan-api.md](scan-api.md).
+
+**Scanner observations are evidence about what was observed during a scan. They
+are not legal determinations.** A `ScanTechnology` says "we believe this is
+Google Analytics, at this confidence, because of this evidence". Whether that
+obliges a site to do anything is a question for the compliance layer, reading
+this alongside the requirement matrix in [regulations/](regulations/).
+
+Nothing in the scan schema, the scan API or the seven `scan_*` tables carries a
+`requires_consent`, `lawful` or `legal_basis` field, and there is deliberately
+nowhere to put one. That absence is the interface between the two halves of the
+product, and a test asserts it rather than leaving it to review.
+
+What that side can rely on:
+
+- every accepted scan belongs to exactly one site and one organisation
+- a `completed` scan has all of its observations, written in one transaction
+- `summary.limit_reached` names the limit when a crawl stopped early, so counts
+  can be read as the floor they are
+- every technology finding carries `evidence` and a `confidence`, so a UI can
+  answer "why was this detected?" and a customer can correct it
+- cookie and storage **values**, headers, bodies and query strings are never
+  present, because they are never collected
+
+What it must not rely on: the crawler's internal modules, the detector
+signature list, `scan_requests` being one row per request (it is aggregated),
+or the worker being a single in-process loop.
+
+The scanner **complements** in-page discovery rather than replacing it. Neither
+subsumes the other, and [crawler.md](crawler.md) sets out the opposite blind
+spots that keep both.
 
 ## Shared artifact: consent vocabulary
 
@@ -432,6 +471,135 @@ full reasoning is in [lifecycle.md](lifecycle.md).
   visitor the ability to authorise transfers of other people's data and to read
   the whole organisation's audit trail.
 
+## Boundary map
+
+Every seam in the platform, and what may cross it. A component may depend on the
+**stable fields** of the boundary to its left and nothing else; the forbidden
+column is not advice.
+
+### SDK → API
+
+| | |
+| --- | --- |
+| Input | `AnalyticsEvent` batches, `Authorization: Bearer pk_…`, optional `X-Rift-Consent-Session` |
+| Output | `IngestResponse` — `accepted`, `rejected`, `errors[]` |
+| Stable | The envelope in [event-schema.md](event-schema.md), `EVENT_LIMITS`, `error.code` |
+| Owner | Both. Changing either half alone breaks the contract. |
+| Forbidden | The SDK depending on how events are stored; the API depending on SDK internals |
+| Errors | `error.code` is stable; `message` is for humans and may be reworded |
+| Versioning | `schema_version` on the envelope. Adding optional fields is non-breaking; raising a limit is non-breaking; lowering one is breaking |
+
+### Crawler → Scan API → Onboarding
+
+| | |
+| --- | --- |
+| Input | `start_url` plus an organisation secret; the crawler takes a queued `scans` row |
+| Output | `ScanResultsResponse` — observations with evidence and confidence |
+| Stable | [`../shared/scan.ts`](../shared/scan.ts), the `scan_*` tables, the endpoints in [scan-api.md](scan-api.md) |
+| Owner | Our side |
+| Forbidden | Depending on crawler internals, on `scan_requests` being one row per request (it is aggregated), or on the worker being an in-process loop |
+| Errors | Scan-level failure sets `status: failed` with `error.code`; page-level failure is a `pages[]` row with `error` and the scan still completes |
+| Versioning | `crawler_version` is stamped on every scan; `mode` records the consent state it ran under |
+
+### Scanner → Consent configuration
+
+**The load-bearing boundary of this phase.** The scanner observes; the consent
+layer interprets.
+
+| | |
+| --- | --- |
+| Input | `ScanTechnology` — name, category, confidence, evidence, destination country |
+| Output | Nothing automatic. An operator maps a finding to a `Purpose` they have declared |
+| Stable | The finding shape, and the guarantee that no finding carries a legal conclusion |
+| Owner | Scanner: our side. The mapping decision: the operator, surfaced by the other side |
+| Forbidden | **The scanner asserting that anything requires consent**, and any automatic technology → purpose mapping |
+| Errors | An unrecognised technology is a `low`-confidence `unclassified` finding, never a safe one |
+
+There is deliberately **no automatic mapping** from a detected technology to a
+consent purpose, and this is a finding rather than an omission. `Purpose` is
+operator-declared free text scoped to an organisation (`purposes.code`), so the
+platform has no way to know that a site's `analytics` purpose is the one that
+covers Google Analytics — only the operator does. `docs/discovery.md` already
+reached the same conclusion for in-page discovery: *"The mapping from host to
+purpose belongs to the operator, not the SDK: only the fiduciary knows which of
+its vendors serve which declared purpose."*
+
+Inventing the mapping would produce a confident, unauditable and frequently
+wrong answer. The scanner therefore presents findings and their evidence, and
+the mapping stays an explicit human step.
+
+### Consent → SDK
+
+| | |
+| --- | --- |
+| Input | `analytics.setConsentCheck((purpose) => boolean)`, wired by the integrator |
+| Output | Events created or refused before they are queued |
+| Stable | `analytics.consent` in [sdk-api.md](sdk-api.md); the effective-consent shape in [`../shared/consent.ts`](../shared/consent.ts) |
+| Owner | SDK client: our side. Whether analytics *needs* consent: the other side |
+| Forbidden | The SDK hard-coding that any purpose is required; consent state living in the scanner |
+| Errors | The gate is a client-side convenience. Server-side enforcement is `analytics_consent_purpose` on the site, re-derived from the append-only log on every batch |
+
+### API → Database
+
+| | |
+| --- | --- |
+| Input | Validated events, scans, consent decisions, all tenant-scoped by credential |
+| Output | Rows |
+| Stable | The tables in [database-schema.md](database-schema.md) |
+| Owner | Our side |
+| Forbidden | Depending on `skipDuplicates`, the session upsert, or the write transaction shape |
+
+### Events → Analytics
+
+| | |
+| --- | --- |
+| Input | `events` and `sessions` rows written by ingestion |
+| Output | `GET /api/v1/analytics/*` aggregates |
+| Stable | [`../shared/analytics.ts`](../shared/analytics.ts) |
+| Owner | Our side |
+| Forbidden | Joining `Principal` to analytics rows; reporting unique visitors — the platform counts **sessions**, and there is no persistent visitor identifier to count |
+
+### Regulation data → Policy engine → (not yet) enforcement
+
+| | |
+| --- | --- |
+| Input | `docs/regulations/generated/requirements.ts`, a `PolicyContext` with a required `asOf` |
+| Output | A `Decision` with obligations, open questions and a citation on every part |
+| Stable | The `policy/` public surface, and the matrix schema |
+| Owner | Evaluator: our side. Acting on a decision: a product call not yet made |
+| Forbidden | **Wiring the evaluator into live enforcement without a product decision.** See below |
+
+The policy engine is deliberately **not wired into any route**, and Phase 9 did
+not wire it in. Its own documentation states why: the platform's live gate is a
+fact about a recorded decision, the engine is a statement about what a regime
+requires, and joining them would mean refusing live traffic on the strength of a
+research artifact whose coverage document lists `consent` as populated on 34 of
+102 records. That is a product decision with a blast radius, and integration
+work is not the place to make it.
+
+## Two discovery mechanisms, and how they are reconciled
+
+The platform observes site behaviour twice, and the two are **not merged**:
+
+| | In-page discovery | Scanner |
+| --- | --- | --- |
+| Sees | What a real visitor's browser did | What a robot saw, logged out, once |
+| Needs the tag installed | Yes | No |
+| Works during onboarding | No | **Yes** |
+| Can evidence a consent violation | **Yes** | No |
+| Tables | `discovered_*` | `scan_*` |
+| Dashboard | Discovery | Scans |
+
+Both classify hosts through the **same** `database/tracker-catalogue.ts`, so a
+vendor is named identically by both. What differs is the claim each makes:
+discovery says *this fired in production*, the scanner says *this was present
+during a scan*. Reconciling them into one row would destroy that distinction,
+which is the thing that makes a discovery violation evidentiary.
+
+When both report the same vendor, they are two independent observations of the
+same fact, and the UI shows them in their own sections rather than deduplicating
+across the boundary.
+
 ## Compatibility rules
 
 - Schema changes must be reviewed by both teams before implementation.
@@ -466,5 +634,8 @@ Because the SDK runs on arbitrary customer domains, the API must support browser
 | 2026-09-01 | Phase 5: added an **analytics read API** and an operator dashboard. New on the management plane: `GET /api/v1/analytics/summary` and `GET /api/v1/analytics/overview` (aggregate counts, filters `site_id`, `from`, `to`, default window 30 days) and `GET /api/v1/consent/effective` (effective consent for one principal on one site, for a caller holding `sk_` rather than `pk_` — history is paginated, so re-deriving the answer from it is silently wrong past the limit). `GET /api/v1/transfers` gained a `limit` of 1–500; it was the last unbounded list endpoint. The analytics read contract in [`../shared/analytics.ts`](../shared/analytics.ts) becomes a **shared artifact the other side can consume in place of reading the database directly** for aggregate activity — tenant-scoped by the credential, aggregates only, and reporting **sessions, not unique visitors**: there is no persistent visitor identifier in the analytics domain, and `Principal` is deliberately never joined to analytics rows. The dashboard is an internal operator tool and a pure API consumer — no page imports `database` — signing in with the organisation secret held in an httpOnly cookie, which is an MVP compromise standing in for user accounts and roles. **No schema change and no migration**; analytics reads existing tables. No SDK change. The secure routing half is still an unreviewed proof of concept. | v1 | — |
 | 2026-09-03 | Phase 7A: contract hardening, no new endpoints and no schema change. Added [sdk-api.md](sdk-api.md), the SDK's public interface — `init`, `track`, `setConsentCheck`, `consent`, `discovery` — stated as a stable surface, alongside an explicit list of SDK and API internals the other side must not depend on. Bounded the ingestion input: `EVENT_LIMITS` in [`../shared/event.ts`](../shared/event.ts) caps every envelope field, the property object by key count and serialised size, a batch at 100 events and a request body at 1 MiB, adding the error code `payload_too_large` (`413`). Ingestion was the one write endpoint with no input bounds, and it is the one authenticated with a key that ships in page source. Raising a limit is non-breaking; lowering one is breaking. Event envelope, tables and every other endpoint unchanged. | v1 | — |
 | 2026-09-03 | Phase 7A (SDK fixes): repaired the browser global and added SDK-side pre-validation. The IIFE build claimed the global name `analytics` while `sdk/src/index.ts` also assigned `window.analytics`; under classic `<script>` semantics the bundler's `var` won, leaving `window.analytics` as the module namespace and `analytics.init` undefined — so the install snippet the dashboard generates did not work. The build global is now internal (`__riftCmpBundle`) and `window.analytics` is the callable SDK, which is what every document already claimed. `sdk/scripts/verify-global.mjs` loads the real bundle under `vm.Script` and gates `npm -w sdk run build` so the collision cannot return. Separately, `analytics.track()` now checks its input against `EVENT_LIMITS` before queueing and refuses over-limit or unserialisable input with a synchronous `false` and one `console.warn`, matching the shape the consent gate already returned; it never truncates, holds no numbers of its own, and does not weaken the API check, which remains authoritative. No endpoint, envelope, table, credential or consent behaviour changed. | v1 | — |
+| 2026-09-03 | Phase 8A: added a **website scanner**. A Playwright crawler (`crawler/`) visits a customer's site during onboarding and reports pages, cookies, scripts, network destinations, browser storage and the technologies behind them, with evidence and a confidence for every finding. New on the management plane: `POST|GET /api/v1/sites/{siteId}/scans`, `GET|DELETE /api/v1/scans/{scanId}` and `GET /api/v1/scans/{scanId}/results`, all requiring the organisation secret — a site public key ships in page source, and one that could start crawls would be a request-forgery primitive anyone could aim. Seven new tables (`scans` and six `scan_*` children), added **alongside** the in-page discovery domain rather than replacing it: a crawler works before signup, which onboarding needs, and structurally cannot evidence that a tracker fired while consent was withdrawn, which discovery exists to do. Host classification reuses `database/tracker-catalogue.ts` rather than forking a second catalogue. The scan contract in [`../shared/scan.ts`](../shared/scan.ts) becomes a shared artifact, and carries **no legal determination**: no schema, table or response has a `requires_consent` field, and a test asserts that. Known limitation carried forward: DNS-rebinding protection is narrowed but not closed, because the network half of that defence — egress policy or an address-pinning proxy — does not exist in this repository. | v1 | — |
 | 2026-09-04 | Phase 7A (policy engine): added `policy/`, a workspace package that answers *given this processing activity and this context, what requirements apply?* over the Phase 6B/6C requirement matrix. **Nothing here is an interface change**: no endpoint, no table, no migration, no credential, no SDK change, no dependency, and no route, page or database module imports it. It is recorded in this log because it moves an ownership boundary — [architecture.md](architecture.md) previously assigned "the compliance engine" wholly to the other side, and this repo now carries the **evaluator** for regulatory requirements while still carrying none of the enforcement. The engine is deterministic (`asOf` is a required input, never the clock), resolves conflicting requirements conservatively, cites the requirement and source behind every part of an answer, and never returns `ALLOW` from absence of evidence. Two limits are structural rather than provisional and are stated in [policy-engine.md](policy-engine.md): jurisdiction is region-level, so no Member-State question can be asked; and applicability triggers are free text in the research (102 distinct values across 102 records), so they are cited and never matched — making them matchable is a matrix change, not an engine change. The consent gate the platform actually enforces is unchanged and still reads "the decision in force must be `GRANTED`". | v1 | — |
 | 2026-09-04 | Phase 7B (jurisdiction resolution): added a resolver to `policy/` that answers *whose law is in play* from dated location observations, and carries the answer into the Phase 7A evaluator through `resolveContext`. **Not an interface change**: no endpoint, table, migration, credential, SDK change or dependency, and nothing imports it. Recorded here because it fixes the shape of an input the other side will eventually supply. Three properties are contractual rather than incidental. **Jurisdictions accumulate** - there is no ranking, no winner and no tie-break, because a visitor can be reached by several regimes at once; two signals naming different regions are two reasons the law might attach, not a conflict to resolve. **Confidence never removes a jurisdiction** - a weakly evidenced jurisdiction is reported as weak and kept, since dropping it is the under-inclusive failure that looks like success. **The resolver refuses an IP address** - `VisitorContext` has no field for one and a signal resembling an address is rejected with a reason rather than ignored; geolocation happens on the caller's side and only a derived ISO 3166 region code crosses the boundary, so no new personal data is collected to sharpen detection. The region-to-jurisdiction mapping is versioned configuration (`DEFAULT_JURISDICTION_RULES.version`, stamped on every resolution) and a caller may supply its own; `GB` is recognised and deliberately mapped to nothing, because UK GDPR is a separate instrument the matrix does not carry. Coverage is the EU-27 plus `IS`/`LI`/`NO`, India, Brazil, and `US-CA` which also carries the generic US state model. An unresolved location produces an empty jurisdiction list, which the evaluator already turns into `REVIEW` - "we do not know where they are" cannot become "nothing is required" at the seam. | v1 | — |
+| 2026-09-04 | Phase 9: integration. No new capability. The scanner reached the dashboard — `/dashboard/scans` renders scan history and, for a completed scan, its technologies with evidence and confidence, cookies, third-party destinations, scripts, pages and storage keys, consuming the existing scan API through the same `apiGet` path every other dashboard page uses. A scan that is `queued`, `running` or `failed` renders its state rather than an empty inventory, because an unfinished scan and a site with no trackers produce identical counts and mean opposite things. This contract gained a **boundary map** naming the input, output, stable fields, owner, forbidden dependencies and error semantics for each of the seven seams. Two findings are recorded rather than fixed: there is **no safe automatic mapping from a detected technology to a consent purpose**, because `purposes.code` is operator-declared free text and only the operator knows which vendor serves which declared purpose — so the mapping stays an explicit human step, matching the conclusion `discovery.md` already reached for in-page discovery; and the **policy engine remains unwired** from live enforcement, which is a product decision its own documentation defers to a phase convened to make it. No endpoint, table, migration, credential, envelope or SDK change. | v1 | — |
+| 2026-09-04 | Phase 9 (onboarding UI): made the dashboard writable. It had been entirely read-only — the only server action in it was sign-out — so every write an operator needed was a hand-assembled `curl`, and the platform worked while nobody could reach it. Added `/dashboard/sites` (register a website, start a scan) and `/dashboard/configure` (declare purposes, review them against what the scanner found), plus `apiSend` in the dashboard's API client so writes go through the same public API the reads do rather than touching the database. **The technology → purpose mapping is still not automatic**, and the Configure screen is built around saying so: it shows plausible matches as a hint, marks anything with no matching declared purpose as *Unresolved*, and states in the page that unresolved does not mean consent is required. Deciding which purpose covers which vendor stays a human step, for the reason `discovery.md` already gave — only the fiduciary knows which of its vendors serve which declared purpose. No endpoint, table, migration, credential, envelope or SDK change; the new screens are pure consumers of endpoints that already existed. | v1 | — |

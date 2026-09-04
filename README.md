@@ -125,6 +125,8 @@ Start with the first one; it is the entry point and links to the rest.
 - [Discovery](docs/discovery.md)
 - [Policy Engine](docs/policy-engine.md) - what a regime requires of an activity, and why it is not wired into a route
 - [Jurisdiction Resolution](docs/jurisdiction-resolution.md) - whose law is in play, and why an IP address never reaches it
+- [Website Scanner](docs/crawler.md) — the Playwright crawler used during onboarding
+- [Scan API](docs/scan-api.md)
 - [Security Model](docs/security.md) — what is enforced, what is defence in depth, what is not done
 - [Integration Contract](docs/integration-contract.md)
 
@@ -440,6 +442,7 @@ Keep the following aligned when making changes:
 - [docs/sdk-api.md](docs/sdk-api.md)
 - [docs/tenancy.md](docs/tenancy.md)
 - [docs/consent.md](docs/consent.md)
+- [docs/crawler.md](docs/crawler.md), [docs/scan-api.md](docs/scan-api.md)
 - [docs/secure-transfer.md](docs/secure-transfer.md)
 - [docs/lifecycle.md](docs/lifecycle.md)
 - [docs/mvp.md](docs/mvp.md)

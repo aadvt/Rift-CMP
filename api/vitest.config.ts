@@ -25,6 +25,9 @@ const UNIT_TESTS = [
   "tests/policy-engine.test.ts",
   "tests/policy-boundary.test.ts",
   "tests/jurisdiction-resolution.test.ts",
+  "tests/crawler-ssrf.test.ts",
+  "tests/crawler-url.test.ts",
+  "tests/crawler-detectors.test.ts",
 ];
 
 export default defineConfig({

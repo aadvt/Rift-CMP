@@ -1,0 +1,32 @@
+{
+  "name": "@rift-cmp/crawler",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./ssrf": "./src/ssrf.ts",
+    "./url": "./src/url.ts",
+    "./robots": "./src/robots.ts",
+    "./detectors": "./src/detectors.ts",
+    "./types": "./src/types.ts",
+    "./worker": "./src/worker.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "worker": "tsx src/worker.ts",
+    "e2e": "tsx scripts/e2e.mjs",
+    "crawl": "tsx scripts/crawl-demo.mjs"
+  },
+  "dependencies": {
+    "@rift-cmp/shared": "*",
+    "database": "*",
+    "playwright": "^1.49.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.0",
+    "typescript": "^5.6.2"
+  }
+}

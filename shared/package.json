@@ -12,7 +12,8 @@
     "./transfer": "./transfer.ts",
     "./audit": "./audit.ts",
     "./authorisation": "./authorisation.ts",
-    "./analytics": "./analytics.ts"
+    "./analytics": "./analytics.ts",
+    "./scan": "./scan.ts"
   },
   "types": "./index.ts",
   "dependencies": {

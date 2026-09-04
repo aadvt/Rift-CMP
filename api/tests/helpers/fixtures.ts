@@ -55,6 +55,16 @@ export async function resetDatabase() {
     "discovered_components",
     "discovered_storage",
     "discovery_violations",
+    // Scanner. These cascade from `scans`, which cascades from `websites` and
+    // `organisations`, so CASCADE would reach them anyway - listed explicitly
+    // to match the rest and so a future non-cascading table is not missed.
+    "scans",
+    "scan_pages",
+    "scan_cookies",
+    "scan_scripts",
+    "scan_requests",
+    "scan_storage",
+    "scan_technologies",
   ]
     .map((table) => `"${TEST_SCHEMA}"."${table}"`)
     .join(", ");

@@ -14,7 +14,9 @@
     "./transfers": "./transfers.ts",
     "./authorisation": "./authorisation.ts",
     "./audit": "./audit.ts",
-    "./analytics": "./analytics.ts"
+    "./analytics": "./analytics.ts",
+    "./tracker-catalogue": "./tracker-catalogue.ts",
+    "./scans": "./scans.ts"
   },
   "types": "./index.ts",
   "scripts": {

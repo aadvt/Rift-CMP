@@ -7,12 +7,20 @@ import { motion, useReducedMotion } from "motion/react";
 /**
  * Primary navigation.
  *
- * The order is the product's story: what is happening, what is running on the
- * page, who agreed to what, what moved as a result, how the site is performing,
- * and how to wire it up.
+ * The order is the product's story: what is happening, what an external scan
+ * found before the tag was installed, what is running on the page once it was,
+ * who agreed to what, what moved as a result, how the site is performing, and
+ * how to wire it up.
  */
 const LINKS = [
   { href: "/dashboard", label: "Overview" },
+  // Onboarding order: register a site, scan it, decide what the findings mean,
+  // then install the tag. Scans come before Discovery because that is the order
+  // an operator meets them — a scan runs before the tag exists on the page, and
+  // in-page discovery cannot observe anything until it does.
+  { href: "/dashboard/sites", label: "Websites" },
+  { href: "/dashboard/scans", label: "Scans" },
+  { href: "/dashboard/configure", label: "Configure" },
   { href: "/dashboard/discovery", label: "Discovery" },
   { href: "/dashboard/consent", label: "Consent" },
   { href: "/dashboard/transfers", label: "Transfers" },
