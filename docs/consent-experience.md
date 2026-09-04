@@ -212,7 +212,7 @@ withdrawal control a visitor cannot find is one they do not have.
 ## Verification
 
 ```bash
-npm run test:unit    # 503 tests; 51 are the consent experience
+npm run test:unit    # 541 tests; 51 are the consent experience
 npm run typecheck
 npm run lint
 ```

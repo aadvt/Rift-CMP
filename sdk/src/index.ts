@@ -3,6 +3,7 @@ import { ConsentClient } from "./consent";
 import type { ConsentApi } from "./consent";
 import { DiscoveryClient } from "./discovery";
 import { ConsentUi } from "./ui";
+import { EnforcementClient } from "./enforce";
 import type { ConsentCheck, SDKOptions } from "./types";
 import { validateTrackInput } from "./validate";
 import { DEFAULT_API_URL } from "./constants";
@@ -12,6 +13,7 @@ const state = {
   consent: null as ConsentClient | null,
   discovery: null as DiscoveryClient | null,
   ui: null as ConsentUi | null,
+  enforcement: null as EnforcementClient | null,
   siteId: null as string | null,
   publicKey: null as string | null,
   apiUrl: DEFAULT_API_URL as string,
@@ -35,6 +37,8 @@ function getClient(siteId?: string, publicKey?: string, options?: SDKOptions) {
       state.discovery = null;
       state.ui?.close();
       state.ui = null;
+      state.enforcement?.stop();
+      state.enforcement = null;
     }
   }
 
@@ -303,6 +307,84 @@ const analytics = {
       }
     },
   },
+  /**
+   * Enforcement: applying an approved policy to what the page actually does.
+   *
+   * Opt-in, and deliberately so - patching `fetch`, `XMLHttpRequest`,
+   * `sendBeacon`, `Image.src` and script insertion is a large footprint on
+   * somebody else's page, and a tag that started doing it unasked would be
+   * indistinguishable from the trackers this exists to control.
+   *
+   * ```js
+   * await analytics.enforcement.start();          // observe by default
+   * await analytics.enforcement.start({ mode: "enforce" });
+   * console.table(analytics.enforcement.explain());
+   * ```
+   *
+   * **It does not block everything, and cannot.** Anything that ran before
+   * `start()`, any `<script src>` in the served HTML, and every server-to-server
+   * transfer are outside its reach. See the boundary note in `sdk/src/enforce.ts`
+   * and docs/enforcement.md. The API re-derives consent from the log for exactly
+   * this reason.
+   */
+  enforcement: {
+    /**
+     * Fetches the approved policy and begins enforcing it.
+     *
+     * Resolves `false` when there is nothing to enforce: no approved policy
+     * version, no rules in it, or the mode is `off`. That is not a failure -
+     * it is a site whose operator has not approved a policy yet.
+     */
+    async start(options: { mode?: "observe" | "enforce" } = {}): Promise<boolean> {
+      try {
+        if (!state.consent || !state.publicKey) return false;
+        const ui = new ConsentUi(state.consent, {
+          apiUrl: state.apiUrl,
+          publicKey: state.publicKey,
+        });
+        const config = await ui.loadConfig();
+        if (!config?.enforcement) return false;
+
+        // Decisions read the *cached* consent state so they can be synchronous
+        // inside a patched `fetch`. Refreshing once here means the first
+        // decision is not made against a stale cache from a previous visit.
+        await state.consent.getState().catch(() => []);
+
+        state.enforcement?.stop();
+        state.enforcement = new EnforcementClient(state.consent, {
+          mode: options.mode,
+        });
+        return state.enforcement.start(config.enforcement);
+      } catch (error) {
+        console.warn("[rift-cmp] analytics.enforcement.start() failed", error);
+        return false;
+      }
+    },
+    /** Restores every patched global. */
+    stop(): boolean {
+      try {
+        state.enforcement?.stop();
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    /** The mode in force: `off` until `start()` succeeds. */
+    mode(): string {
+      return state.enforcement?.mode ?? "off";
+    },
+    /**
+     * The test-mode table: tracker, purpose, user state, policy, decision,
+     * reason - for every decision taken, allowed and blocked alike.
+     */
+    explain() {
+      return state.enforcement?.explain() ?? [];
+    },
+    /** Decide about one URL without touching the page. */
+    preview(url: string) {
+      return state.enforcement?.preview(url) ?? null;
+    },
+  },
   init(siteId: string, publicKeyOrOptions?: string | SDKOptions, maybeOptions?: SDKOptions) {
     try {
       const publicKey = typeof publicKeyOrOptions === "string" ? publicKeyOrOptions : undefined;
@@ -386,6 +468,8 @@ export type { ConsentApi, ConsentChangeListener, ConsentRecordOptions } from "./
 export type { ConsentStatus, EffectiveConsent } from "@rift-cmp/shared";
 export { DiscoveryClient } from "./discovery";
 export { ConsentUi } from "./ui";
+export { EnforcementClient, decide, hostMatches, hostOf } from "./enforce";
+export type { EnforcementOptions } from "./enforce";
 export type { ConsentUiOptions } from "./ui";
 export type { DiscoveryOptions } from "./discovery";
 

@@ -156,8 +156,10 @@ reconsidered later.
 - **Approval has no attribution.** There are no user accounts, so `approval_note`
   is the only record of who approved a version. Same MVP compromise as the rest
   of the dashboard.
-- **Nothing is enforced.** No recommendation changes what loads on a customer's
-  site. `block` is a suggestion and the review screen says so.
+- **Nothing is enforced by this phase.** A recommendation changes nothing on its
+  own; `block` is a suggestion and the review screen says so. Phase 9B acts on
+  an *approved* policy in the browser, within the limits set out in
+  [enforcement.md](enforcement.md).
 - **Superseding is not undo.** Publishing a new version supersedes the old one;
   there is no "revert to version 3" beyond approving its contents again.
 - **Two concurrent approvals conflict rather than merge.** The loser is told to
@@ -167,7 +169,7 @@ reconsidered later.
 ## Verification
 
 ```bash
-npm run test:unit    # 503 tests; 43 are the autopilot
+npm run test:unit    # 541 tests; 43 are the autopilot
 npm run typecheck
 npm run lint
 ```

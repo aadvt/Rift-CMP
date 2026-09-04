@@ -468,6 +468,13 @@ caveat — each one is a thing the MVP genuinely does not do.
   `limit` rows from each of three tables and sorts in memory, so a very lopsided
   distribution can push older entries of one kind out of the window. A deliberate
   trade for keeping the domains unjoined.
+- **Enforcement is real but bounded, and the bound is the point.** Phase 9B
+  applies an approved policy in the browser - blocking gated `fetch`, XHR,
+  beacons, pixels and script insertion - and re-derives consent server-side for
+  sites that opt in. It cannot stop a `<script src>` already in the served HTML,
+  cannot see a server-to-server transfer, and can be undone by a determined
+  script on a page the customer controls. The server boundary is what is load
+  bearing. See [enforcement.md](enforcement.md).
 - **The autopilot recommends; it never activates.** Phase 9A generates a policy
   from the scan and the requirement matrix, with evidence and rule references on
   every line, and a human approves it. Approval publishes an immutable version

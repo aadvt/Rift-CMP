@@ -321,7 +321,7 @@ Each is a thing the engine genuinely does not do.
 ## Verification
 
 ```bash
-npm run test:unit    # 503 tests; 162 are the policy package
+npm run test:unit    # 541 tests; 162 are the policy package
 npm run typecheck
 npm run lint
 node docs/regulations/tools/validate.mjs

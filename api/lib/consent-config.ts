@@ -44,6 +44,8 @@ import {
 import {
   CONSENT_FALLBACK_TEXT,
   type ConsentProposal,
+  type EnforcementConfig,
+  type EnforcementRule,
   type ConsentPurposeConfig,
   type ConsentRuntimeConfig,
   type ProposalEvidence,
@@ -98,10 +100,17 @@ const CONVENTIONALLY_ESSENTIAL = new Set(["essential", "strictly_necessary", "ne
 export function configVersion(
   purposes: readonly ConsentPurposeConfig[],
   notice: ActiveNotice | null,
+  enforcement?: EnforcementConfig | null,
 ): string {
   const material = JSON.stringify({
     purposes: purposes.map((p) => [p.code, p.name, p.description, p.kind, p.vendors]),
     notice: notice ? [notice.noticeId, notice.version, notice.locale] : null,
+    // Included, or approving a policy would leave every cached config serving
+    // the old rules for its full lifetime - enforcement silently a minute
+    // behind the thing an operator just pressed a button to change.
+    enforcement: enforcement
+      ? [enforcement.mode, enforcement.unknown_host, enforcement.rules]
+      : null,
   });
   return createHash("sha256").update(material).digest("hex").slice(0, 16);
 }
@@ -117,6 +126,7 @@ export function buildRuntimeConfig(input: {
   notice: ActiveNotice | null;
   vendorsByPurpose?: Readonly<Record<string, string[]>>;
   text?: Partial<ConsentRuntimeConfig["text"]>;
+  enforcement?: EnforcementConfig | null;
 }): ConsentRuntimeConfig {
   const purposes: ConsentPurposeConfig[] = input.purposes
     .filter((p) => p.isActive)
@@ -136,7 +146,7 @@ export function buildRuntimeConfig(input: {
 
   return {
     site_id: input.siteId,
-    config_version: configVersion(purposes, input.notice),
+    config_version: configVersion(purposes, input.notice, input.enforcement ?? null),
     purposes,
     notice: input.notice
       ? {
@@ -156,6 +166,7 @@ export function buildRuntimeConfig(input: {
       save: input.text?.save ?? null,
       policy_url: input.text?.policy_url ?? input.notice?.documentUrl ?? null,
     },
+    enforcement: input.enforcement ?? null,
     // A banner with no purposes offers no choices. Rendering one would present
     // a consent mechanism that cannot record a decision.
     ready: purposes.length > 0,
@@ -195,6 +206,56 @@ export function vendorsByPurposeFrom(
   }
   for (const key of Object.keys(byPurpose)) byPurpose[key].sort();
   return byPurpose;
+}
+
+/**
+ * Turn an approved policy into rules a browser can apply.
+ *
+ * The vendor-to-host resolution happens here, using the same catalogue that
+ * classified the vendor in the first place. Two different matching rules would
+ * mean a vendor classified one way and enforced another - a discrepancy nobody
+ * would see until a tag that should have been gated was not.
+ *
+ * `ignore` and `review` produce no rule. `ignore` is the operator saying the
+ * vendor is out of scope; `review` is the autopilot saying it does not know,
+ * and acting on "I do not know" by blocking would take down a site on the
+ * strength of an absence.
+ */
+export function enforcementFrom(
+  recommendations: readonly {
+    vendor_name: string;
+    suggested_purpose: string | null;
+    recommended_action: string;
+  }[],
+  hostsForVendor: (vendor: string) => string[],
+  options: { mode?: EnforcementConfig["mode"]; unknownHost?: EnforcementConfig["unknown_host"] } = {},
+): EnforcementConfig {
+  const rules: EnforcementRule[] = [];
+
+  for (const recommendation of recommendations) {
+    const action = recommendation.recommended_action;
+    if (action !== "allow" && action !== "require_consent" && action !== "block") {
+      continue;
+    }
+    for (const host of hostsForVendor(recommendation.vendor_name)) {
+      rules.push({
+        host,
+        vendor: recommendation.vendor_name,
+        purpose: recommendation.suggested_purpose,
+        action,
+      });
+    }
+  }
+
+  rules.sort((a, b) => (a.host < b.host ? -1 : a.host > b.host ? 1 : 0));
+
+  return {
+    // `observe` unless an operator has deliberately chosen otherwise. Turning
+    // enforcement on is the most dangerous thing they can do to their own site.
+    mode: options.mode ?? "observe",
+    rules,
+    unknown_host: options.unknownHost ?? "allow",
+  };
 }
 
 // ─── The proposal ────────────────────────────────────────────────────────────
