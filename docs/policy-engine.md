@@ -251,13 +251,14 @@ topic is now a backstop for the flag.
 
 ## How it is wired in (Phase 8B)
 
-It has exactly one consumer: `api/lib/consent-config.ts`, which uses it to
+It has exactly two consumers - `api/lib/consent-config.ts` and, since Phase 9A,
+`api/lib/autopilot.ts`. Both use it to
 annotate a **consent proposal a human reads** with the regimes that appear to
 apply and the obligations they raise, each carrying its requirement id and
 sources.
 
 That is the whole of it, and the limits are enforced rather than promised.
-`policy-boundary.test.ts` holds an allowlist of one file, asserts that file
+`policy-boundary.test.ts` holds an allowlist of those files, asserts the first
 really does import the engine, and separately asserts that **no route handler
 does** — so the engine can inform a person and cannot gate a request. Its output
 never reaches the browser: the runtime configuration a banner renders carries no
@@ -320,7 +321,7 @@ Each is a thing the engine genuinely does not do.
 ## Verification
 
 ```bash
-npm run test:unit    # 460 tests; 162 are the policy package
+npm run test:unit    # 503 tests; 162 are the policy package
 npm run typecheck
 npm run lint
 node docs/regulations/tools/validate.mjs

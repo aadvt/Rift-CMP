@@ -162,6 +162,41 @@ export function buildRuntimeConfig(input: {
   };
 }
 
+/**
+ * Vendors to show against each purpose, taken from an approved policy version.
+ *
+ * This is what approval actually changes for a visitor. Before a version is
+ * approved the preference centre lists purposes with no vendors, because the
+ * platform has no basis to say which vendor serves which of an operator's
+ * purposes — only the operator does, and approving is where they say so.
+ *
+ * Only vendors the operator did not mark `ignore` are listed, and an `ignore`
+ * is a statement that the vendor is out of scope rather than a way to hide it
+ * from visitors — a hidden vendor that still loads is the failure this whole
+ * product exists to surface, so it is worth being explicit that `ignore`
+ * removes it from *this* list and from nothing else.
+ */
+export function vendorsByPurposeFrom(
+  recommendations: readonly {
+    suggested_purpose: string | null;
+    vendor_name: string;
+    recommended_action: string;
+  }[],
+): Record<string, string[]> {
+  const byPurpose: Record<string, string[]> = {};
+  for (const recommendation of recommendations) {
+    const purpose = recommendation.suggested_purpose;
+    if (!purpose || recommendation.recommended_action === "ignore") continue;
+    const existing = byPurpose[purpose] ?? [];
+    if (!existing.includes(recommendation.vendor_name)) {
+      existing.push(recommendation.vendor_name);
+    }
+    byPurpose[purpose] = existing;
+  }
+  for (const key of Object.keys(byPurpose)) byPurpose[key].sort();
+  return byPurpose;
+}
+
 // ─── The proposal ────────────────────────────────────────────────────────────
 
 /**

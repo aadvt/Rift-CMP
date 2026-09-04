@@ -219,3 +219,130 @@ export const CONSENT_FALLBACK_TEXT = {
   manage: "Manage preferences",
   save: "Save choices",
 } as const;
+
+// ─── Phase 9A: recommendations ───────────────────────────────────────────────
+
+/**
+ * What the autopilot suggests be done about one detected vendor.
+ *
+ * `require_consent` and `block` are **recommendations to the operator**, not
+ * behaviours the platform performs. Rift does not block anything: the runtime
+ * renders a banner and records decisions, and whether a tag actually loads is
+ * decided by the site's own integration. Naming an action `block` and then
+ * silently not blocking would be the worst of both, so the distinction is
+ * stated on the type and repeated in the review screen.
+ */
+export type RecommendedAction =
+  /** No consent gate suggested. */
+  | "allow"
+  /** Suggest gating on a granted purpose before the vendor loads. */
+  | "require_consent"
+  /** Suggest not loading it at all until the operator decides otherwise. */
+  | "block"
+  /** Operator has said this vendor is out of scope. Only ever set by a human. */
+  | "ignore"
+  /** The inputs do not support a recommendation. Never a default to "allow". */
+  | "review";
+
+/** Where a line in the recommendation came from. */
+export interface RecommendationEvidence {
+  /** `scan_technology` | `scan_cookie` | `catalogue` | `regulation` | `override` */
+  kind: string;
+  detail: string;
+  /** Requirement id, when the line rests on the requirement matrix. */
+  requirement_id?: string;
+  source_ids?: string[];
+}
+
+/** One vendor, and everything the autopilot can say about it. */
+export interface VendorRecommendation {
+  detector_id: string;
+  vendor_name: string;
+  /** What the technology is normally used for. Not a legal category. */
+  category: string;
+  /** Purpose code suggested for it, or null where none could be. */
+  suggested_purpose: string | null;
+  /** Canonical data categories the regimes in play attach to this. */
+  data_categories: string[];
+  /** Jurisdictions this recommendation was computed under. */
+  jurisdictions: string[];
+  /**
+   * Whether a consent requirement was found, as the engine reports it.
+   * `"conditional"` and `"unknown"` are real answers and are never flattened.
+   */
+  consent_requirement: "required" | "not_required" | "conditional" | "unknown";
+  /** Whether an opt-out mechanism was found to be required. */
+  opt_out_requirement: "required" | "not_required" | "unknown";
+  recommended_action: RecommendedAction;
+  /** Plain-language why, for a person who will not read a citation. */
+  reason: string;
+  confidence: "high" | "medium" | "low";
+  evidence: RecommendationEvidence[];
+  /** Requirement ids behind the recommendation, for an auditor who will. */
+  rule_references: string[];
+  /** True when an operator override produced this line instead of the engine. */
+  overridden: boolean;
+  /** The operator's note, where they left one. */
+  override_note: string | null;
+  /**
+   * Whether the current scan still sees this vendor.
+   *
+   * False for a vendor carried forward from an override or an earlier approved
+   * version but absent from the latest scan. It is reported rather than dropped:
+   * a vendor vanishing from a scan is usually a crawl that reached fewer pages,
+   * not a vendor that was removed.
+   */
+  observed_in_latest_scan: boolean;
+}
+
+/** The generated policy, before anybody has approved it. */
+export interface RecommendedPolicy {
+  site_id: string;
+  scan_id: string | null;
+  jurisdictions: string[];
+  regimes: string[];
+  recommendations: VendorRecommendation[];
+  /** Everything the policy engine would not decide. Usually the longer list. */
+  open_questions: Array<{ reason: string; detail: string }>;
+  /** Purpose codes referenced that the organisation has not declared. */
+  undeclared_purposes: string[];
+  /** Always true for MVP: nothing activates without a human approving it. */
+  requires_approval: true;
+  legal_advice: false;
+}
+
+export interface ConsentPolicyVersionSummary {
+  policy_version_id: string;
+  site_id: string;
+  version: number;
+  status: "draft" | "approved" | "superseded";
+  scan_id: string | null;
+  jurisdictions: string[];
+  regimes: string[];
+  approval_note: string | null;
+  created_at: string;
+  approved_at: string | null;
+  recommendations: VendorRecommendation[];
+}
+
+export interface RecommendedPolicyResponse {
+  policy: RecommendedPolicy;
+  /** The approved version currently serving the runtime, if any. */
+  active_version: ConsentPolicyVersionSummary | null;
+}
+
+export interface ConsentPolicyVersionListResponse {
+  versions: ConsentPolicyVersionSummary[];
+}
+
+export interface OverrideSummary {
+  detector_id: string;
+  purpose_code: string | null;
+  action: RecommendedAction;
+  note: string | null;
+  updated_at: string;
+}
+
+export interface OverrideListResponse {
+  overrides: OverrideSummary[];
+}

@@ -1,9 +1,14 @@
 import type { NextRequest } from "next/server";
-import { listNotices, listPurposes, prisma } from "database";
+import {
+  getApprovedPolicyVersion,
+  listNotices,
+  listPurposes,
+  prisma,
+} from "database";
 import type { ConsentConfigResponse } from "@rift-cmp/shared";
 import { setCorsHeaders } from "@/lib/cors";
 import { guardIngest } from "@/lib/ingest-guard";
-import { buildRuntimeConfig } from "@/lib/consent-config";
+import { buildRuntimeConfig, vendorsByPurposeFrom } from "@/lib/consent-config";
 
 /**
  * The configuration the consent banner renders.
@@ -44,9 +49,16 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   const { caller, allowOrigin } = guard.guarded;
 
-  const [purposes, notices] = await Promise.all([
+  const [purposes, notices, approved] = await Promise.all([
     listPurposes(prisma, caller.organisationId),
     listNotices(prisma, caller.organisationId),
+    // Phase 9A. An approved policy version is what an operator agreed the site
+    // should offer; where one exists it supplies the vendor list the preference
+    // centre shows. It never adds or removes a purpose on its own: a purpose
+    // has to be declared in the consent domain for a decision to reference it,
+    // and inventing one here would produce a banner recording consent against
+    // something the log cannot hold.
+    getApprovedPolicyVersion(prisma, caller.organisationId, caller.siteId),
   ]);
 
   // The notice in force is the most recently published one. `listNotices`
@@ -59,6 +71,10 @@ export async function GET(request: NextRequest): Promise<Response> {
   // collect a choice about something they were never told about.
   const disclosed = current ? new Set(current.purpose_codes) : null;
 
+  const vendorsByPurpose = approved
+    ? vendorsByPurposeFrom(approved.recommendations)
+    : undefined;
+
   const config = buildRuntimeConfig({
     siteId: caller.siteId,
     purposes: purposes
@@ -70,6 +86,7 @@ export async function GET(request: NextRequest): Promise<Response> {
         description: p.description,
         isActive: p.is_active,
       })),
+    vendorsByPurpose,
     notice: current
       ? {
           noticeId: current.notice_id,

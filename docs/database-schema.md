@@ -627,4 +627,19 @@ work — see the known limitations in [secure-transfer.md](secure-transfer.md).
   guards: `rift_offboarding_enabled()`, the extended `consent_records` trigger,
   and new triggers on `transfer_authorisations` and `transfer_records`. It
   changes no existing column's meaning and writes nothing onto analytics rows.
+- `20260903220000_add_scanner_domain` adds `scans` and its six `scan_*` child
+  tables. No cookie `value`, header or body column anywhere, and no column
+  carrying a legal conclusion — scanner rows are observations.
+- `20260904100000_add_consent_autopilot` adds `consent_policy_versions` and
+  `consent_recommendation_overrides`. Two tables with opposite lifecycles: a
+  version is immutable once approved (`rift_consent_policy_versions_guard()`
+  refuses `UPDATE`, permitting only the single transition to `superseded` that
+  publishing a newer version performs), while an override is freely mutable
+  because changing your mind about a vendor is the point of it. A **partial
+  unique index** on `(site_id) WHERE status = 'approved'` allows one live
+  configuration per site: "which configuration is the runtime serving" is a
+  question the database should only ever have one answer to. Recommendations in
+  their un-approved form are **not** stored — a stored draft is a second thing
+  that looks like configuration, which is the ambiguity approval exists to
+  remove. Adds no column to any existing table.
 - Never edit a migration that has been applied — add a new one.

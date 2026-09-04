@@ -30,3 +30,4 @@ export * from "./analytics";
 export * from "./discovery";
 export * from "./tracker-catalogue";
 export * from "./scans";
+export * from "./consent-policy";

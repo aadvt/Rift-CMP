@@ -52,6 +52,16 @@ line, and a person declares the purposes: a guessed vendor-to-purpose mapping
 would be confident, unauditable and often wrong. See
 [docs/consent-experience.md](docs/consent-experience.md).
 
+Phase 9A adds the **consent autopilot**: a recommended policy generated from the
+scan, the markets an operator serves and the requirement matrix, with a reason,
+evidence, rule references and a confidence on every line. It is a recommendation
+engine and says so in its data rather than in a disclaimer - `conditional` and
+`unknown` are real values, an unresolved input yields `review` and never `allow`,
+and `block` means *we suggest you do not load this*, because Rift blocks nothing.
+Nothing activates without a human: approving publishes an immutable version, and
+a database trigger refuses to rewrite one. See
+[docs/consent-autopilot.md](docs/consent-autopilot.md).
+
 ## Repository layout
 
 | Path | Purpose |
@@ -136,6 +146,7 @@ Start with the first one; it is the entry point and links to the rest.
 - [Discovery](docs/discovery.md)
 - [Policy Engine](docs/policy-engine.md) - what a regime requires of an activity, and why it is not wired into a route
 - [Jurisdiction Resolution](docs/jurisdiction-resolution.md) - whose law is in play, and why an IP address never reaches it
+- [Consent Autopilot](docs/consent-autopilot.md) - generating a recommended policy, and the human approval that publishes it
 - [Consent Experience](docs/consent-experience.md) - the banner, the preference centre, and the one snippet a customer pastes
 - [Website Scanner](docs/crawler.md) — the Playwright crawler used during onboarding
 - [Scan API](docs/scan-api.md)
@@ -373,7 +384,7 @@ the policy engine and the 407 unit tests all run without it.
 From the repo root:
 
 ```bash
-npm run test:unit    # vitest: 460 tests, no database, a few seconds
+npm run test:unit    # vitest: 503 tests, no database, a few seconds
 npm run test:browser # vitest: 20 tests driving a real Chromium; needs the
                      # browser install in step 8b
 npm test             # vitest: unit plus integration; the integration half
@@ -394,7 +405,7 @@ The suite is split into two vitest projects, configured in `api/vitest.config.ts
 
 | Project | Files | Tests | Needs a database |
 | --- | --- | --- | --- |
-| `unit` | `keys.test.ts`, `secure-transfer-crypto.test.ts`, `dashboard-components.test.tsx`, `discovery-classification.test.ts`, `rate-limit.test.ts`, `origin-validation.test.ts`, `sdk-limits.test.ts`, `policy-rules.test.ts`, `policy-engine.test.ts`, `policy-boundary.test.ts`, `jurisdiction-resolution.test.ts`, `crawler-ssrf.test.ts`, `crawler-url.test.ts`, `crawler-detectors.test.ts`, `crawler-diff.test.ts`, `consent-experience.test.ts` | 460 | no |
+| `unit` | `keys.test.ts`, `secure-transfer-crypto.test.ts`, `dashboard-components.test.tsx`, `discovery-classification.test.ts`, `rate-limit.test.ts`, `origin-validation.test.ts`, `sdk-limits.test.ts`, `policy-rules.test.ts`, `policy-engine.test.ts`, `policy-boundary.test.ts`, `jurisdiction-resolution.test.ts`, `crawler-ssrf.test.ts`, `crawler-url.test.ts`, `crawler-detectors.test.ts`, `crawler-diff.test.ts`, `consent-experience.test.ts`, `autopilot.test.ts` | 503 | no |
 | `browser` | `crawler-browser.test.ts` | 20 | no, but needs Chromium |
 | `integration` | everything else under `api/tests/` | 324 | yes |
 

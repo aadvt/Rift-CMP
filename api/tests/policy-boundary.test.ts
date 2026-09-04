@@ -171,7 +171,12 @@ describe("the engine is not entangled with the platform", () => {
      * Adding a second entry here should require the same argument the first
      * one did.
      */
-    const ALLOWED = new Set(["api/lib/consent-config.ts"]);
+    const ALLOWED = new Set([
+      "api/lib/consent-config.ts",
+      // Phase 9A. Generates a recommended policy a human approves; like the
+      // first entry it annotates for a person and gates nothing.
+      "api/lib/autopilot.ts",
+    ]);
     const roots = ["app", "lib"].map((d) => path.join(repoRoot, "api", d));
     const offenders: string[] = [];
 
