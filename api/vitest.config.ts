@@ -29,6 +29,7 @@ const UNIT_TESTS = [
   "tests/crawler-url.test.ts",
   "tests/crawler-detectors.test.ts",
   "tests/crawler-diff.test.ts",
+  "tests/consent-experience.test.ts",
 ];
 
 /**

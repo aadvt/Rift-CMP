@@ -41,6 +41,17 @@ and the region-to-jurisdiction mapping is versioned configuration, which is why
 for an IP address and rejects one loudly if passed: geolocation happens on the
 caller's side, before it. See [docs/jurisdiction-resolution.md](docs/jurisdiction-resolution.md).
 
+Phase 8B turns all of that into something a customer can actually use: a
+**consent banner and preference centre**, and one snippet they paste once. The
+runtime fetches its purposes and copy from `GET /api/v1/consent/config`, so
+adding a purpose is a dashboard action rather than a redeploy of somebody else's
+website - and the browser bundle carries no regime, citation or jurisdiction
+rule, which a test enforces by grepping the payload. Rift *proposes* a
+configuration from the scan and the policy engine, with the evidence behind every
+line, and a person declares the purposes: a guessed vendor-to-purpose mapping
+would be confident, unauditable and often wrong. See
+[docs/consent-experience.md](docs/consent-experience.md).
+
 ## Repository layout
 
 | Path | Purpose |
@@ -125,6 +136,7 @@ Start with the first one; it is the entry point and links to the rest.
 - [Discovery](docs/discovery.md)
 - [Policy Engine](docs/policy-engine.md) - what a regime requires of an activity, and why it is not wired into a route
 - [Jurisdiction Resolution](docs/jurisdiction-resolution.md) - whose law is in play, and why an IP address never reaches it
+- [Consent Experience](docs/consent-experience.md) - the banner, the preference centre, and the one snippet a customer pastes
 - [Website Scanner](docs/crawler.md) — the Playwright crawler used during onboarding
 - [Scan API](docs/scan-api.md)
 - [Security Model](docs/security.md) — what is enforced, what is defence in depth, what is not done
@@ -361,7 +373,7 @@ the policy engine and the 407 unit tests all run without it.
 From the repo root:
 
 ```bash
-npm run test:unit    # vitest: 407 tests, no database, a few seconds
+npm run test:unit    # vitest: 460 tests, no database, a few seconds
 npm run test:browser # vitest: 20 tests driving a real Chromium; needs the
                      # browser install in step 8b
 npm test             # vitest: unit plus integration; the integration half
@@ -382,7 +394,7 @@ The suite is split into two vitest projects, configured in `api/vitest.config.ts
 
 | Project | Files | Tests | Needs a database |
 | --- | --- | --- | --- |
-| `unit` | `keys.test.ts`, `secure-transfer-crypto.test.ts`, `dashboard-components.test.tsx`, `discovery-classification.test.ts`, `rate-limit.test.ts`, `origin-validation.test.ts`, `sdk-limits.test.ts`, `policy-rules.test.ts`, `policy-engine.test.ts`, `policy-boundary.test.ts`, `jurisdiction-resolution.test.ts`, `crawler-ssrf.test.ts`, `crawler-url.test.ts`, `crawler-detectors.test.ts`, `crawler-diff.test.ts` | 407 | no |
+| `unit` | `keys.test.ts`, `secure-transfer-crypto.test.ts`, `dashboard-components.test.tsx`, `discovery-classification.test.ts`, `rate-limit.test.ts`, `origin-validation.test.ts`, `sdk-limits.test.ts`, `policy-rules.test.ts`, `policy-engine.test.ts`, `policy-boundary.test.ts`, `jurisdiction-resolution.test.ts`, `crawler-ssrf.test.ts`, `crawler-url.test.ts`, `crawler-detectors.test.ts`, `crawler-diff.test.ts`, `consent-experience.test.ts` | 460 | no |
 | `browser` | `crawler-browser.test.ts` | 20 | no, but needs Chromium |
 | `integration` | everything else under `api/tests/` | 324 | yes |
 

@@ -468,6 +468,13 @@ caveat — each one is a thing the MVP genuinely does not do.
   `limit` rows from each of three tables and sorts in memory, so a very lopsided
   distribution can push older entries of one kind out of the window. A deliberate
   trade for keeping the domains unjoined.
+- **There is a consent banner, and it decides nothing.** Phase 8B added the
+  banner, the preference centre and a one-line install snippet. The runtime
+  fetches purposes and copy from the server and carries no legal reasoning at
+  all; Rift *proposes* a configuration from a scan and the policy engine, and a
+  person declares the purposes. There is no one-click activate, because a
+  one-click activate would have to declare purposes on the operator's behalf.
+  See [consent-experience.md](consent-experience.md).
 - **The compliance engine exists but enforces nothing.** `policy/` answers what
   a set of regimes requires of a processing activity, deterministically and with
   a citation on every part of the answer - but it is not wired into a route. The

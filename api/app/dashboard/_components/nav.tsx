@@ -14,6 +14,7 @@ import { motion, useReducedMotion } from "motion/react";
  */
 const LINKS = [
   { href: "/dashboard", label: "Overview" },
+  { href: "/dashboard/onboarding", label: "Get started" },
   // Onboarding order: register a site, scan it, decide what the findings mean,
   // then install the tag. Scans come before Discovery because that is the order
   // an operator meets them — a scan runs before the tag exists on the page, and

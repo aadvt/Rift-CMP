@@ -13,7 +13,9 @@
     "./audit": "./audit.ts",
     "./authorisation": "./authorisation.ts",
     "./analytics": "./analytics.ts",
-    "./scan": "./scan.ts"
+    "./scan": "./scan.ts",
+    "./consent-config": "./consent-config.ts",
+    "./discovery": "./discovery.ts"
   },
   "types": "./index.ts",
   "dependencies": {
