@@ -25,6 +25,8 @@ model Organisation {
   notices    Notice[]
   recipients DataRecipient[]
   dashboardSessions DashboardSession[]
+  consentPolicyVersions ConsentPolicyVersion[]
+  recommendationOverrides ConsentRecommendationOverride[]
   scans      Scan[]
 
   @@map("organisations")
@@ -58,6 +60,8 @@ model Website {
   transferAuthorisations TransferAuthorisation[]
   discoveredComponents DiscoveredComponent[]
   discoveredStorage    DiscoveredStorage[]
+  consentPolicyVersions ConsentPolicyVersion[]
+  recommendationOverrides ConsentRecommendationOverride[]
   discoveryViolations  DiscoveryViolation[]
   consentSessions      ConsentSession[]
   scans                Scan[]
@@ -804,4 +808,115 @@ model ScanTechnology {
   @@index([scanId])
   @@index([scanId, category])
   @@map("scan_technologies")
+}
+
+// ─── Consent autopilot (Phase 9A) ────────────────────────────────────────────
+//
+// Recommendations are *generated* from a scan, the jurisdiction resolver and the
+// policy engine. Two things about them are persisted and nothing else is:
+//
+//   1. What a human approved, as an immutable version. A generated
+//      recommendation is not a fact about the world - it is a suggestion, and
+//      only an operator's approval makes it the configuration a runtime serves.
+//   2. What a human decided differently, so a regenerated recommendation does
+//      not silently overwrite a considered judgement.
+//
+// The recommendations themselves are never stored in their un-approved form.
+// Storing a draft would create a second thing that looks like configuration,
+// and the first question anyone would ask of a stored draft is whether it is
+// live - which is exactly the ambiguity approval exists to remove.
+
+/// One approved consent configuration for a site.
+///
+/// Immutable once approved: a database trigger rejects UPDATE on an approved
+/// row. A published policy version is the record of what an operator agreed to
+/// at a moment, and rewriting it would destroy the only evidence of what the
+/// banner was actually serving when a decision was recorded against it.
+model ConsentPolicyVersion {
+  id             String @id @default(uuid())
+  siteId         String @map("site_id")
+  organisationId String @map("organisation_id")
+
+  /// Monotonic per site, starting at 1. Human-facing; the id is not.
+  version Int
+
+  /// draft | approved | superseded
+  ///
+  /// A site has at most one `approved` version at a time; approving a new one
+  /// supersedes the previous. `draft` exists so approval is a distinct act with
+  /// something to point at, not so drafts accumulate.
+  status String @default("draft")
+
+  /// The scan the recommendations were generated from, when there was one.
+  /// Null means they were generated from declared purposes alone.
+  scanId String? @map("scan_id")
+
+  /// The recommendations exactly as approved, including the evidence and rule
+  /// references behind each. Snapshotted rather than re-derived: the matrix,
+  /// the catalogue and the scan all move, and a version must keep meaning what
+  /// it meant when it was approved.
+  recommendations Json
+
+  /// Jurisdictions and regimes in play at generation time, for the same reason.
+  jurisdictions String[] @default([])
+  regimes       String[] @default([])
+
+  /// Free-text note from whoever approved it. There are no user accounts, so
+  /// this is the only attribution available - see docs/mvp.md.
+  approvalNote String? @map("approval_note")
+
+  createdAt  DateTime  @default(now()) @map("created_at")
+  approvedAt DateTime? @map("approved_at")
+
+  website      Website      @relation(fields: [siteId, organisationId], references: [id, organisationId], onDelete: Cascade)
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, version])
+  @@unique([id, organisationId])
+  @@index([organisationId, createdAt])
+  @@index([siteId, status])
+  @@map("consent_policy_versions")
+}
+
+/// An operator's decision that differs from what was recommended.
+///
+/// Keyed on the detector rather than on a scan row, so it survives the thing it
+/// overrides disappearing: a vendor absent from the next scan has not been
+/// un-decided, and re-recommending it from scratch when it reappears would
+/// discard a judgement somebody made on purpose.
+///
+/// Mutable, unlike a policy version. An override is a standing preference, not
+/// a record of a decision - changing your mind about how to treat a vendor is
+/// the point of it existing.
+model ConsentRecommendationOverride {
+  id             String @id @default(uuid())
+  siteId         String @map("site_id")
+  organisationId String @map("organisation_id")
+
+  /// The detector this overrides, e.g. `google-analytics`.
+  detectorId String @map("detector_id")
+
+  /// Purpose code the operator assigns. Null means "no purpose": the operator
+  /// is saying this vendor is not covered by any of their declared purposes.
+  purposeCode String? @map("purpose_code")
+
+  /// allow | require_consent | block | ignore
+  ///
+  /// The operator's answer, which is not required to match the recommendation
+  /// and is never overwritten by one.
+  action String
+
+  /// Why, in the operator's words. Kept because an override without a reason is
+  /// indistinguishable from a mistake six months later.
+  note String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  website      Website      @relation(fields: [siteId, organisationId], references: [id, organisationId], onDelete: Cascade)
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, detectorId])
+  @@index([organisationId])
+  @@map("consent_recommendation_overrides")
 }

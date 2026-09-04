@@ -468,6 +468,12 @@ caveat — each one is a thing the MVP genuinely does not do.
   `limit` rows from each of three tables and sorts in memory, so a very lopsided
   distribution can push older entries of one kind out of the window. A deliberate
   trade for keeping the domains unjoined.
+- **The autopilot recommends; it never activates.** Phase 9A generates a policy
+  from the scan and the requirement matrix, with evidence and rule references on
+  every line, and a human approves it. Approval publishes an immutable version
+  that the runtime reads. Nothing in it is enforced: `block` is a suggestion,
+  and whether a tag loads is decided by the customer's own integration. See
+  [consent-autopilot.md](consent-autopilot.md).
 - **There is a consent banner, and it decides nothing.** Phase 8B added the
   banner, the preference centre and a one-line install snippet. The runtime
   fetches purposes and copy from the server and carries no legal reasoning at

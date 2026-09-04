@@ -22,6 +22,7 @@ const LINKS = [
   { href: "/dashboard/sites", label: "Websites" },
   { href: "/dashboard/scans", label: "Scans" },
   { href: "/dashboard/configure", label: "Configure" },
+  { href: "/dashboard/policy", label: "Policy" },
   { href: "/dashboard/discovery", label: "Discovery" },
   { href: "/dashboard/consent", label: "Consent" },
   { href: "/dashboard/transfers", label: "Transfers" },

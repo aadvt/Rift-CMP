@@ -191,8 +191,10 @@ withdrawal control a visitor cannot find is one they do not have.
   detected region would need geolocation on the config endpoint — deliberately
   absent, since that endpoint is public, cacheable and currently sees nothing
   about anybody.
-- **No vendor-level toggles.** `ConsentPurposeConfig.vendors` is display-only.
-  Per-vendor consent is a bigger data model than this phase has.
+- **No vendor-level toggles.** `ConsentPurposeConfig.vendors` is display-only,
+  and is populated from an approved policy version once Phase 9A's approval has
+  happened - before that it is empty. Per-vendor *consent* is a bigger data
+  model than either phase has.
 - **One locale.** The notice carries a locale and the config reports it; nothing
   selects between translations.
 - **The proposal's category mapping is coarse** — a handful of scanner
@@ -210,7 +212,7 @@ withdrawal control a visitor cannot find is one they do not have.
 ## Verification
 
 ```bash
-npm run test:unit    # 460 tests; 51 are the consent experience
+npm run test:unit    # 503 tests; 51 are the consent experience
 npm run typecheck
 npm run lint
 ```
