@@ -249,7 +249,23 @@ A third, smaller one: a withdrawal-topic record that omitted the optional
 Both such records in the matrix set the flag, so nothing was wrong today; the
 topic is now a backstop for the flag.
 
-## Why it is not wired in
+## How it is wired in (Phase 8B)
+
+It has exactly one consumer: `api/lib/consent-config.ts`, which uses it to
+annotate a **consent proposal a human reads** with the regimes that appear to
+apply and the obligations they raise, each carrying its requirement id and
+sources.
+
+That is the whole of it, and the limits are enforced rather than promised.
+`policy-boundary.test.ts` holds an allowlist of one file, asserts that file
+really does import the engine, and separately asserts that **no route handler
+does** — so the engine can inform a person and cannot gate a request. Its output
+never reaches the browser: the runtime configuration a banner renders carries no
+regime, citation or jurisdiction, and a test greps the payload to prove it.
+
+The section below is why that boundary is where it is.
+
+## Why it does not decide anything
 
 The engine can answer questions about consent, and the platform already enforces
 a rule about consent — "the decision in force must be `GRANTED`". They are not
@@ -304,7 +320,7 @@ Each is a thing the engine genuinely does not do.
 ## Verification
 
 ```bash
-npm run test:unit    # 270 tests, 162 of them the policy package, no database
+npm run test:unit    # 460 tests; 162 are the policy package
 npm run typecheck
 npm run lint
 node docs/regulations/tools/validate.mjs

@@ -2,15 +2,19 @@ import { AnalyticsClient } from "./client";
 import { ConsentClient } from "./consent";
 import type { ConsentApi } from "./consent";
 import { DiscoveryClient } from "./discovery";
+import { ConsentUi } from "./ui";
 import type { ConsentCheck, SDKOptions } from "./types";
 import { validateTrackInput } from "./validate";
+import { DEFAULT_API_URL } from "./constants";
 
 const state = {
   client: null as AnalyticsClient | null,
   consent: null as ConsentClient | null,
   discovery: null as DiscoveryClient | null,
+  ui: null as ConsentUi | null,
   siteId: null as string | null,
   publicKey: null as string | null,
+  apiUrl: DEFAULT_API_URL as string,
   consentCheck: (() => true) as (purpose: string) => boolean,
 };
 
@@ -29,6 +33,8 @@ function getClient(siteId?: string, publicKey?: string, options?: SDKOptions) {
       // credentials change would file observations under the wrong tenant.
       state.discovery?.stop();
       state.discovery = null;
+      state.ui?.close();
+      state.ui = null;
     }
   }
 
@@ -44,6 +50,7 @@ function getClient(siteId?: string, publicKey?: string, options?: SDKOptions) {
     state.discovery = new DiscoveryClient(siteId, publicKey, options);
     state.siteId = siteId;
     state.publicKey = publicKey;
+    state.apiUrl = options?.apiUrl ?? DEFAULT_API_URL;
     // A consent check registered before init() must also gate the automatic
     // session_start / page_view events that init() emits, not just track().
     state.client.setConsentCheck(state.consentCheck);
@@ -133,6 +140,22 @@ function resolveHostPurpose(host: string, mapping: Record<string, string>): stri
     if (mapping[candidate]) return mapping[candidate];
   }
   return mapping[normalised] ?? null;
+}
+
+/**
+ * The UI for the current site, or null before `init()`.
+ *
+ * Rebuilt when `force` changes so "manage preferences" can reopen a banner the
+ * visitor has already answered, without that becoming the default behaviour.
+ */
+function getUi(force = false): ConsentUi | null {
+  if (!state.consent || !state.siteId || !state.publicKey) return null;
+  state.ui = new ConsentUi(state.consent, {
+    apiUrl: state.apiUrl,
+    publicKey: state.publicKey,
+    force,
+  });
+  return state.ui;
 }
 
 const analytics = {
@@ -225,6 +248,61 @@ const analytics = {
       }
     },
   },
+  /**
+   * The consent banner and preference centre.
+   *
+   * Opt-in, like discovery. A tag that drew a dialog over a customer's page the
+   * moment it loaded would be a surprising thing for a script to do on its own,
+   * and an operator who has not declared any purposes has nothing to show.
+   *
+   * ```js
+   * analytics.init("site_x", "pk_x");
+   * analytics.banner.show();                 // only if something is undecided
+   * analytics.banner.showPreferences();      // "cookie settings" link
+   * ```
+   *
+   * The UI renders a configuration the server built and records decisions
+   * through `analytics.consent`. It holds no legal rule of its own.
+   */
+  banner: {
+    /**
+     * Shows the banner when any non-essential purpose is still undecided.
+     *
+     * Resolves `false` when there is nothing to ask - the site declares no
+     * purposes, the configuration could not be fetched, or every purpose
+     * already has a decision. Silence is never read as a decision.
+     */
+    async show(options: { force?: boolean } = {}): Promise<boolean> {
+      try {
+        const ui = getUi(options.force);
+        if (!ui) return false;
+        return await ui.showBannerIfNeeded();
+      } catch (error) {
+        console.warn("[rift-cmp] analytics.banner.show() failed", error);
+        return false;
+      }
+    },
+    /** Opens the preference centre, with the current decisions reflected. */
+    async showPreferences(): Promise<boolean> {
+      try {
+        const ui = getUi(true);
+        if (!ui) return false;
+        return await ui.showPreferences();
+      } catch (error) {
+        console.warn("[rift-cmp] analytics.banner.showPreferences() failed", error);
+        return false;
+      }
+    },
+    /** Closes whatever is open. Records nothing. */
+    close(): boolean {
+      try {
+        state.ui?.close();
+        return true;
+      } catch {
+        return false;
+      }
+    },
+  },
   init(siteId: string, publicKeyOrOptions?: string | SDKOptions, maybeOptions?: SDKOptions) {
     try {
       const publicKey = typeof publicKeyOrOptions === "string" ? publicKeyOrOptions : undefined;
@@ -307,6 +385,8 @@ export { ConsentClient } from "./consent";
 export type { ConsentApi, ConsentChangeListener, ConsentRecordOptions } from "./consent";
 export type { ConsentStatus, EffectiveConsent } from "@rift-cmp/shared";
 export { DiscoveryClient } from "./discovery";
+export { ConsentUi } from "./ui";
+export type { ConsentUiOptions } from "./ui";
 export type { DiscoveryOptions } from "./discovery";
 
 /**

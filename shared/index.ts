@@ -8,3 +8,4 @@ export * from "./audit";
 export * from "./analytics";
 export * from "./discovery";
 export * from "./scan";
+export * from "./consent-config";

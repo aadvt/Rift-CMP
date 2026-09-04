@@ -155,16 +155,60 @@ describe("the engine is not entangled with the platform", () => {
     }
   });
 
-  it("is imported by no route, page or library module", () => {
+  it("is imported by exactly one module, and that one is named", () => {
     /**
-     * The engine is deliberately not wired in. This is what makes that
-     * statement checkable rather than a promise in a document - if Phase 7B
-     * wires it into a route, this test fails and the claim gets rewritten
-     * rather than quietly becoming false.
+     * The engine was wired into the platform for the first time in Phase 8B,
+     * which needed the consent proposal to carry regulatory citations a
+     * reviewer can check.
+     *
+     * This test did its job: it failed, deliberately, and the boundary was
+     * moved on purpose rather than eroding while a document went on claiming
+     * otherwise. It is now an allowlist of one. `api/lib/consent-config.ts`
+     * uses the engine to *annotate a proposal a human reads*; nothing else in
+     * `api/` may reach for it, and in particular no route may consult it to
+     * decide what a banner does or whether traffic is permitted.
+     *
+     * Adding a second entry here should require the same argument the first
+     * one did.
      */
+    const ALLOWED = new Set(["api/lib/consent-config.ts"]);
     const roots = ["app", "lib"].map((d) => path.join(repoRoot, "api", d));
     const offenders: string[] = [];
 
+    const walk = (dir: string) => {
+      if (!fs.existsSync(dir)) return;
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (/\.tsx?$/.test(entry.name)) {
+          const text = fs.readFileSync(full, "utf8");
+          const relative = path.relative(repoRoot, full).split(path.sep).join("/");
+          if (/from\s+["']@rift-cmp\/policy/.test(text) && !ALLOWED.has(relative)) {
+            offenders.push(relative);
+          }
+        }
+      }
+    };
+    roots.forEach(walk);
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("is genuinely imported by the one module the allowlist names", () => {
+    // Otherwise the allowlist could outlive the import it was written for, and
+    // the next reader would think the engine is wired in when it is not.
+    const consentConfig = fs.readFileSync(
+      path.join(repoRoot, "api/lib/consent-config.ts"),
+      "utf8",
+    );
+    expect(/from\s+["']@rift-cmp\/policy["']/.test(consentConfig)).toBe(true);
+  });
+
+  it("is not consulted by any route handler", () => {
+    // The load-bearing half of the boundary. A proposal a person reads is one
+    // thing; a request refused because a research artifact said so is another.
+    const appDir = path.join(repoRoot, "api/app");
+    const offenders: string[] = [];
     const walk = (dir: string) => {
       if (!fs.existsSync(dir)) return;
       for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -178,8 +222,7 @@ describe("the engine is not entangled with the platform", () => {
         }
       }
     };
-    roots.forEach(walk);
-
+    walk(appDir);
     expect(offenders).toEqual([]);
   });
 
