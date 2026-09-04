@@ -382,7 +382,8 @@ The suite is split into two vitest projects, configured in `api/vitest.config.ts
 
 | Project | Files | Tests | Needs a database |
 | --- | --- | --- | --- |
-| `unit` | `keys.test.ts`, `secure-transfer-crypto.test.ts`, `dashboard-components.test.tsx`, `discovery-classification.test.ts`, `rate-limit.test.ts`, `origin-validation.test.ts`, `sdk-limits.test.ts`, `policy-rules.test.ts`, `policy-engine.test.ts`, `policy-boundary.test.ts`, `jurisdiction-resolution.test.ts`, `crawler-ssrf.test.ts`, `crawler-url.test.ts`, `crawler-detectors.test.ts` | 375 | no |
+| `unit` | `keys.test.ts`, `secure-transfer-crypto.test.ts`, `dashboard-components.test.tsx`, `discovery-classification.test.ts`, `rate-limit.test.ts`, `origin-validation.test.ts`, `sdk-limits.test.ts`, `policy-rules.test.ts`, `policy-engine.test.ts`, `policy-boundary.test.ts`, `jurisdiction-resolution.test.ts`, `crawler-ssrf.test.ts`, `crawler-url.test.ts`, `crawler-detectors.test.ts`, `crawler-diff.test.ts` | 407 | no |
+| `browser` | `crawler-browser.test.ts` | 20 | no, but needs Chromium |
 | `integration` | everything else under `api/tests/` | 324 | yes |
 
 The split exists because crypto, key-format and component tests have no business
