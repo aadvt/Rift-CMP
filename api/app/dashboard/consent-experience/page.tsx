@@ -217,8 +217,8 @@ export default async function ConsentExperiencePage({
             </p>
             <p className="small">
               Declare {undeclared.length === 1 ? "it" : "them"} on{" "}
-              <a href={`/dashboard/configure?site_id=${site.site_id}`}>Configure</a>, and
-              they will appear in the banner below.
+              <a href={`/dashboard/configure?site_id=${site.site_id}`}>Configure</a>, and{" "}
+              {undeclared.length === 1 ? "it" : "they"} will appear in the banner below.
             </p>
           </div>
         </Section>

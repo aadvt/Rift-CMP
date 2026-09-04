@@ -67,14 +67,18 @@ export default async function OverviewPage() {
 
       const activity = activityBySite.get(site.site_id);
 
-      // "Attention" is only what Rift is genuinely asking a person to decide:
-      // vendors it could not place, and purposes its own proposal refers to that
-      // nobody has declared. Counts of cookies or scripts are not problems and
-      // are deliberately excluded.
+      // "Attention" counts only what the *scanner* could not classify, which is
+      // a fact about the site rather than about any jurisdiction.
+      //
+      // It deliberately does not count `recommended_action === "review"`, even
+      // though the setup screen does. That verdict depends on the markets an
+      // operator declares, and markets are chosen on the setup screen and stored
+      // nowhere — so this page, which has no markets to send, gets a different
+      // and more pessimistic answer from the same endpoint. Counting the
+      // jurisdiction-independent half keeps the two screens from contradicting
+      // each other with numbers that are both correct and different.
       const unresolved = policy
-        ? policy.recommendations.filter(
-            (r) => !r.overridden && (r.recommended_action === "review" || r.confidence === "low"),
-          ).length
+        ? policy.recommendations.filter((r) => !r.overridden && r.confidence === "low").length
         : 0;
       const undeclared = policy ? policy.undeclared_purposes : [];
 

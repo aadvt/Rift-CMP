@@ -87,12 +87,35 @@ export async function startScan(siteId: string, startUrl: string) {
   back({ site_id: siteId });
 }
 
-/** Step 2, restarted by hand after a failure or to pick up site changes. */
+/**
+ * Step 2, restarted by hand — after a failure, to pick up site changes, or to
+ * point the crawler somewhere else entirely.
+ *
+ * The URL is normalised the same way the first-run entry field normalises it,
+ * so an operator can type `shop.example.com` without being told off about a
+ * missing scheme. Whether the target is actually reachable, and whether it is
+ * somewhere the crawler is allowed to go, are decided server-side: `POST /scans`
+ * validates the shape and the SSRF guard resolves the host and refuses private
+ * and loopback space. Nothing here is a security check.
+ */
 export async function rescan(formData: FormData) {
   const siteId = String(formData.get("site_id") ?? "");
-  const startUrl = String(formData.get("start_url") ?? "");
-  if (!siteId || !startUrl) back({ site_id: siteId, error: "Missing site or start URL." });
-  return startScan(siteId, startUrl);
+  const raw = String(formData.get("start_url") ?? "").trim();
+
+  if (!siteId || !raw) back({ site_id: siteId, error: "Enter the page you want scanned." });
+
+  let url: URL;
+  try {
+    url = new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`);
+  } catch {
+    back({ site_id: siteId, error: `"${raw}" does not look like a web address.` });
+  }
+
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    back({ site_id: siteId, error: "Only http and https pages can be scanned." });
+  }
+
+  return startScan(siteId, url.toString());
 }
 
 /** Step 2, abandoned. Cancellation is cooperative and only valid before the end. */

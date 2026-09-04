@@ -158,7 +158,15 @@ export default async function IntegrationPage({
             <FilterBar action="/dashboard/integration">
               <SiteFilter sites={siteList} value={selectedSite.site_id} />
             </FilterBar>
-            <SdkSnippet site={selectedSite} origin={origin} />
+            <SdkSnippet
+              site={selectedSite}
+              origin={origin}
+              // Same rule as the setup journey: no declared purposes means the
+              // banner would have nothing to ask, so the call is left out.
+              // Without this the two screens hand out different snippets for
+              // the same site, and only one of them is right.
+              hasPurposes={purposes.ok && purposes.data.purposes.some((p) => p.is_active)}
+            />
             <p className="hint" style={{ marginBottom: 0 }}>
               The second argument is the site <strong>public</strong> key. It is meant to be read
               in page source and is not a secret; the organisation secret key never belongs in a

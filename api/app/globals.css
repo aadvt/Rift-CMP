@@ -974,9 +974,19 @@ button.primary:hover {
 
 .reasons {
   margin: 10px 0 0;
+  padding-left: 18px;
   font-size: 13px;
   line-height: 1.65;
   color: var(--muted);
+}
+
+/*
+ * These lines quote requirement text verbatim, which means unbroken tokens
+ * like `sole_purpose_communication_transmission`. Without this they push the
+ * list wider than a phone and take the card with them.
+ */
+.reasons li {
+  overflow-wrap: anywhere;
 }
 
 /*
@@ -1345,5 +1355,40 @@ button.quiet {
 
   .preview-stage {
     padding: 8px;
+  }
+}
+
+/* --- Choosing what to scan ------------------------------------------------ */
+
+.scan-form {
+  display: grid;
+  gap: 6px;
+  max-width: 460px;
+  margin-top: 4px;
+}
+
+.scan-form label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.scan-form input {
+  font-size: 16px; /* Below 16px, iOS Safari zooms the page on focus. */
+  padding: 9px 12px;
+}
+
+.scan-form .hint {
+  margin: 0;
+}
+
+.scan-form button {
+  justify-self: start;
+}
+
+@media (max-width: 640px) {
+  .scan-form,
+  .scan-form button {
+    max-width: none;
+    width: 100%;
   }
 }

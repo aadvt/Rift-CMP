@@ -13,7 +13,7 @@ import { EmptyState, ErrorState, PageHeader, Section, StatusBadge } from "../_co
 import { JourneyProgress, NotYetAvailable, type JourneyStepId } from "../_components/journey";
 import { ScanPoller } from "../_components/scan-poller";
 import { SdkSnippet } from "../_components/sdk-snippet";
-import { readFilter } from "../_components/filters";
+import { FilterBar, SiteFilter, readFilter } from "../_components/filters";
 import {
   acceptGeneratedPolicy,
   cancelScan,
@@ -150,7 +150,7 @@ export default async function SetupPage({
     );
   }
 
-  const startUrl = `https://${site.domain}`;
+  const siteRoot = `https://${site.domain}`;
 
   const [scansResult, policyResult, overridesResult, purposesResult, activityResult, origin] =
     await Promise.all([
@@ -166,6 +166,11 @@ export default async function SetupPage({
 
   const scans = scansResult.ok ? scansResult.data.scans : [];
   const latestScan = scans[0] ?? null;
+
+  // The URL to scan defaults to whatever was scanned last, so "scan again"
+  // repeats what the operator actually chose rather than silently reverting to
+  // the site root. A staging URL or a deep page stays put between runs.
+  const startUrl = latestScan?.start_url ?? siteRoot;
   const policy = policyResult.ok ? policyResult.data.policy : null;
   const activeVersion = policyResult.ok ? policyResult.data.active_version : null;
   const overrides = overridesResult.ok ? overridesResult.data.overrides : [];
@@ -198,6 +203,12 @@ export default async function SetupPage({
         title={site.domain}
         description="What Rift found on your site, what it proposes, and the one snippet that activates it."
       />
+      {sites.length > 1 ? (
+        <FilterBar action="/dashboard/onboarding">
+          <SiteFilter sites={sites} value={site.site_id} />
+        </FilterBar>
+      ) : null}
+
       <JourneyProgress current={step} />
       <ScanPoller active={Boolean(scanRunning)} />
 
@@ -219,13 +230,7 @@ export default async function SetupPage({
         {!latestScan ? (
           <div className="card">
             <p>Rift has not looked at this site yet.</p>
-            <form action={rescan}>
-              <input type="hidden" name="site_id" value={site.site_id} />
-              <input type="hidden" name="start_url" value={startUrl} />
-              <button type="submit" className="primary">
-                Scan {site.domain}
-              </button>
-            </form>
+            <ScanForm siteId={site.site_id} startUrl={startUrl} label="Start scan" primary />
           </div>
         ) : (
           <div className="card">
@@ -261,13 +266,7 @@ export default async function SetupPage({
                   </button>
                 </form>
               ) : (
-                <form action={rescan}>
-                  <input type="hidden" name="site_id" value={site.site_id} />
-                  <input type="hidden" name="start_url" value={startUrl} />
-                  <button type="submit">
-                    Scan again
-                  </button>
-                </form>
+                <ScanForm siteId={site.site_id} startUrl={startUrl} label="Scan again" />
               )}
             </div>
           </div>
@@ -380,8 +379,9 @@ export default async function SetupPage({
                 {reviewItems.length > 0 ? (
                   <div className="card review-card">
                     <p className="note-title">
-                      {reviewItems.length} item{reviewItems.length === 1 ? "" : "s"} need
-                      your attention
+                      {reviewItems.length === 1
+                        ? "1 item needs your attention"
+                        : `${reviewItems.length} items need your attention`}
                     </p>
                     <p className="small">
                       Rift found evidence of these but could not confidently
@@ -434,7 +434,9 @@ export default async function SetupPage({
                 <p className="row-between">
                   <StatusBadge status="connected" />
                   <span className="muted small">
-                    {totals?.total_events.toLocaleString()} events received
+                    {totals?.total_events === 1
+                      ? "1 event received"
+                      : `${totals?.total_events.toLocaleString()} events received`}
                   </span>
                 </p>
                 <p>
@@ -480,26 +482,76 @@ export default async function SetupPage({
   );
 }
 
+/**
+ * Which URL to scan.
+ *
+ * Editable rather than derived, because the page an operator wants looked at is
+ * often not the site root: a staging deployment, a checkout flow behind a
+ * different path, a subdomain that loads the third parties the marketing page
+ * does not. The crawler follows links from wherever it starts, so the starting
+ * point decides what gets found.
+ *
+ * The value is validated server-side by `POST /scans` and by the SSRF guard,
+ * which refuses private and loopback addresses whatever is typed here.
+ */
+function ScanForm({
+  siteId,
+  startUrl,
+  label,
+  primary = false,
+}: {
+  siteId: string;
+  startUrl: string;
+  label: string;
+  primary?: boolean;
+}) {
+  const inputId = `start_url_${siteId}`;
+  return (
+    <form action={rescan} className="scan-form">
+      <input type="hidden" name="site_id" value={siteId} />
+      <label htmlFor={inputId}>Page to scan</label>
+      <input
+        id={inputId}
+        name="start_url"
+        type="text"
+        inputMode="url"
+        defaultValue={startUrl}
+        required
+        aria-describedby={`${inputId}_hint`}
+      />
+      <p id={`${inputId}_hint`} className="hint">
+        Rift starts here and follows links from this page. Local and private
+        addresses are refused.
+      </p>
+      <button type="submit" className={primary ? "primary" : undefined}>
+        {label}
+      </button>
+    </form>
+  );
+}
+
 /** Counts from the scan, fetched separately so a status poll stays cheap. */
 async function ScanFindings({ scanId }: { scanId: string }) {
   const result = await apiGet<ScanStatusResponse>(`/api/v1/scans/${scanId}`);
   if (!result.ok) return null;
 
   const s = result.data.summary;
-  const found: Array<[string, number]> = [
-    ["pages", s.pages_scanned],
-    ["cookies", s.cookies_found],
-    ["scripts", s.scripts_found],
-    ["third-party domains", s.third_party_domains],
-    ["technologies", s.technologies_detected],
+  // Singular and plural both occur constantly here - one cookie is an ordinary
+  // result - and "1 cookies" makes a careful tool look careless.
+  const found: Array<[string, string, number]> = [
+    ["page", "pages", s.pages_scanned],
+    ["cookie", "cookies", s.cookies_found],
+    ["script", "scripts", s.scripts_found],
+    ["third-party domain", "third-party domains", s.third_party_domains],
+    ["technology", "technologies", s.technologies_detected],
   ];
 
   return (
     <>
       <ul className="findings">
-        {found.map(([label, count]) => (
-          <li key={label}>
-            <strong>{count.toLocaleString()}</strong> {label}
+        {found.map(([one, many, count]) => (
+          <li key={many}>
+            <strong>{count.toLocaleString()}</strong> {count === 1 ? one : many}
           </li>
         ))}
       </ul>
@@ -559,7 +611,9 @@ function ReviewRow({
     <div className="review-row">
       <div>
         <p className="review-name">{r.vendor_name}</p>
-        <p className="muted small">{r.detector_id}</p>
+        {r.detector_id !== r.vendor_name ? (
+          <p className="muted small">{r.detector_id}</p>
+        ) : null}
         <p className="small">{r.reason}</p>
       </div>
       <form action={setRecommendationOverride} className="review-form">

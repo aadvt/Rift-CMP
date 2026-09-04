@@ -78,6 +78,16 @@ describe("the scanner line", () => {
 });
 
 describe("findings", () => {
+  it("uses the singular for a single finding", () => {
+    render(<SiteStatusCard status={status({ findings: { pages: 1, cookies: 1, services: 1, technologies: 1 } })} />);
+
+    const text = screen.getByRole("article").textContent ?? "";
+    expect(text).toContain("1 page");
+    expect(text).toContain("1 cookie");
+    expect(text).not.toContain("1 pages");
+    expect(text).not.toContain("1 cookies");
+  });
+
   it("shows counts without dressing them as problems", () => {
     render(<SiteStatusCard status={status()} />);
 
@@ -104,6 +114,13 @@ describe("attention", () => {
     render(<SiteStatusCard status={status({ attention: 2 })} />);
 
     expect(screen.getByText(/needs attention/i)).toBeTruthy();
-    expect(screen.getByText(/2 items Rift cannot decide for you/i)).toBeTruthy();
+    expect(screen.getByText(/2 technologies Rift could not classify/i)).toBeTruthy();
+  });
+
+  it("counts one item in the singular", () => {
+    // "1 technologies" on the first card an operator sees is the kind of detail
+    // that makes the rest of the page look less careful than it is.
+    render(<SiteStatusCard status={status({ attention: 1 })} />);
+    expect(screen.getByText(/1 technology Rift could not classify/i)).toBeTruthy();
   });
 });

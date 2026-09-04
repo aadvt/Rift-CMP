@@ -83,7 +83,7 @@ export function SiteStatusCard({ status }: { status: SiteStatus }) {
       <header className="row-between">
         <div>
           <p className="site-status-domain">{domain}</p>
-          <p className="small">{status.name}</p>
+          {status.name !== domain ? <p className="small">{status.name}</p> : null}
         </div>
         <StatusBadge status={connected ? "connected" : "waiting for data"} />
       </header>
@@ -115,18 +115,18 @@ export function SiteStatusCard({ status }: { status: SiteStatus }) {
 
       {findings ? (
         <ul className="findings">
-          <li>
-            <strong>{findings.pages.toLocaleString()}</strong> pages
-          </li>
-          <li>
-            <strong>{findings.cookies.toLocaleString()}</strong> cookies
-          </li>
-          <li>
-            <strong>{findings.services.toLocaleString()}</strong> third-party services
-          </li>
-          <li>
-            <strong>{findings.technologies.toLocaleString()}</strong> technologies
-          </li>
+          {(
+            [
+              [findings.pages, "page", "pages"],
+              [findings.cookies, "cookie", "cookies"],
+              [findings.services, "third-party service", "third-party services"],
+              [findings.technologies, "technology", "technologies"],
+            ] as Array<[number, string, string]>
+          ).map(([count, one, many]) => (
+            <li key={many}>
+              <strong>{count.toLocaleString()}</strong> {count === 1 ? one : many}
+            </li>
+          ))}
         </ul>
       ) : (
         <p className="small">Nothing found yet — Rift has not scanned this site.</p>
@@ -136,7 +136,9 @@ export function SiteStatusCard({ status }: { status: SiteStatus }) {
         <p className="site-status-attention">
           <StatusBadge status="needs attention" />{" "}
           <span className="small">
-            {attention} item{attention === 1 ? "" : "s"} Rift cannot decide for you
+            {attention === 1
+              ? "1 technology Rift could not classify"
+              : `${attention} technologies Rift could not classify`}
           </span>
         </p>
       ) : null}
