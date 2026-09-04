@@ -361,20 +361,29 @@ the policy engine and the 407 unit tests all run without it.
 From the repo root:
 
 ```bash
-npm run test:unit   # vitest: 407 tests, no database, a few seconds
-npm run test:browser # vitest: 20 tests driving a real Chromium; see below
-npm test            # vitest: all 355 tests; the integration half needs Postgres
-npm run typecheck   # tsc --noEmit across the api workspace
+npm run test:unit    # vitest: 407 tests, no database, a few seconds
+npm run test:browser # vitest: 20 tests driving a real Chromium; needs the
+                     # browser install in step 8b
+npm test             # vitest: unit plus integration; the integration half
+                     # needs Postgres
+npm run typecheck    # tsc --noEmit across the api workspace (run a build first
+                     # after adding a route or page - see the note below)
 npm run lint        # eslint
 npm run build       # builds the SDK bundle, then next build
 ```
+
+`npm run typecheck` reads `.next/types`, which Next generates from the route and
+page files. Those types are build output, so on a fresh clone - or after adding a
+route or a page - typecheck fails with `does not satisfy the constraint
+'AppRouteHandlerRoutes'` until `npm run build` has regenerated them. The code is
+fine; the generated types are simply not there yet. Build first, then typecheck.
 
 The suite is split into two vitest projects, configured in `api/vitest.config.ts`:
 
 | Project | Files | Tests | Needs a database |
 | --- | --- | --- | --- |
-| `unit` | `keys.test.ts`, `secure-transfer-crypto.test.ts`, `dashboard-components.test.tsx`, `discovery-classification.test.ts`, `rate-limit.test.ts`, `origin-validation.test.ts`, `sdk-limits.test.ts`, `policy-rules.test.ts`, `policy-engine.test.ts`, `policy-boundary.test.ts`, `jurisdiction-resolution.test.ts` | 270 | no |
-| `integration` | everything else under `api/tests/` | 178 | yes |
+| `unit` | `keys.test.ts`, `secure-transfer-crypto.test.ts`, `dashboard-components.test.tsx`, `discovery-classification.test.ts`, `rate-limit.test.ts`, `origin-validation.test.ts`, `sdk-limits.test.ts`, `policy-rules.test.ts`, `policy-engine.test.ts`, `policy-boundary.test.ts`, `jurisdiction-resolution.test.ts`, `crawler-ssrf.test.ts`, `crawler-url.test.ts`, `crawler-detectors.test.ts` | 375 | no |
+| `integration` | everything else under `api/tests/` | 324 | yes |
 
 The split exists because crypto, key-format and component tests have no business
 requiring Postgres. Before it, a database outage failed even the formatting
@@ -427,7 +436,15 @@ history survived. It uses the real SDK, the real route handlers and the real
 cryptography. If it passes, the product works end to end.
 
 Expect roughly 20–25 minutes for the integration project against a remote Neon
-instance. Almost all of that is network round trips, not computation — the tests
+instance **on a low-latency link**, and considerably longer on a slow one: the
+suite is almost entirely network round trips, so its wall time is a direct
+multiple of the round-trip time. At ~370ms — a remote Neon region — a full run
+takes over two hours and `mvp-acceptance` exceeds the 60-second `testTimeout`
+in `api/vitest.config.ts` despite passing in about 83 seconds. A timed-out test
+also leaves state behind, and because every file shares one schema and truncates
+between tests, the next file's fixtures then fail with unique-constraint and
+foreign-key errors that look like real defects but are not. If you see a cluster
+of those, check the round-trip time before believing them. Almost all of that is network round trips, not computation — the tests
 exercise real foreign keys, cascades and the append-only trigger, which a mocked
 database could not verify. The `unit` project finishes in seconds, which is the
 whole reason it was split out.
