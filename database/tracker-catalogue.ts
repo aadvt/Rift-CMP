@@ -173,3 +173,30 @@ export function classifyHost(host: string): Classification {
 export function catalogueSize(): number {
   return Object.keys(CATALOGUE).length;
 }
+
+/**
+ * The host patterns a vendor is known by.
+ *
+ * The reverse of {@link classifyHost}, and it exists for enforcement: the
+ * browser has to decide about a *host*, while an operator approves a policy
+ * about a *vendor*. Resolving one to the other happens here, on the server,
+ * so the catalogue never ships to a page.
+ *
+ * Returns suffix patterns, not exact hosts. `google-analytics.com` matches
+ * `www.google-analytics.com` and `region1.google-analytics.com`, which is the
+ * same matching rule `classifyHost` applies and has to be, or a vendor would be
+ * classified one way and enforced another.
+ */
+export function hostsForVendor(vendor: string): string[] {
+  const wanted = vendor.trim().toLowerCase();
+  if (!wanted) return [];
+  return Object.entries(CATALOGUE)
+    .filter(([, entry]) => entry.vendor.toLowerCase() === wanted)
+    .map(([host]) => host)
+    .sort();
+}
+
+/** Every vendor the catalogue knows, for an operator-facing list. */
+export function catalogueVendors(): string[] {
+  return [...new Set(Object.values(CATALOGUE).map((e) => e.vendor))].sort();
+}

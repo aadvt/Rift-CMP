@@ -109,6 +109,18 @@ export interface ConsentRuntimeConfig {
     policy_url: string | null;
   };
   /**
+   * What the runtime should act on, and how hard.
+   *
+   * Present only once a policy version has been approved: before that there is
+   * nothing an operator has agreed to enforce, and enforcing a recommendation
+   * nobody approved is exactly what Phase 9A refused to do.
+   *
+   * Carries hosts, purposes and actions - no regime, citation or requirement.
+   * The reasoning happened server-side; the browser applies an approved
+   * configuration and does not re-derive it.
+   */
+  enforcement: EnforcementConfig | null;
+  /**
    * Whether the operator has done enough for the banner to be meaningful.
    *
    * False when no purposes are declared. The runtime then renders nothing at
@@ -345,4 +357,74 @@ export interface OverrideSummary {
 
 export interface OverrideListResponse {
   overrides: OverrideSummary[];
+}
+
+// ─── Phase 9B: enforcement ───────────────────────────────────────────────────
+
+/**
+ * How hard the runtime should act on the policy.
+ *
+ * `observe` exists because turning enforcement on for the first time is the
+ * most dangerous thing an operator can do to their own site: a mis-scoped rule
+ * breaks a checkout, and they will find out from customers. In `observe` the
+ * runtime decides exactly as it would in `enforce` and reports what it *would*
+ * have blocked, without blocking. The default is `observe` for that reason —
+ * an operator turns enforcement on deliberately, having looked.
+ */
+export type EnforcementMode = "off" | "observe" | "enforce";
+
+/**
+ * One host the runtime should act on, and the purpose it hangs off.
+ *
+ * Hosts are suffix patterns resolved **server-side** from the vendor catalogue,
+ * because an operator approves a policy about a *vendor* while a browser has to
+ * decide about a *host*. Doing the resolution here keeps the catalogue out of
+ * every customer's page and keeps classification and enforcement matching the
+ * same way — a vendor classified one way and enforced another would be a bug
+ * nobody could see.
+ */
+export interface EnforcementRule {
+  /** Suffix pattern: matches the host itself and any subdomain of it. */
+  host: string;
+  /** Display name, for the test-mode table. */
+  vendor: string;
+  /** The purpose that must be granted. Null means no purpose gates it. */
+  purpose: string | null;
+  /** allow | require_consent | block */
+  action: "allow" | "require_consent" | "block";
+}
+
+export interface EnforcementConfig {
+  mode: EnforcementMode;
+  rules: EnforcementRule[];
+  /**
+   * What to do with a host no rule matches.
+   *
+   * `allow` by default, and that default is a deliberate, stated choice rather
+   * than an oversight. Blocking every unrecognised host would break the site
+   * being protected — fonts, CDNs, payment providers and the customer's own
+   * API are all unmatched — and a consent tool that takes a site down is one
+   * that gets removed. The scanner's job is to shrink this set by naming what
+   * is actually there; `block` is available for an operator who has done that
+   * work and wants a default-deny posture.
+   */
+  unknown_host: "allow" | "block";
+}
+
+/** One enforcement decision, as the test mode reports it. */
+export interface EnforcementDecision {
+  /** The host or script URL the decision was about. */
+  resource: string;
+  vendor: string | null;
+  purpose: string | null;
+  /** granted | denied | withdrawn | undecided — the visitor's state. */
+  user_state: string;
+  /** The rule that matched, or null where none did. */
+  policy: EnforcementRule | null;
+  decision: "allow" | "block";
+  /** Why, in words. The column the brief asks for. */
+  reason: string;
+  /** True when the decision was observed rather than applied. */
+  observed_only: boolean;
+  at: string;
 }

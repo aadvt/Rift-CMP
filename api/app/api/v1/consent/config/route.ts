@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import {
   getApprovedPolicyVersion,
+  hostsForVendor,
   listNotices,
   listPurposes,
   prisma,
@@ -8,7 +9,11 @@ import {
 import type { ConsentConfigResponse } from "@rift-cmp/shared";
 import { setCorsHeaders } from "@/lib/cors";
 import { guardIngest } from "@/lib/ingest-guard";
-import { buildRuntimeConfig, vendorsByPurposeFrom } from "@/lib/consent-config";
+import {
+  buildRuntimeConfig,
+  enforcementFrom,
+  vendorsByPurposeFrom,
+} from "@/lib/consent-config";
 
 /**
  * The configuration the consent banner renders.
@@ -75,6 +80,13 @@ export async function GET(request: NextRequest): Promise<Response> {
     ? vendorsByPurposeFrom(approved.recommendations)
     : undefined;
 
+  // Enforcement rules exist only once a policy version is approved. Before
+  // that there is nothing an operator has agreed to enforce, and acting on an
+  // unapproved recommendation is exactly what Phase 9A refused to do.
+  const enforcement = approved
+    ? enforcementFrom(approved.recommendations, hostsForVendor)
+    : null;
+
   const config = buildRuntimeConfig({
     siteId: caller.siteId,
     purposes: purposes
@@ -87,6 +99,7 @@ export async function GET(request: NextRequest): Promise<Response> {
         isActive: p.is_active,
       })),
     vendorsByPurpose,
+    enforcement,
     notice: current
       ? {
           noticeId: current.notice_id,

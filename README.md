@@ -62,6 +62,17 @@ Nothing activates without a human: approving publishes an immutable version, and
 a database trigger refuses to rewrite one. See
 [docs/consent-autopilot.md](docs/consent-autopilot.md).
 
+Phase 9B makes the platform **enforce** the approved policy rather than only
+record a decision. The runtime applies host rules to `fetch`, `XMLHttpRequest`,
+`sendBeacon`, `Image.src` and script insertion, with a test mode that reports
+tracker, purpose, user state, policy, decision and reason for every call it saw.
+It defaults to `observe`, because turning enforcement on is the most dangerous
+thing an operator can do to their own site. The boundary is stated rather than
+glossed: a browser cannot stop a `<script src>` already in the served HTML, and
+it cannot see a server-to-server transfer - which is why the API re-derives
+consent from the append-only log instead of trusting a client-side flag. See
+[docs/enforcement.md](docs/enforcement.md).
+
 ## Repository layout
 
 | Path | Purpose |
@@ -146,6 +157,7 @@ Start with the first one; it is the entry point and links to the rest.
 - [Discovery](docs/discovery.md)
 - [Policy Engine](docs/policy-engine.md) - what a regime requires of an activity, and why it is not wired into a route
 - [Jurisdiction Resolution](docs/jurisdiction-resolution.md) - whose law is in play, and why an IP address never reaches it
+- [Enforcement](docs/enforcement.md) - acting on an approved policy, and the boundary of what a browser can stop
 - [Consent Autopilot](docs/consent-autopilot.md) - generating a recommended policy, and the human approval that publishes it
 - [Consent Experience](docs/consent-experience.md) - the banner, the preference centre, and the one snippet a customer pastes
 - [Website Scanner](docs/crawler.md) — the Playwright crawler used during onboarding
@@ -384,7 +396,7 @@ the policy engine and the 407 unit tests all run without it.
 From the repo root:
 
 ```bash
-npm run test:unit    # vitest: 503 tests, no database, a few seconds
+npm run test:unit    # vitest: 541 tests, no database, a few seconds
 npm run test:browser # vitest: 20 tests driving a real Chromium; needs the
                      # browser install in step 8b
 npm test             # vitest: unit plus integration; the integration half
@@ -405,7 +417,7 @@ The suite is split into two vitest projects, configured in `api/vitest.config.ts
 
 | Project | Files | Tests | Needs a database |
 | --- | --- | --- | --- |
-| `unit` | `keys.test.ts`, `secure-transfer-crypto.test.ts`, `dashboard-components.test.tsx`, `discovery-classification.test.ts`, `rate-limit.test.ts`, `origin-validation.test.ts`, `sdk-limits.test.ts`, `policy-rules.test.ts`, `policy-engine.test.ts`, `policy-boundary.test.ts`, `jurisdiction-resolution.test.ts`, `crawler-ssrf.test.ts`, `crawler-url.test.ts`, `crawler-detectors.test.ts`, `crawler-diff.test.ts`, `consent-experience.test.ts`, `autopilot.test.ts` | 503 | no |
+| `unit` | `keys.test.ts`, `secure-transfer-crypto.test.ts`, `dashboard-components.test.tsx`, `discovery-classification.test.ts`, `rate-limit.test.ts`, `origin-validation.test.ts`, `sdk-limits.test.ts`, `policy-rules.test.ts`, `policy-engine.test.ts`, `policy-boundary.test.ts`, `jurisdiction-resolution.test.ts`, `crawler-ssrf.test.ts`, `crawler-url.test.ts`, `crawler-detectors.test.ts`, `crawler-diff.test.ts`, `consent-experience.test.ts`, `autopilot.test.ts`, `enforcement.test.ts` | 541 | no |
 | `browser` | `crawler-browser.test.ts` | 20 | no, but needs Chromium |
 | `integration` | everything else under `api/tests/` | 324 | yes |
 
