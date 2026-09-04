@@ -28,7 +28,18 @@ const UNIT_TESTS = [
   "tests/crawler-ssrf.test.ts",
   "tests/crawler-url.test.ts",
   "tests/crawler-detectors.test.ts",
+  "tests/crawler-diff.test.ts",
 ];
+
+/**
+ * Tests that drive a real browser.
+ *
+ * Separate from `unit` because they need a Chromium binary that `npm install`
+ * does not fetch (`npx playwright install chromium`). Putting them in the fast
+ * loop would make a fresh clone fail with a missing-executable error - the same
+ * misleading failure the unit/integration split exists to prevent.
+ */
+const BROWSER_TESTS = ["tests/crawler-browser.test.ts"];
 
 export default defineConfig({
   resolve: {
@@ -51,9 +62,20 @@ export default defineConfig({
       {
         resolve: { alias: { "@": here } },
         test: {
+          name: "browser",
+          include: BROWSER_TESTS,
+          environment: "node",
+          // A real Chromium launch plus four crawls of a fixture site.
+          testTimeout: 180_000,
+          hookTimeout: 240_000,
+        },
+      },
+      {
+        resolve: { alias: { "@": here } },
+        test: {
           name: "integration",
           include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
-          exclude: ["node_modules/**", ...UNIT_TESTS],
+          exclude: ["node_modules/**", ...UNIT_TESTS, ...BROWSER_TESTS],
           globalSetup: ["./tests/setup/global-setup.ts"],
           // Every test file shares one database schema and truncates between
           // tests, so two files running at once would let one file's

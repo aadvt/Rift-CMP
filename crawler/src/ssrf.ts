@@ -270,8 +270,37 @@ const defaultResolver: Resolver = async (hostname) => {
  */
 export async function assertNavigable(
   raw: string,
-  options: { resolver?: Resolver } = {},
+  options: { resolver?: Resolver; allowPrivateTargets?: boolean } = {},
 ): Promise<SsrfVerdict> {
+  // `allowPrivateTargets` exists so the crawl can be exercised against a
+  // loopback fixture server, and for no other reason.
+  //
+  // Without it the rendering half of the crawler is untestable: the guard
+  // refuses 127.0.0.1 - correctly - so the only alternative is to point tests
+  // at the live internet, which makes them non-hermetic, slow and dependent on
+  // a third party's markup not changing. That trade produced a scanner whose
+  // Playwright half had never been executed by a test at all.
+  //
+  // It is deliberately a direct argument to `crawl()`, never a scan option and
+  // never anything the HTTP API can set: `POST /scans` validates the URL shape
+  // before a row exists, and the worker calls `crawl()` without this flag. A
+  // request cannot reach it. `crawler-ssrf.test.ts` asserts that the guard
+  // still refuses private space when it is absent, which is every production
+  // path.
+  if (options.allowPrivateTargets) {
+    let parsed: URL | null = null;
+    try {
+      parsed = new URL(raw);
+    } catch {
+      parsed = null;
+    }
+    // Still only http(s): the flag relaxes *where* a crawl may point, never
+    // which schemes it will speak.
+    if (parsed && (parsed.protocol === "http:" || parsed.protocol === "https:")) {
+      return allow([parsed.hostname.replace(/^\[|\]$/g, "")]);
+    }
+  }
+
   const shape = checkUrlShape(raw);
   if (!shape.allowed) return shape;
 
