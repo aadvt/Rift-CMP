@@ -8,7 +8,12 @@
  * fix a problem they do not have.
  */
 import { describe, expect, it } from "vitest";
-import { detectDrift, detectShadowTrackers, type IntelligenceInput } from "@/lib/intelligence";
+import {
+  buildPageIntelligence,
+  detectDrift,
+  detectShadowTrackers,
+  type IntelligenceInput,
+} from "@/lib/intelligence";
 import type { ScanResultsResponse, VendorRecommendation } from "@rift-cmp/shared";
 
 function technology(over: Partial<ScanResultsResponse["technologies"][number]> = {}) {
@@ -251,5 +256,101 @@ describe("drift", () => {
   it("carries the scan the difference was observed in", () => {
     const found = detectDrift(input({ baseline: results([]), results: results([technology()]) }));
     expect(found[0]?.evidence[0]?.scan_id).toBe("scan_2");
+  });
+});
+
+describe("page intelligence", () => {
+  function withPages(over: Partial<IntelligenceInput> = {}): IntelligenceInput {
+    const base = results([technology()]);
+    return input({
+      results: {
+        ...base,
+        pages: [{ url: "https://example.com/", title: "Home", status: 200 }],
+        scripts: [
+          { url: "https://www.google-analytics.com/ga.js", host: "www.google-analytics.com", inline: false, third_party: true, observed_on: "https://example.com/" },
+          { url: "https://example.com/app.js", host: "example.com", inline: false, third_party: false, observed_on: "https://example.com/" },
+          { url: "https://other.example/x.js", host: "other.example", inline: false, third_party: true, observed_on: "https://example.com/elsewhere" },
+        ],
+        cookies: [{ name: "_ga", domain: ".google-analytics.com", path: "/", expires: null, secure: true, http_only: false, same_site: "lax", third_party: true }],
+      } as never,
+      ...over,
+    });
+  }
+
+  it("returns nothing when the site has never been scanned", () => {
+    expect(buildPageIntelligence(input({ results: null }))).toEqual([]);
+  });
+
+  it("attributes a script to the page it was seen on, and only that page", () => {
+    const [page] = buildPageIntelligence(withPages());
+
+    expect(page?.url).toBe("https://example.com/");
+    expect(page?.components.map((c) => c.host)).toContain("www.google-analytics.com");
+    // Seen on a different page; including it would make the page view a lie.
+    expect(page?.components.map((c) => c.host)).not.toContain("other.example");
+  });
+
+  it("marks a script as observed and a cookie as inferred", () => {
+    // The distinction the whole view rests on: the crawler records cookies for
+    // the scan, not the page, so a cookie here matched a host rather than being
+    // seen.
+    const [page] = buildPageIntelligence(withPages());
+
+    expect(page?.components.find((c) => c.host === "www.google-analytics.com")?.attribution).toBe("observed");
+    expect(page?.cookies.every((c) => c.attribution === "inferred")).toBe(true);
+  });
+
+  it("carries the policy's answer verbatim rather than flattening it", () => {
+    const [page] = buildPageIntelligence(
+      withPages({ approved: [recommendation({ consent_requirement: "conditional" })] }),
+    );
+    const ga = page?.components.find((c) => c.host === "www.google-analytics.com");
+
+    // "conditional" and "unknown" are real answers from the engine and are
+    // never collapsed into a boolean.
+    expect(ga?.consent_required).toBe("conditional");
+  });
+
+  it("counts what needs review, which is the reason to open a page", () => {
+    const [page] = buildPageIntelligence(withPages({ approved: [] }));
+    expect(page?.summary.needs_review).toBeGreaterThan(0);
+  });
+
+  it("reports a page with no third-party components as quiet", () => {
+    const [page] = buildPageIntelligence(
+      input({
+        results: {
+          ...results([]),
+          pages: [{ url: "https://example.com/quiet", title: "Quiet", status: 200 }],
+          scripts: [{ url: "https://example.com/app.js", host: "example.com", inline: false, third_party: false, observed_on: "https://example.com/quiet" }],
+          cookies: [],
+        } as never,
+      }),
+    );
+
+    expect(page?.summary.third_party).toBe(0);
+    expect(page?.shadow_trackers).toEqual([]);
+    expect(page?.unresolved).toEqual([]);
+  });
+
+  it("lists a third-party host with no known vendor as unresolved, not as a tracker", () => {
+    const [page] = buildPageIntelligence(
+      input({
+        results: {
+          ...results([]),
+          pages: [{ url: "https://example.com/", title: "Home", status: 200 }],
+          scripts: [{ url: "https://unknown.example/x.js", host: "unknown.example", inline: false, third_party: true, observed_on: "https://example.com/" }],
+          cookies: [],
+        } as never,
+      }),
+    );
+
+    expect(page?.unresolved.map((u) => u.host)).toContain("unknown.example");
+    expect(page?.unresolved[0]?.confidence).toBe("low");
+  });
+
+  it("shows the policy version its judgements were made against", () => {
+    const [page] = buildPageIntelligence(withPages({ policyVersion: 7 }));
+    expect(page?.policy_version).toBe(7);
   });
 });

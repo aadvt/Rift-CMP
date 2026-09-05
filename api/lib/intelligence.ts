@@ -2,6 +2,9 @@ import type {
   ClassifiedComponent,
   DriftFinding,
   FindingSeverity,
+  PageCookie,
+  PageComponent,
+  PageIntelligence,
   ScanResultsResponse,
   ShadowTracker,
   ShadowTrackerReason,
@@ -373,4 +376,184 @@ export function buildSiteIntelligence(input: IntelligenceInput): SiteIntelligenc
     drift: detectDrift(input),
     legal_advice: false,
   };
+}
+
+/**
+ * What is happening on one page, and how firmly we know it.
+ *
+ * ## Page attribution is thinner than it looks
+ *
+ * The crawler records scripts with the page they were seen on, and in-page
+ * discovery records the page a request came from. Cookies and network requests
+ * are aggregated across the whole scan — there is no page on those rows.
+ *
+ * So a cookie shown against a page is a host match, not a sighting, and it is
+ * marked `inferred` rather than `observed`. The alternative was to leave
+ * cookies out of the page view entirely, which would have been honest and much
+ * less useful; marking the claim is better than dropping it or overstating it.
+ */
+export function buildPageIntelligence(
+  input: IntelligenceInput & { shadowTrackers?: ShadowTracker[]; drift?: DriftFinding[] },
+): PageIntelligence[] {
+  const results = input.results;
+  if (!results) return [];
+
+  const shadow = input.shadowTrackers ?? detectShadowTrackers(input);
+  const drift = input.drift ?? detectDrift(input);
+
+  const technologyByHost = new Map<string, (typeof results.technologies)[number]>();
+  for (const tech of results.technologies) {
+    // The catalogue keys on detector id; hosts are matched loosely because a
+    // script URL and a detector id rarely spell a vendor the same way.
+    technologyByHost.set(tech.detector_id.toLowerCase(), tech);
+    technologyByHost.set(tech.name.toLowerCase().replace(/\s+/g, ""), tech);
+  }
+
+  const findTech = (host: string) => {
+    const h = host.toLowerCase();
+    for (const [key, tech] of technologyByHost) {
+      if (key.length > 3 && (h.includes(key) || key.includes(h.split(".")[0] ?? ""))) return tech;
+    }
+    return null;
+  };
+
+  const jurisdictions = input.approved[0]?.jurisdictions ?? [];
+
+  return results.pages.map((page) => {
+    const components: PageComponent[] = [];
+    const seen = new Set<string>();
+
+    const push = (c: PageComponent) => {
+      const key = `${c.host}:${c.observed_as}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      components.push(c);
+    };
+
+    // Scripts carry the page they were seen on, so these are genuine sightings.
+    for (const script of results.scripts) {
+      if (script.observed_on !== page.url || !script.host) continue;
+
+      const tech = findTech(script.host);
+      const rec = tech ? recommendationFor(input.approved, tech.detector_id, tech.name) : null;
+
+      push({
+        host: script.host,
+        vendor: rec?.vendor_name ?? tech?.name ?? null,
+        category: tech?.category === "unclassified" ? null : (tech?.category ?? null),
+        third_party: script.third_party,
+        confidence: tech?.confidence ?? "low",
+        attribution: "observed",
+        observed_as: "script",
+        purpose: rec?.suggested_purpose ?? null,
+        policy_action: rec?.recommended_action ?? null,
+        consent_required: rec?.consent_requirement ?? null,
+        enforcement: rec ? (rec.recommended_action === "block" ? "enforce" : "observe") : null,
+        destination_country: tech?.destination_country ?? null,
+        crosses_border: Boolean(tech?.crosses_border),
+      });
+    }
+
+    // Runtime discovery records the page a request came from, so these are
+    // sightings too — and stronger ones, since they happened to a real visitor.
+    for (const component of input.runtime) {
+      if (component.page_url !== page.url) continue;
+      const rec = recommendationFor(input.approved, component.host, component.vendor);
+
+      push({
+        host: component.host,
+        vendor: component.vendor,
+        category: component.category,
+        third_party: component.third_party,
+        confidence: component.vendor ? "high" : "low",
+        attribution: "observed",
+        observed_as: `runtime ${component.kind}`,
+        purpose: rec?.suggested_purpose ?? null,
+        policy_action: rec?.recommended_action ?? null,
+        consent_required: rec?.consent_requirement ?? null,
+        enforcement: rec ? (rec.recommended_action === "block" ? "enforce" : "observe") : null,
+        destination_country: component.destination_country,
+        crosses_border: component.crosses_border,
+      });
+    }
+
+    const hostsOnPage = new Set(components.map((c) => c.host.toLowerCase()));
+
+    // Matched, not observed. See the note above.
+    const cookies: PageCookie[] = results.cookies
+      .filter((cookie) =>
+        [...hostsOnPage].some(
+          (host) => host.endsWith(cookie.domain.replace(/^\./, "")) || cookie.domain.includes(host),
+        ),
+      )
+      .map((cookie) => ({
+        name: cookie.name,
+        domain: cookie.domain,
+        third_party: cookie.third_party,
+        attribution: "inferred" as const,
+      }));
+
+    const pageHosts = new Set(components.map((c) => c.host));
+
+    /**
+     * Whether a site-level finding belongs to this page.
+     *
+     * Loose on purpose. A finding derived from a detected technology carries a
+     * display name — "Google Analytics" — while a page carries a host —
+     * `www.google-analytics.com`. Matching those exactly finds nothing, so every
+     * finding would be site-level and no page would ever show one, which is the
+     * failure this comparison exists to avoid. Compared on a squashed form of
+     * both the finding's host and its vendor name.
+     */
+    const squash = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const pageKeys = [...pageHosts, ...components.map((c) => c.vendor ?? "")]
+      .filter(Boolean)
+      .map(squash);
+
+    const belongsToPage = (host: string | null, vendor: string | null) => {
+      const candidates = [host, vendor].filter((v): v is string => Boolean(v)).map(squash);
+      return candidates.some((candidate) =>
+        pageKeys.some(
+          (key) => key.length > 3 && candidate.length > 3 && (key.includes(candidate) || candidate.includes(key)),
+        ),
+      );
+    };
+
+    const pageShadow = shadow.filter(
+      (s) => s.pages.includes(page.url) || belongsToPage(s.host, s.vendor),
+    );
+    const pageDrift = drift.filter((d) => belongsToPage(d.host, d.vendor));
+
+    const purposes = [...new Set(components.map((c) => c.purpose).filter((p): p is string => Boolean(p)))];
+    const dataCategories = [
+      ...new Set(
+        input.approved
+          .filter((r) => pageHosts.has(r.vendor_name) || [...pageHosts].some((h) => h.includes(r.detector_id)))
+          .flatMap((r) => r.data_categories),
+      ),
+    ];
+
+    return {
+      url: page.url,
+      title: page.title,
+      status: page.status,
+      components,
+      cookies,
+      purposes,
+      data_categories: dataCategories,
+      jurisdictions,
+      policy_version: input.policyVersion,
+      shadow_trackers: pageShadow,
+      drift: pageDrift,
+      unresolved: components
+        .filter((c) => c.third_party && c.vendor === null)
+        .map((c) => ({ host: c.host, confidence: c.confidence })),
+      summary: {
+        components: components.length,
+        third_party: components.filter((c) => c.third_party).length,
+        // The reason to open this page: things nobody has decided about.
+        needs_review: pageShadow.length,
+      },
+    };
+  });
 }

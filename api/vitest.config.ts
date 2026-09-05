@@ -21,6 +21,8 @@ const UNIT_TESTS = [
   "tests/site-status.test.tsx",
   "tests/consent-intelligence.test.ts",
   "tests/consent-quality.test.ts",
+  "tests/ai-assist.test.ts",
+  "tests/autopilot-intelligence.test.ts",
   "tests/discovery-classification.test.ts",
   "tests/rate-limit.test.ts",
   "tests/origin-validation.test.ts",

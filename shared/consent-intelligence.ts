@@ -116,33 +116,81 @@ export interface SiteIntelligence {
   legal_advice: false;
 }
 
+/**
+ * How strongly a statement is held.
+ *
+ * The distinction exists because a page view mixes four different kinds of
+ * claim and presenting them alike is how an inference gets quoted back as a
+ * measurement:
+ *
+ *   `observed`   — seen on this page, by the crawler or in a real browser.
+ *   `configured` — the operator's approved decision about it.
+ *   `inferred`   — attributed to this page by matching, not by observation.
+ *                  The crawler aggregates cookies and network requests across a
+ *                  site rather than per page, so anything cookie-shaped on a
+ *                  page view is a match on host, not a sighting.
+ *   `enforced`   — the runtime acted, or would have.
+ *   `unknown`    — the question was asked and has no answer yet.
+ */
+export type Attribution = "observed" | "configured" | "inferred" | "enforced" | "unknown";
+
+export interface PageComponent {
+  host: string;
+  vendor: string | null;
+  category: string | null;
+  third_party: boolean;
+  confidence: "high" | "medium" | "low";
+  /** Where the claim that this is on *this page* comes from. */
+  attribution: Attribution;
+  /** How it was seen: a script tag, a network request in a real browser… */
+  observed_as: string;
+  purpose: string | null;
+  policy_action: string | null;
+  /** The engine's answer, carried verbatim. Never flattened to a boolean. */
+  consent_required: string | null;
+  /** `enforce` | `observe` | `off` | null when no policy is approved. */
+  enforcement: string | null;
+  destination_country: string | null;
+  crosses_border: boolean;
+}
+
+export interface PageCookie {
+  name: string;
+  domain: string;
+  third_party: boolean;
+  /**
+   * Always `inferred`. The crawler records cookies for the whole scan, not per
+   * page, so a cookie shown against a page matched a host seen on it. Saying
+   * "observed" would be a stronger claim than the data supports.
+   */
+  attribution: Attribution;
+}
+
 export interface PageIntelligence {
   url: string;
   title: string | null;
-  /** Trackers and services observed on this page. */
-  components: Array<{
-    host: string;
-    vendor: string | null;
-    category: string | null;
-    third_party: boolean;
-    confidence: "high" | "medium" | "low";
-    purpose: string | null;
-    policy_action: string | null;
-    consent_required: string | null;
-    destination_country: string | null;
-    crosses_border: boolean;
-  }>;
-  cookies: Array<{ name: string; domain: string; third_party: boolean }>;
+  status: number | null;
+  components: PageComponent[];
+  cookies: PageCookie[];
   /** Purposes any component on this page is attached to. */
   purposes: string[];
   /** Canonical data categories the regimes in play attach to these vendors. */
   data_categories: string[];
   /** Jurisdictions the approved policy was generated under. */
   jurisdictions: string[];
+  /** The approved version these judgements were made against. */
+  policy_version: number | null;
   shadow_trackers: ShadowTracker[];
   drift: DriftFinding[];
   /** Components the scanner could not classify. Never called trackers. */
   unresolved: Array<{ host: string; confidence: "high" | "medium" | "low" }>;
+  /**
+   * Counts a person can scan before reading the detail.
+   *
+   * `needs_review` is the number of things on this page nobody has decided
+   * about — the reason to open it.
+   */
+  summary: { components: number; third_party: number; needs_review: number };
 }
 
 export interface SiteIntelligenceResponse {
@@ -151,4 +199,62 @@ export interface SiteIntelligenceResponse {
 
 export interface PageIntelligenceResponse {
   pages: PageIntelligence[];
+}
+
+/**
+ * A recommendation with everything now known about it attached.
+ *
+ * Deliberately a wrapper rather than a replacement. The deterministic
+ * `VendorRecommendation` is carried through untouched under `recommendation`,
+ * and everything the intelligence layer or a model adds sits beside it. That
+ * shape is the guarantee: there is no field here through which a finding or a
+ * model could alter what the engine decided.
+ */
+export interface EnrichedRecommendation {
+  /** The deterministic recommendation, verbatim. */
+  recommendation: unknown;
+  /** Why this is near the top of the list, in one sentence. */
+  priority_reason: string;
+  /** Higher is more urgent. Derived from evidence, not from a model. */
+  priority: number;
+  /** Findings about this vendor, if any. */
+  shadow_trackers: ShadowTracker[];
+  drift: DriftFinding[];
+  /** Pages this vendor was observed on, when page attribution exists. */
+  observed_on_pages: string[];
+  /** Advisory only. Null when no provider is configured or the reply failed validation. */
+  ai: {
+    provider: string;
+    model: string;
+    advisory: true;
+    suggested_category: string | null;
+    reasoning: string;
+    confidence: number;
+    ambiguous: boolean;
+  } | null;
+}
+
+export interface AutopilotIntelligence {
+  site_id: string;
+  generated_at: string;
+  /** Ordered: the thing most worth a person's attention first. */
+  recommendations: EnrichedRecommendation[];
+  /** Present only when a provider answered and passed validation. */
+  ai_summary: {
+    provider: string;
+    model: string;
+    advisory: true;
+    summary: string;
+    ambiguities: string[];
+    confidence: number;
+  } | null;
+  /** True when a provider is configured, whether or not it answered. */
+  ai_configured: boolean;
+  /** Always true: nothing here is applied without a person approving it. */
+  requires_approval: true;
+  legal_advice: false;
+}
+
+export interface AutopilotIntelligenceResponse {
+  autopilot: AutopilotIntelligence;
 }
