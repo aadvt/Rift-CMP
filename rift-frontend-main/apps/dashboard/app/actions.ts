@@ -70,7 +70,7 @@ export async function restoreRiftRecommendation(siteId: string, technologyId: st
  * an error screen and lose what they typed.
  */
 export async function signUp(input: { email: string; password: string; website?: string }): Promise<
-  { ok: true; siteId: string | null } | { ok: false; message: string }
+  { ok: true; siteId: string | null; scanId: string | null } | { ok: false; message: string }
 > {
   let response: Response;
   try {
@@ -101,16 +101,17 @@ export async function signUp(input: { email: string; password: string; website?:
   await writeSessionToken(body.session_token, body.expires_at);
 
   const siteId = body.site?.site_id ?? null;
+  let scanId: string | null = null;
   if (siteId) {
     // The scan is started here rather than by the signup endpoint: creating an
     // account and crawling somebody's website are different acts, and the one
     // that reaches out to the internet belongs where it can be seen.
-    await rescanSite(siteId).catch(() => null);
+    scanId = (await rescanSite(siteId).catch(() => null))?.scanId ?? null;
     await selectSite(siteId);
   }
 
   revalidateTag('sites');
-  return { ok: true, siteId };
+  return { ok: true, siteId, scanId };
 }
 
 /**

@@ -42,9 +42,16 @@ export function SignUpForm({ className, website }: { className?: string; website
         setError(result.message);
         return;
       }
-      // Straight to the site if one was created, so the scan is the first thing
-      // seen. Otherwise the dashboard, which will ask for a website.
-      router.push(result.siteId ? `/dashboard/sites/${result.siteId}` : '/dashboard');
+      // Straight to the running scan. Watching Rift work through the site is
+      // the thing somebody just signed up to see, and a site page showing
+      // nothing yet makes the product look like it did nothing.
+      router.push(
+        result.scanId
+          ? `/dashboard/scans/${result.scanId}`
+          : result.siteId
+            ? `/dashboard/sites/${result.siteId}`
+            : '/dashboard',
+      );
     });
   }
 
