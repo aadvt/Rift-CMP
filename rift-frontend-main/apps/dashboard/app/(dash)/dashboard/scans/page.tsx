@@ -3,6 +3,7 @@ import { Button, Card, CardHeader, Chip, EmptyState, Icon } from '@rift/ui';
 import { ScreenHeader, Screen } from '@/components/shell/ScreenHeader';
 import { listScans } from '@/lib/api/endpoints';
 import { requireSiteId } from '@/lib/current-site';
+import { RunScanButton } from '@/components/RunScanButton';
 
 export const metadata = { title: 'Scans' };
 
@@ -12,7 +13,7 @@ export default async function ScansPage() {
 
   return (
     <>
-      <ScreenHeader title="Scans" actions={<Button variant="filled" icon="scans">Run scan now</Button>} />
+      <ScreenHeader title="Scans" actions={<RunScanButton siteId={siteId} />} />
       <Screen>
         <Card>
           <div className="border-b border-md-outline-variant p-5 md:px-6">
@@ -76,7 +77,7 @@ export default async function ScansPage() {
                           : <span className="text-md-on-surface-variant/75">No change</span>}
                       </td>
                       <td className="border-b border-md-outline-variant/40 px-4 py-[13px] text-right">
-                        <Link href="/dashboard/scans/compare" className="inline-block opacity-0 transition-opacity duration-[--md-duration-fast] group-hover:opacity-100">
+                        <Link href={`/dashboard/scans/compare?compared=${s.scanId}`} className="inline-block opacity-0 transition-opacity duration-[--md-duration-fast] group-hover:opacity-100">
                           <Button size="sm" variant="tonal">Compare</Button>
                         </Link>
                       </td>

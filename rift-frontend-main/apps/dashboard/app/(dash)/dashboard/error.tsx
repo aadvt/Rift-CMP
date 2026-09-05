@@ -17,7 +17,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
           title={title}
           actions={<>
             <Button size="sm" variant="tonal" icon="refresh" onClick={reset}>Try again</Button>
-            <Button size="sm" variant="text">Contact support</Button>
+            
           </>}
         >
           {body}

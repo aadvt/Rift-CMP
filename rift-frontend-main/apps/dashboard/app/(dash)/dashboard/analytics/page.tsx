@@ -12,7 +12,7 @@ export default async function AnalyticsPage() {
 
   return (
     <>
-      <ScreenHeader title="Analytics" badge={<ConsentAffected />} actions={<Button variant="filled" icon="settings">Configure analytics</Button>} />
+      <ScreenHeader title="Analytics" badge={<ConsentAffected />}  />
       <Screen>
         <div className="flex flex-col gap-5">
           <div>
@@ -27,7 +27,6 @@ export default async function AnalyticsPage() {
             tone="neutral"
             icon="consent"
             title="Analytics and consent are measured separately"
-            actions={<Button size="sm" variant="tonal">See consent breakdown</Button>}
           >
             {a.analyticsConsentRate}% of visitors allowed the Analytics category in the last 14 days. Everything on this
             screen is measured from those visitors — Rift does not estimate or model the rest.

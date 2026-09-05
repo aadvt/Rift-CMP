@@ -26,7 +26,7 @@ export default async function ConsentPage() {
 
   return (
     <>
-      <ScreenHeader title="Consent" badge={<ConsentAffected />} actions={<Button variant="filled" icon="settings">Edit consent configuration</Button>} />
+      <ScreenHeader title="Consent" badge={<ConsentAffected />}  />
       <Screen>
         <div className="flex flex-col gap-5">
           <div>

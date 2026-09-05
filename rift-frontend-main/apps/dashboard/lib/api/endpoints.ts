@@ -294,6 +294,28 @@ export async function getSite(siteId: string): Promise<Site> {
  * the same decision: they asked for their website to be looked at, not for a
  * record to exist.
  */
+/**
+ * Scans a website Rift already knows about.
+ *
+ * Distinct from `createSite`, which is for a website nobody has entered yet.
+ * The starting point is the site's own address: the crawler follows links from
+ * wherever it begins, so re-scanning from the root is the comparable run — a
+ * scan that started somewhere else would produce a diff full of differences
+ * that are really just a different starting point.
+ */
+export async function rescanSite(siteId: string): Promise<{ scanId: string }> {
+  if (USE_FIXTURES) return { scanId: 'scn_8842' };
+
+  const site = await riftFetch<W.WireSite>(`${V1}/sites/${siteId}`, { ...LIVE });
+  const scan = await riftFetch<W.WireCreateScanResponse>(`${V1}/sites/${siteId}/scans`, {
+    method: 'POST',
+    body: { start_url: `https://${site.domain}` },
+    ...LIVE,
+  });
+
+  return { scanId: scan.scan.scan_id };
+}
+
 export async function createSite(url: string): Promise<{ siteId: string; scanId: string }> {
   if (USE_FIXTURES) return { siteId: 'site_9fb2c41a', scanId: 'scn_8841' };
 
@@ -454,18 +476,37 @@ export async function getConfiguration(siteId: string): Promise<RiftConfiguratio
     })(),
   ]);
 
-  // The rows still waiting on a person, as full findings so the review screen
-  // can show the same evidence the scan screen did.
+  /**
+   * The rows still waiting on a person, as full findings so the review screen
+   * can show the same evidence the scan screen did.
+   *
+   * A finding counts as unresolved only while **nobody has decided it**. An
+   * overridden vendor is resolved by definition — somebody looked at it and
+   * said what should happen — and continuing to count it produced screens that
+   * disagreed about the same site: an overview saying one item needed
+   * attention beside a configuration page saying two. Both were reading real
+   * data; they simply meant different things by the same word.
+   *
+   * The operator's decision is the one that settles it, which is the same rule
+   * the platform applies when it marks a recommendation `overridden`.
+   */
+  const overrides = await listOverrides(siteId).catch(() => []);
+  const decided = new Set(overrides.map((o) => o.detector_id));
+
   const unresolved = results
     ? adapt
         .toFindings({
           results,
           recommendations: policy.policy.recommendations,
-          overrides: await listOverrides(siteId).catch(() => []),
+          overrides,
           approved: policy.active_version,
           purposeNames,
         })
-        .filter((finding) => finding.confidence === 'unresolved' || finding.status === 'needs_review')
+        .filter(
+          (finding) =>
+            !decided.has(finding.findingId) &&
+            (finding.confidence === 'unresolved' || finding.status === 'needs_review'),
+        )
     : [];
 
   return adapt.toConfiguration({

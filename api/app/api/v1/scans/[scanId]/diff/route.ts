@@ -30,6 +30,20 @@ import { toScanMetadata, toScanResults } from "@/lib/scan-view";
  * exist.
  */
 
+/** What a scan with no predecessor compares to: nothing, reported as nothing. */
+const EMPTY_DIFF = {
+  entries: [],
+  totals: { new: 0, removed: 0, changed: 0, unchanged: 0 },
+  byKind: {
+    cookie: { new: 0, removed: 0, changed: 0, unchanged: 0 },
+    script: { new: 0, removed: 0, changed: 0, unchanged: 0 },
+    request: { new: 0, removed: 0, changed: 0, unchanged: 0 },
+    storage: { new: 0, removed: 0, changed: 0, unchanged: 0 },
+    technology: { new: 0, removed: 0, changed: 0, unchanged: 0 },
+  },
+  legalAdvice: false as const,
+};
+
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ scanId: string }> },
@@ -87,22 +101,35 @@ export async function GET(
   const after = toScanResults(compared);
   const before = baseline ? toScanResults(baseline) : null;
 
-  const diff = diffScans(
-    {
-      cookies: before?.cookies ?? [],
-      scripts: before?.scripts ?? [],
-      requests: before?.requests ?? [],
-      storage: before?.storage ?? [],
-      technologies: before?.technologies ?? [],
-    },
-    {
-      cookies: after.cookies,
-      scripts: after.scripts,
-      requests: after.requests,
-      storage: after.storage,
-      technologies: after.technologies,
-    },
-  );
+  /**
+   * With no baseline the answer is an empty diff, not "everything is new".
+   *
+   * Diffing against empty arrays is the obvious implementation and it is wrong:
+   * it reports a site's first scan as twenty-five things having just appeared,
+   * which is what a screen then renders as "Added 25 · seen for the first time".
+   * Nothing was added. Rift had simply never looked before, and "this is the
+   * first scan" and "these things appeared since last time" are different
+   * statements — a caller has to be able to tell them apart, which is exactly
+   * what `baseline_scan_id: null` alongside an empty diff says.
+   */
+  const diff = before
+    ? diffScans(
+        {
+          cookies: before.cookies,
+          scripts: before.scripts,
+          requests: before.requests,
+          storage: before.storage,
+          technologies: before.technologies,
+        },
+        {
+          cookies: after.cookies,
+          scripts: after.scripts,
+          requests: after.requests,
+          storage: after.storage,
+          technologies: after.technologies,
+        },
+      )
+    : EMPTY_DIFF;
 
   return Response.json(
     {

@@ -1,7 +1,7 @@
 'use server';
 import { cookies } from 'next/headers';
 import { revalidateTag } from 'next/cache';
-import { createSite, acceptConfiguration, overrideTechnology, restoreRecommendation } from '@/lib/api/endpoints';
+import { createSite, rescanSite, acceptConfiguration, overrideTechnology, restoreRecommendation } from '@/lib/api/endpoints';
 import { SITE_COOKIE } from '@/lib/current-site';
 
 /** Server Actions are the only write path. Each one invalidates the tags the
@@ -24,6 +24,13 @@ export async function startScan(url: string) {
  * credential server-side, so a tampered value resolves to nothing rather than
  * to somebody else's website.
  */
+/** Re-scans a website already on the account, and refreshes the screens that show scans. */
+export async function runScan(siteId: string) {
+  const result = await rescanSite(siteId);
+  revalidateTag(`site:${siteId}`);
+  return result;
+}
+
 export async function selectSite(siteId: string) {
   (await cookies()).set(SITE_COOKIE, siteId, {
     httpOnly: true,
@@ -34,7 +41,7 @@ export async function selectSite(siteId: string) {
   });
 }
 
-export async function useRiftConfiguration(siteId: string) {
+export async function applyRiftConfiguration(siteId: string) {
   const result = await acceptConfiguration(siteId);
   revalidateTag(`config:${siteId}`);
   revalidateTag(`site:${siteId}`);

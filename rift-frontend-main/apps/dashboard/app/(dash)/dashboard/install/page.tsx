@@ -21,7 +21,7 @@ export default async function InstallPage() {
         crumb={[{ label: 'Sites', href: '/dashboard/sites' }, { label: 'Installation' }]}
         actions={
           <Link href="/dashboard/install/verify">
-            <Button variant="filled" iconAfter="arrowRight">I&rsquo;ve added the snippet</Button>
+            <Link href="/dashboard/install/verify"><Button variant="filled" iconAfter="arrowRight">I&rsquo;ve added the snippet</Button></Link>
           </Link>
         }
       />
@@ -73,7 +73,7 @@ export default async function InstallPage() {
                 </ul>
                 <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-md-outline-variant/40 pt-5">
                   <Link href="/dashboard/install/verify">
-                    <Button variant="filled" iconAfter="arrowRight">Verify installation</Button>
+                    <Link href="/dashboard/install/verify"><Button variant="filled" iconAfter="arrowRight">Verify installation</Button></Link>
                   </Link>
                   <span className="text-[12.5px] text-md-on-surface-variant/75">Verification takes about 10 seconds</span>
                 </div>

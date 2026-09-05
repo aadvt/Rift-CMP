@@ -14,6 +14,17 @@ const KIND = {
   changed: { label: 'Changed', icon: 'refresh' as const, wrap: 'bg-md-secondary-container/60 border-l-4 border-md-primary', pill: 'bg-md-secondary-container text-md-on-secondary-container' },
 };
 
+/** "Sep 5, 2026 · 09:14", from when the scan started. */
+function when(scan: { startedAt: string }): string {
+  const d = new Date(scan.startedAt);
+  return `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} · ${d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}`;
+}
+
+/** "Sep 5" — for a table header, where the year and time do not fit. */
+function shortWhen(scan: { startedAt: string }): string {
+  return new Date(scan.startedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
 export default async function ComparePage({
   searchParams,
 }: {
@@ -27,10 +38,43 @@ export default async function ComparePage({
     (s) => s.status === 'completed' || s.status === 'completed_with_limitations',
   );
   const compared = params.compared ?? finished[0]?.scanId ?? '';
-  const baseline = params.baseline ?? finished[1]?.scanId ?? '';
+
+  // The scan immediately before the one being looked at — not simply the
+  // second-newest. Those are the same thing only when the newest scan is the
+  // one selected, and picking the wrong pair produces a diff that is entirely
+  // real and answers a question nobody asked.
+  const comparedIndex = finished.findIndex((s) => s.scanId === compared);
+  const baseline =
+    params.baseline ?? (comparedIndex >= 0 ? (finished[comparedIndex + 1]?.scanId ?? '') : '');
   const diff = await getScanDiff(baseline, compared);
   const needsReview = [...diff.added, ...diff.changed].filter((d) => d.handling === 'needs_review').length;
   const total = diff.added.length + diff.removed.length + diff.changed.length;
+
+  // The two scans this comparison is actually about. Everything the header and
+  // the side-by-side table show is read from these, so a date or a count on
+  // screen is a date or a count from the database and never a placeholder that
+  // survived from the design.
+  const comparedScan = finished.find((s) => s.scanId === diff.comparedScanId) ?? null;
+  const baselineScan = finished.find((s) => s.scanId === diff.baselineScanId) ?? null;
+
+  /**
+   * Counts side by side, and only where there is something to compare against.
+   *
+   * With no baseline the column would be a row of zeroes, which reads as "your
+   * site had nothing and now has twelve cookies" rather than "this is the first
+   * time Rift looked". Those are different statements and only one of them is
+   * true, so the table is not rendered at all in that case.
+   */
+  const metrics: Array<[string, number, number]> =
+    baselineScan && comparedScan
+      ? [
+          ['Pages scanned', baselineScan.counts.pages, comparedScan.counts.pages],
+          ['Cookies', baselineScan.counts.cookies, comparedScan.counts.cookies],
+          ['Third-party services', baselineScan.counts.services, comparedScan.counts.services],
+          ['Technologies', baselineScan.counts.technologies, comparedScan.counts.technologies],
+          ['Unresolved findings', baselineScan.counts.unresolved, comparedScan.counts.unresolved],
+        ]
+      : [];
 
   return (
     <>
@@ -38,7 +82,6 @@ export default async function ComparePage({
         title="Compare scans"
         crumb={[{ label: 'Scans', href: '/dashboard/scans' }, { label: labelFor(diff.comparedScanId, diff.baselineScanId) }]}
         actions={<>
-          <Button variant="tonal" icon="download">Export comparison</Button>
           <Button variant="filled" iconAfter="arrowRight">Review {needsReview} change{needsReview === 1 ? '' : 's'}</Button>
         </>}
       />
@@ -48,9 +91,9 @@ export default async function ComparePage({
           <Card className="rounded-2xl">
             <CardBody className="flex flex-wrap items-center justify-between gap-8 p-7">
               <div className="flex flex-wrap items-end gap-4">
-                <Picker label="Baseline" value="Aug 28, 2026 · 09:12" />
+                <Picker label="Baseline" value={baselineScan ? when(baselineScan) : 'No earlier scan'} />
                 <Icon name="arrowRight" size={22} className="mb-3 text-md-on-surface-variant" />
-                <Picker label="Compared with" value="Sep 5, 2026 · 09:14" active />
+                <Picker label="Compared with" value={comparedScan ? when(comparedScan) : '—'} active />
               </div>
               <div className="flex flex-wrap items-center gap-8">
                 {([
@@ -84,12 +127,13 @@ export default async function ComparePage({
             </Card>
 
             <div className="flex flex-col gap-5">
+              {metrics.length > 0 ? (
               <Card className="overflow-hidden rounded-2xl">
                 <div className="p-7"><CardHeader title="Side by side" /></div>
                 <table className="w-full border-collapse">
                   <thead>
                     <tr>
-                      {['Metric', 'Aug 28', 'Sep 5', 'Change'].map((h, i) => (
+                      {['Metric', baselineScan ? shortWhen(baselineScan) : '—', comparedScan ? shortWhen(comparedScan) : '—', 'Change'].map((h, i) => (
                         <th key={h} className={cn('h-12 bg-md-surface-container px-4 text-label-small font-medium uppercase tracking-[0.08em] text-md-on-surface-variant', i === 0 ? 'pl-7 text-left' : 'text-right', i === 3 && 'pr-7')}>
                           {h}
                         </th>
@@ -97,10 +141,7 @@ export default async function ComparePage({
                     </tr>
                   </thead>
                   <tbody>
-                    {([
-                      ['Pages scanned', 41, 43], ['Cookies', 11, 12], ['Third-party services', 6, 7],
-                      ['Technologies', 10, 11], ['Third-party requests', 62, 64], ['Unresolved findings', 0, 1],
-                    ] as const).map(([m, a, b]) => {
+                    {metrics.map(([m, a, b]) => {
                       const d = b - a;
                       return (
                         <tr key={m} className="border-b border-md-outline-variant/40 last:border-0">
@@ -122,6 +163,16 @@ export default async function ComparePage({
                   </tbody>
                 </table>
               </Card>
+              ) : (
+                <Card className="rounded-2xl">
+                  <CardBody className="p-7">
+                    <CardHeader
+                      title="Nothing to compare against"
+                      sub="This is the first completed scan of this website, so there is no earlier one to measure it against. Counts appear here once a second scan finishes."
+                    />
+                  </CardBody>
+                </Card>
+              )}
 
               <Notice tone="success" icon="check" title={`Rift applied ${total - needsReview} of these ${total} changes for you`}>
                 Requests and cookies that matched technologies Rift already understands were folded into your

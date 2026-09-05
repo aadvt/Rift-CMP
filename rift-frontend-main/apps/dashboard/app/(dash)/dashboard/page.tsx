@@ -52,7 +52,7 @@ export default async function OverviewPage() {
         title="Overview"
         actions={
           <Link href="/dashboard/sites/new">
-            <Button variant="filled" icon="plus">Add website</Button>
+            <Link href="/dashboard/sites/new"><Button variant="filled" icon="plus">Add website</Button></Link>
           </Link>
         }
       />
