@@ -19,6 +19,7 @@ const UNIT_TESTS = [
   "tests/dashboard-components.test.tsx",
   "tests/setup-journey.test.tsx",
   "tests/site-status.test.tsx",
+  "tests/intelligence-ui.test.tsx",
   "tests/consent-intelligence.test.ts",
   "tests/consent-quality.test.ts",
   "tests/ai-assist.test.ts",
@@ -59,12 +60,19 @@ export default defineConfig({
   resolve: {
     alias: { "@": here },
   },
+  // The dashboard components live outside this workspace, so esbuild does not
+  // pick up `api/tsconfig.json` for them and falls back to the classic
+  // `React.createElement` transform - which throws "React is not defined" in
+  // files that never import React. Stating the transform here covers every
+  // file a test can reach, wherever it lives.
+  esbuild: { jsx: "automatic" },
   test: {
     // Applies to every project: no two test files run concurrently.
     fileParallelism: false,
     projects: [
       {
         resolve: { alias: { "@": here } },
+        esbuild: { jsx: "automatic" },
         test: {
           name: "unit",
           include: UNIT_TESTS,

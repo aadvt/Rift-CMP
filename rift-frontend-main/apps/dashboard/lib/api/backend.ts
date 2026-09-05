@@ -400,3 +400,189 @@ export interface WirePurpose {
   is_active: boolean;
   created_at: string;
 }
+
+/* ── Phase A: consent intelligence ───────────────────────────────────────── */
+
+export interface WireConsentBreakdownRow {
+  key: string | null;
+  label: string;
+  granted: number;
+  denied: number;
+  withdrawn: number;
+  total: number;
+  acceptance_rate: number | null;
+}
+
+export interface WireUnavailableDimension {
+  dimension: string;
+  reason: string;
+}
+
+export interface WireConsentAnalytics {
+  range: { from: string; to: string };
+  totals: { decisions: number; granted: number; denied: number; withdrawn: number; principals: number };
+  rates: {
+    acceptance_rate: number | null;
+    rejection_rate: number | null;
+    partial_rate: number | null;
+    withdrawal_rate: number | null;
+    principals: number;
+  };
+  by_purpose: WireConsentBreakdownRow[];
+  by_jurisdiction: WireConsentBreakdownRow[];
+  by_policy_version: WireConsentBreakdownRow[];
+  by_mechanism: WireConsentBreakdownRow[];
+  by_vendor: WireConsentBreakdownRow[];
+  by_site: WireConsentBreakdownRow[];
+  trend: Array<{ day: string; granted: number; denied: number; withdrawn: number }>;
+  unavailable_dimensions: WireUnavailableDimension[];
+}
+
+export interface WireQualityComponent {
+  id: string;
+  label: string;
+  ratio: number | null;
+  weight: number;
+  earned: number;
+  applicable: boolean;
+  detail: string;
+  remedy: string | null;
+}
+
+export interface WireQuality {
+  site_id: string;
+  score: number;
+  band: 'strong' | 'fair' | 'weak';
+  components: WireQualityComponent[];
+  not_applicable: string[];
+  weight_considered: number;
+  computed_at: string;
+  legal_advice: false;
+}
+
+export interface WireFindingEvidence {
+  source: 'scan' | 'runtime' | 'policy';
+  detail: string;
+  scan_id?: string;
+  observed_at?: string;
+}
+
+export interface WireShadowTracker {
+  id: string;
+  host: string;
+  vendor: string | null;
+  category: string | null;
+  reason: string;
+  severity: 'critical' | 'high' | 'medium' | 'low' | 'info';
+  pages: string[];
+  destination_country: string | null;
+  crosses_border: boolean;
+  confidence: 'high' | 'medium' | 'low';
+  approved: boolean;
+  purpose: string | null;
+  policy_action: string | null;
+  evidence: WireFindingEvidence[];
+  recommended_action: string;
+  first_seen: string | null;
+  last_seen: string | null;
+}
+
+export interface WireDriftFinding {
+  id: string;
+  kind: string;
+  severity: 'critical' | 'high' | 'medium' | 'low' | 'info';
+  host: string | null;
+  vendor: string | null;
+  page: string | null;
+  previous_state: string | null;
+  current_state: string;
+  policy_version: number | null;
+  evidence: WireFindingEvidence[];
+  recommended_action: string;
+}
+
+export interface WireSiteIntelligence {
+  site_id: string;
+  generated_at: string;
+  scan_id: string | null;
+  baseline_scan_id: string | null;
+  shadow_trackers: WireShadowTracker[];
+  drift: WireDriftFinding[];
+  legal_advice: false;
+}
+
+export interface WirePageIntelligence {
+  url: string;
+  title: string | null;
+  status: number | null;
+  components: Array<{
+    host: string;
+    vendor: string | null;
+    category: string | null;
+    third_party: boolean;
+    confidence: 'high' | 'medium' | 'low';
+    attribution: 'observed' | 'configured' | 'inferred' | 'enforced' | 'unknown';
+    observed_as: string;
+    purpose: string | null;
+    policy_action: string | null;
+    consent_required: string | null;
+    enforcement: string | null;
+    destination_country: string | null;
+    crosses_border: boolean;
+  }>;
+  cookies: Array<{ name: string; domain: string; third_party: boolean; attribution: string }>;
+  purposes: string[];
+  data_categories: string[];
+  jurisdictions: string[];
+  policy_version: number | null;
+  shadow_trackers: WireShadowTracker[];
+  drift: WireDriftFinding[];
+  unresolved: Array<{ host: string; confidence: 'high' | 'medium' | 'low' }>;
+  summary: { components: number; third_party: number; needs_review: number };
+}
+
+/**
+ * The advisory layer, kept structurally separate.
+ *
+ * `ai` and `ai_summary` are nullable on purpose and are the only fields a model
+ * ever touches. The deterministic `recommendation` travels beside them
+ * untouched, so a screen can render the decision with the commentary absent and
+ * lose nothing that matters.
+ */
+export interface WireAiNote {
+  provider: string;
+  model: string;
+  advisory: true;
+  suggested_category: string | null;
+  reasoning: string;
+  confidence: number;
+  ambiguous: boolean;
+}
+
+export interface WireEnrichedRecommendation {
+  recommendation: WireRecommendation;
+  priority: number;
+  priority_reason: string;
+  shadow_trackers: WireShadowTracker[];
+  drift: WireDriftFinding[];
+  observed_on_pages: string[];
+  ai: WireAiNote | null;
+}
+
+export interface WireAutopilotIntelligence {
+  site_id: string;
+  generated_at: string;
+  recommendations: WireEnrichedRecommendation[];
+  ai_summary: {
+    provider: string;
+    model: string;
+    advisory: true;
+    summary: string;
+    ambiguities: string[];
+    confidence: number;
+  } | null;
+  ai_configured: boolean;
+  /** Always true. Nothing here is applied without a person approving it. */
+  requires_approval: true;
+  legal_advice: false;
+}

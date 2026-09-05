@@ -728,3 +728,67 @@ export async function listChanges(siteId: string): Promise<ChangeEntry[]> {
 
   return adapt.toChanges(diff);
 }
+
+/* ── Phase A: consent intelligence ───────────────────────────────────────── */
+
+/**
+ * Consent decisions, counted.
+ *
+ * The platform already decided what can and cannot be broken down; this passes
+ * the answer through untouched, including `unavailable_dimensions`. Recomputing
+ * any of it here would put a second opinion about a tenant's own data in the
+ * frontend, which is the one place it must not live.
+ */
+export async function getConsentAnalytics(
+  siteId?: string,
+): Promise<W.WireConsentAnalytics | null> {
+  if (USE_FIXTURES) return null;
+  const query = siteId ? `?site_id=${encodeURIComponent(siteId)}` : '';
+  const body = await riftFetch<{ consent: W.WireConsentAnalytics }>(
+    `${V1}/analytics/consent${query}`,
+    { tags: [siteId ? tag.site(siteId) : tag.sites], revalidate: WINDOW.consent },
+  ).catch(() => null);
+  return body?.consent ?? null;
+}
+
+/** The posture score for one site, with every component's reasoning. */
+export async function getQuality(siteId: string): Promise<W.WireQuality | null> {
+  if (USE_FIXTURES) return null;
+  const body = await riftFetch<{ quality: W.WireQuality }>(`${V1}/sites/${siteId}/quality`, {
+    tags: [tag.config(siteId)],
+    revalidate: WINDOW.policy,
+  }).catch(() => null);
+  return body?.quality ?? null;
+}
+
+/** Shadow trackers and drift for one site. */
+export async function getIntelligence(siteId: string): Promise<W.WireSiteIntelligence | null> {
+  if (USE_FIXTURES) return null;
+  const body = await riftFetch<{ intelligence: W.WireSiteIntelligence }>(
+    `${V1}/sites/${siteId}/intelligence`,
+    { tags: [tag.config(siteId)], revalidate: WINDOW.policy },
+  ).catch(() => null);
+  return body?.intelligence ?? null;
+}
+
+/** Per-page intelligence for one site. */
+export async function getPageIntelligence(
+  siteId: string,
+): Promise<W.WirePageIntelligence[] | null> {
+  if (USE_FIXTURES) return null;
+  const body = await riftFetch<{ pages: W.WirePageIntelligence[] }>(
+    `${V1}/sites/${siteId}/pages`,
+    { tags: [tag.config(siteId)], revalidate: WINDOW.policy },
+  ).catch(() => null);
+  return body?.pages ?? null;
+}
+
+/** Recommendations ranked by evidence, with any advisory commentary attached. */
+export async function getAutopilot(siteId: string): Promise<W.WireAutopilotIntelligence | null> {
+  if (USE_FIXTURES) return null;
+  const body = await riftFetch<{ autopilot: W.WireAutopilotIntelligence }>(
+    `${V1}/sites/${siteId}/autopilot`,
+    { tags: [tag.config(siteId)], revalidate: WINDOW.policy },
+  ).catch(() => null);
+  return body?.autopilot ?? null;
+}

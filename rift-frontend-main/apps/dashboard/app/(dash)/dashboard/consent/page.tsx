@@ -2,7 +2,8 @@ import { Button, Card, CardBody, CardHeader, Chip, StatBlock } from '@rift/ui';
 import { series } from '@rift/tokens';
 import { ScreenHeader, Screen } from '@/components/shell/ScreenHeader';
 import { ConsentAffected, Donut, HBars, Legend } from '@/components/charts';
-import { getConsentOverview, listConsentRecords } from '@/lib/api/endpoints';
+import { getConsentAnalytics, getConsentOverview, listConsentRecords } from '@/lib/api/endpoints';
+import { ConsentAnalytics } from '@/components/intelligence/ConsentAnalytics';
 import { requireSiteId } from '@/lib/current-site';
 
 export const metadata = { title: 'Consent' };
@@ -16,7 +17,12 @@ const DECISION_TONE = {
 
 export default async function ConsentPage() {
   const siteId = await requireSiteId();
-  const [c, records] = await Promise.all([getConsentOverview(siteId), listConsentRecords(siteId)]);
+  const [c, records, analytics] = await Promise.all([
+    getConsentOverview(siteId),
+    listConsentRecords(siteId),
+    // Same filter semantics as the API: a site here means the same site there.
+    getConsentAnalytics(siteId),
+  ]);
 
   const slices = [
     { label: 'Accepted all', value: c.breakdown.acceptedAll },
@@ -28,6 +34,11 @@ export default async function ConsentPage() {
     <>
       <ScreenHeader title="Consent" badge={<ConsentAffected />}  />
       <Screen>
+        {/* The decisions themselves, with the dimensions Rift will not answer
+            named rather than shown as zero. */}
+        <div className="mb-6">
+          <ConsentAnalytics data={analytics} />
+        </div>
         <div className="flex flex-col gap-5">
           <div>
             <h2 className="text-headline-medium font-semibold tracking-[-0.014em] text-md-on-surface">Consent overview</h2>

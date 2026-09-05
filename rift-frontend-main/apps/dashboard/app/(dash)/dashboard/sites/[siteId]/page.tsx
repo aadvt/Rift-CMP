@@ -3,16 +3,29 @@ import type { Route } from 'next';
 import { Button, Card, CardBody, CardHeader, Chip, Icon, Notice, StatusDot } from '@rift/ui';
 import { ScreenHeader, Screen } from '@/components/shell/ScreenHeader';
 import { HBars } from '@/components/charts';
-import { getSite, getConfiguration, listChanges } from '@/lib/api/endpoints';
+import {
+  getSite,
+  getConfiguration,
+  listChanges,
+  getQuality,
+  getIntelligence,
+  getPageIntelligence,
+  getAutopilot,
+} from '@/lib/api/endpoints';
+import { IntelligenceSummary } from '@/components/intelligence/Summary';
 import { latestScanId } from '@/lib/current-site';
 
 export const metadata = { title: 'Site overview' };
 
 export default async function SiteOverviewPage({ params }: { params: Promise<{ siteId: string }> }) {
   const { siteId } = await params;
-  const [site, config, changes, scanId] = await Promise.all([
-    getSite(siteId), getConfiguration(siteId), listChanges(siteId), latestScanId(siteId),
-  ]);
+  const [site, config, changes, scanId, quality, intelligence, pages, autopilot] =
+    await Promise.all([
+      getSite(siteId), getConfiguration(siteId), listChanges(siteId), latestScanId(siteId),
+      // Each of these resolves to null on failure rather than throwing, so an
+      // intelligence outage costs the summary strip and nothing else on the page.
+      getQuality(siteId), getIntelligence(siteId), getPageIntelligence(siteId), getAutopilot(siteId),
+    ]);
 
   const unresolved = site.counts.unresolved;
 
@@ -39,6 +52,7 @@ export default async function SiteOverviewPage({ params }: { params: Promise<{ s
             ['Consent', '/dashboard/consent', false],
             ['Analytics', '/dashboard/analytics', false],
             ['Changes', `/dashboard/sites/${siteId}/changes`, false],
+            ['Intelligence', `/dashboard/sites/${siteId}/intelligence`, false],
           ] as const).map(([label, href, active]) => (
             <Link
               key={label}
@@ -57,6 +71,14 @@ export default async function SiteOverviewPage({ params }: { params: Promise<{ s
 
       <Screen>
         <div className="flex flex-col gap-5">
+          <IntelligenceSummary
+            siteId={siteId}
+            quality={quality}
+            intelligence={intelligence}
+            pages={pages}
+            autopilot={autopilot}
+          />
+
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)]">
             <Card>
               <CardBody>

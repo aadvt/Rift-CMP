@@ -19,6 +19,13 @@
       }
     ],
     "paths": {
+      // The dashboard's intelligence components are rendered by
+      // `tests/intelligence-ui.test.tsx`, and they import their wire types as
+      // `@/lib/api/backend` — where `@` means the dashboard app, not this one.
+      // Two projects legitimately own the same alias, so the shared module is
+      // named explicitly; it wins over the wildcard by specificity, and this
+      // app has no `lib/api/backend` of its own to shadow.
+      "@/lib/api/backend": ["../rift-frontend-main/apps/dashboard/lib/api/backend.ts"],
       "@/*": ["./*"]
     }
   },
