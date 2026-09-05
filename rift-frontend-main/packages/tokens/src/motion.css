@@ -1,0 +1,21 @@
+/* Shared motion the whole system draws on, so both apps animate identically.
+   Kept out of tokens.css because these are behaviours, not values. */
+
+/* A linear wipe. clip-path rather than transform: scaleX() so the panel's
+   contents never squash while it sweeps. The pair reads as one continuous
+   left-to-right motion across a navigation — the cover enters from the left
+   edge, and the reveal on the next page exits off the right. */
+@keyframes rift-wipe-cover {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+
+@keyframes rift-wipe-reveal {
+  from { clip-path: inset(0 0 0 0); }
+  to   { clip-path: inset(0 0 0 100%); }
+}
+
+@keyframes rift-wipe-label {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}

@@ -94,6 +94,8 @@ period the platform invents. See [docs/privacy-rights.md](docs/privacy-rights.md
 | `secure-transfer/` | The crypto boundary: `envelope.ts` (types, canonical AAD, digest, shape validation) is Rift-safe; `fiduciary.ts` (key generation, seal, open) belongs to the fiduciaries and is never imported by `api/` |
 | `policy/` | The policy engine and the jurisdiction resolver: the generic model, the topic disposition table, matrix compilation, the evaluator, and the versioned region-to-jurisdiction mapping. Reads the Phase 6B matrix; imports no route and no database |
 | `database/` | Prisma schema, generated client, migrations, credential/tenancy helpers, the consent and transfer service layers, the orchestration layer (`authorisation.ts`), the audit and analytics read models (`audit.ts`, `analytics.ts`), and seed data |
+| `crawler/` | The website scanner and the worker that performs queued scans |
+| `rift-frontend-main/` | The product UI — a separate Next.js workspace with its own lockfile that consumes `/api/v1` over HTTP like any other integrator. See [docs/frontend-integration.md](docs/frontend-integration.md) |
 
 ## What this repo owns
 
@@ -276,12 +278,29 @@ curl -H "Authorization: Bearer sk_..." http://127.0.0.1:3000/api/v1/sites
 Re-running the seed leaves existing organisations' secrets unchanged. Public keys
 are fixed and committed on purpose: they ship in browser code and are not secrets.
 
-### 5) Run the API locally
+### 5) Run it locally
 
-From the repo root, one command builds the SDK bundle and starts the app:
+From the repo root, one command starts the whole product — the platform, the
+scan worker, and the dashboard:
 
 ```bash
 npm run dev
+```
+
+Then open **http://localhost:3100/dashboard**.
+
+The worker is not optional: scans are queued by the API and performed by a
+separate process, so without it a scan sits at `queued` and the progress screen
+waits for something that never arrives. `npm run dev` starts it alongside the
+rest and restarts it if it drops.
+
+To run just one part:
+
+```bash
+npm run dev:api          # the platform on :3000 (builds the SDK bundle first)
+npm run dev:worker       # the scan worker
+npm run dev:dashboard    # the dashboard on :3100
+npm run dev:marketing    # the marketing site on :3200
 ```
 
 Or from `api/` alone, if the bundle is already built:

@@ -1,0 +1,92 @@
+/* Tailwind v4 consumes the tokens. The tokens do not know Tailwind exists —
+   swap this file out and the token layer is untouched.
+
+   Names mirror the MD3 colour roles exactly (`bg-md-primary`,
+   `text-md-on-surface-variant`), so a Material spec reads straight across
+   into markup with no translation step. */
+@import "./tokens.css";
+@import "./motion.css";
+
+@theme inline {
+  --color-md-primary:                var(--md-primary);
+  --color-md-on-primary:             var(--md-on-primary);
+  --color-md-primary-container:      var(--md-primary-container);
+  --color-md-on-primary-container:   var(--md-on-primary-container);
+
+  --color-md-secondary:              var(--md-secondary);
+  --color-md-on-secondary:           var(--md-on-secondary);
+  --color-md-secondary-container:    var(--md-secondary-container);
+  --color-md-on-secondary-container: var(--md-on-secondary-container);
+
+  --color-md-tertiary:               var(--md-tertiary);
+  --color-md-on-tertiary:            var(--md-on-tertiary);
+  --color-md-tertiary-container:     var(--md-tertiary-container);
+  --color-md-on-tertiary-container:  var(--md-on-tertiary-container);
+
+  --color-md-error:                  var(--md-error);
+  --color-md-on-error:               var(--md-on-error);
+  --color-md-error-container:        var(--md-error-container);
+  --color-md-on-error-container:     var(--md-on-error-container);
+
+  --color-md-success:                var(--md-success);
+  --color-md-on-success:             var(--md-on-success);
+  --color-md-success-container:      var(--md-success-container);
+  --color-md-on-success-container:   var(--md-on-success-container);
+
+  --color-md-warning:                var(--md-warning);
+  --color-md-on-warning:             var(--md-on-warning);
+  --color-md-warning-container:      var(--md-warning-container);
+  --color-md-on-warning-container:   var(--md-on-warning-container);
+
+  --color-md-background:             var(--md-background);
+  --color-md-on-background:          var(--md-on-background);
+  --color-md-surface:                var(--md-surface);
+  --color-md-on-surface:             var(--md-on-surface);
+  --color-md-surface-variant:        var(--md-surface-variant);
+  --color-md-on-surface-variant:     var(--md-on-surface-variant);
+
+  --color-md-surface-lowest:         var(--md-surface-container-lowest);
+  --color-md-surface-low:            var(--md-surface-container-low);
+  --color-md-surface-container:      var(--md-surface-container);
+  --color-md-surface-high:           var(--md-surface-container-high);
+  --color-md-surface-highest:        var(--md-surface-container-highest);
+
+  --color-md-inverse-surface:        var(--md-inverse-surface);
+  --color-md-inverse-on-surface:     var(--md-inverse-on-surface);
+  --color-md-inverse-primary:        var(--md-inverse-primary);
+
+  --color-md-outline:                var(--md-outline);
+  --color-md-outline-variant:        var(--md-outline-variant);
+
+  --color-md-series-1:               var(--md-series-1);
+  --color-md-series-2:               var(--md-series-2);
+  --color-md-series-3:               var(--md-series-3);
+
+  --font-sans: var(--md-font-sans);
+  --font-mono: var(--md-font-mono);
+
+  --text-display-large:   var(--md-display-large);
+  --text-headline-large:  var(--md-headline-large);
+  --text-headline-medium: var(--md-headline-medium);
+  --text-title-large:     var(--md-title-large);
+  --text-body-large:      var(--md-body-large);
+  --text-body-medium:     var(--md-body-medium);
+  --text-label-medium:    var(--md-label-medium);
+  --text-label-small:     var(--md-label-small);
+
+  --radius-xs:   var(--md-radius-xs);
+  --radius-sm:   var(--md-radius-sm);
+  --radius-md:   var(--md-radius-md);
+  --radius-lg:   var(--md-radius-lg);
+  --radius-xl:   var(--md-radius-xl);
+  --radius-2xl:  var(--md-radius-2xl);
+  --radius-3xl:  var(--md-radius-3xl);
+
+  --shadow-e1: var(--md-elevation-1);
+  --shadow-e2: var(--md-elevation-2);
+  --shadow-e3: var(--md-elevation-3);
+  --shadow-e4: var(--md-elevation-4);
+  --shadow-e5: var(--md-elevation-5);
+
+  --ease-md: var(--md-ease);
+}

@@ -1,0 +1,51 @@
+@import "tailwindcss";
+@import "@rift/tokens/tailwind.css";
+
+/* The marketing site inherits the token layer unchanged — same file the
+   dashboard imports. Tailwind cannot see workspace packages on its own. */
+@source "../../../packages/ui/src";
+
+@layer base {
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--md-background);
+    color: var(--md-on-surface-variant);
+    font-family: var(--md-font-sans);
+    font-size: var(--md-body-medium);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4, p, figure { margin: 0; }
+  button { font: inherit; color: inherit; }
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+  ::selection { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+}
+
+@keyframes md-rise    { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes md-fade    { from { opacity: 0; } to { opacity: 1; } }
+@keyframes md-breathe { 0%, 100% { opacity: .4; transform: scale(1); } 50% { opacity: 1; transform: scale(1.4); } }
+@keyframes md-work    { 0% { transform: translateX(-100%); } 100% { transform: translateX(400%); } }
+@keyframes md-drift   { 0%, 100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(3%, -4%, 0) scale(1.06); } }
+
+.md-drift { animation: md-drift 24s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+/* Sections settle in from a visible resting state — never parked at zero
+   opacity waiting on an observer. */
+.rise    { animation: md-rise 600ms var(--md-ease) both; }
+.rise-1  { animation-delay: 80ms; }
+.rise-2  { animation-delay: 160ms; }
+.rise-3  { animation-delay: 240ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}

@@ -1,0 +1,66 @@
+@import "tailwindcss";
+@import "@rift/tokens/tailwind.css";
+
+/* Workspace packages live outside this app's directory, so Tailwind does not
+   discover them automatically. Without these, any utility used ONLY inside a
+   package — every arbitrary value in @rift/consent-ui, for one — is silently
+   never generated and the component renders unstyled. */
+@source "../../../packages/ui/src";
+@source "../../../packages/consent-ui/src";
+
+@layer base {
+  * { box-sizing: border-box; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    margin: 0;
+    /* Never pure white. The tinted surface is what makes the tonal ladder
+       above it read as depth rather than as grey boxes. */
+    background: var(--md-background);
+    color: var(--md-on-surface-variant);
+    font-family: var(--md-font-sans);
+    font-size: var(--md-body-medium);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4, p, figure { margin: 0; }
+  button { font: inherit; color: inherit; }
+
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+
+  ::selection { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+
+  /* Scrollbars sit on the tonal ladder like everything else. */
+  * { scrollbar-width: thin; scrollbar-color: var(--md-outline-variant) transparent; }
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-thumb { background: var(--md-outline-variant); border-radius: 9999px; border: 3px solid transparent; background-clip: content-box; }
+  *::-webkit-scrollbar-thumb:hover { background: var(--md-outline); background-clip: content-box; }
+  *::-webkit-scrollbar-track { background: transparent; }
+}
+
+/* Motion is smooth and confident, never jarring. Everything below uses the
+   MD3 "emphasized decelerate" curve. Sustained motion appears in exactly one
+   place — scan progress — where it should read as steady work. */
+@keyframes md-rise     { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes md-fade     { from { opacity: 0; } to { opacity: 1; } }
+@keyframes md-slide-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+@keyframes md-shimmer  { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@keyframes md-work     { 0% { transform: translateX(-100%); } 100% { transform: translateX(400%); } }
+@keyframes md-breathe  { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 1; transform: scale(1.45); } }
+@keyframes md-drift    { 0%, 100% { transform: translate3d(0,0,0) scale(1); } 50% { transform: translate3d(3%, -4%, 0) scale(1.06); } }
+
+/* The atmospheric layer drifts slowly enough to feel alive without ever
+   drawing attention. Disabled outright under reduced motion. */
+.md-drift { animation: md-drift 22s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}

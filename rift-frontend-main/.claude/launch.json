@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "rift-dashboard",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "-w", "@rift/dashboard"],
+      "port": 3100
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "rift-web",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Rift — website privacy control plane. Frontend workspace.",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "api:types": "openapi-typescript $RIFT_OPENAPI_URL -o apps/dashboard/lib/api/schema.d.ts"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.4",
+    "typescript": "^5.9.3"
+  },
+  "engines": { "node": ">=20.9" },
+  "packageManager": "npm@10.9.8"
+}
