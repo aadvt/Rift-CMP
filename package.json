@@ -13,7 +13,7 @@
   ],
   "scripts": {
     "dev": "node scripts/dev.mjs",
-    "build": "npm -w sdk run build && npm -w api run build",
+    "build": "npm -w database run generate && npm -w sdk run build && npm -w api run build",
     "lint": "npm -w api run lint",
     "test": "npm -w api run test",
     "typecheck": "npm -w api run typecheck",

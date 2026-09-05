@@ -1,0 +1,57 @@
+# Builds the scan worker and pushes it to Azure Container Registry.
+#
+# The build lives here rather than on a laptop because the worker image is the
+# one artefact that must be built for Linux: it carries a Chromium and a Prisma
+# query engine, and both are platform-specific. An image built on a developer's
+# Windows machine would push successfully and then fail on the first scan.
+#
+# It is also here because there was nowhere else. ACR Tasks — the obvious remote
+# builder — is disabled on new subscriptions, and GitHub already has the source.
+name: Worker image
+
+on:
+  push:
+    branches: [main]
+    # Only when something the image actually contains has changed. A docs commit
+    # should not spend five minutes rebuilding Chromium.
+    paths:
+      - "crawler/**"
+      - "database/**"
+      - "shared/**"
+      - "package.json"
+      - "package-lock.json"
+      - "Dockerfile"
+      - ".dockerignore"
+      - ".github/workflows/worker-image.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Sign in to the registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push the worker
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          target: worker
+          push: true
+          # Two tags: `latest` for the deployment to follow, and the commit sha
+          # so a running container can always be traced back to the source it
+          # was built from.
+          tags: |
+            ${{ secrets.ACR_LOGIN_SERVER }}/rift-worker:latest
+            ${{ secrets.ACR_LOGIN_SERVER }}/rift-worker:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

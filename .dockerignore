@@ -1,0 +1,43 @@
+# Without this, `COPY . .` carries the host's `node_modules` into a Linux image.
+# On a Windows or macOS machine those are the wrong binaries entirely — a
+# Windows Prisma query engine and a host-specific Chromium — and the image would
+# build successfully and then fail at runtime, which is the worst order to find
+# out. Everything here is either rebuilt inside the image or has no business in
+# one.
+
+node_modules
+**/node_modules
+
+# Build output. Regenerated in the image; copying it in risks shipping a stale
+# artifact that nothing in the build would notice was stale.
+.next
+**/.next
+dist
+**/dist
+.turbo
+**/.turbo
+*.tsbuildinfo
+
+# Generated Prisma client — deliberately excluded. The image runs
+# `prisma generate` itself so the query engine matches the container's platform
+# rather than the developer's laptop.
+database/generated
+
+# Secrets. These must arrive as environment variables at run time, never baked
+# into a layer: an image layer is readable by anyone who can pull the image, and
+# deleting the file in a later layer does not remove it from the earlier one.
+.env
+.env.*
+!.env.docker.example
+
+# Local and editor state
+.git
+.gitignore
+.vercel
+.claude
+**/.claude
+*.log
+coverage
+playwright-report
+test-results
+scratchpad

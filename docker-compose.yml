@@ -1,0 +1,59 @@
+# Everything Rift needs, in one command.
+#
+#   cp .env.docker.example .env && docker compose up --build
+#
+# Three services because Rift is three processes. The one people forget is the
+# worker: without it a scan is accepted, the progress screen appears, and
+# nothing ever advances — a failure that looks like a broken crawler from the
+# outside and leaves nothing in the scan row to say otherwise. Starting it here
+# rather than documenting it in a README is the point of this file.
+#
+# The database is not a service. Rift expects a Postgres it does not own —
+# Neon in practice — because consent records are the evidence a regulator would
+# ask for, and evidence should not live in a container that `docker compose
+# down -v` can erase.
+
+services:
+  api:
+    build:
+      context: .
+      target: api
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in .env}
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      target: worker
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL in .env}
+      NODE_ENV: production
+    # Claims scans from the database rather than being called by the API, so it
+    # needs no port and no route to the outside. It does need the API to exist
+    # for the schema to be migrated, hence the ordering.
+    depends_on:
+      - api
+    restart: unless-stopped
+    # A browser rendering an arbitrary website wants more than the default
+    # shared-memory segment; without this Chromium crashes on heavy pages in
+    # ways that look like scan failures.
+    shm_size: 1gb
+
+  dashboard:
+    build:
+      context: .
+      target: dashboard
+    environment:
+      # Server-to-server, inside the compose network. The browser never sees it.
+      RIFT_API_URL: http://api:3000
+      RIFT_MARKETS: ${RIFT_MARKETS:-}
+      NODE_ENV: production
+    ports:
+      - "3100:3100"
+    depends_on:
+      - api
+    restart: unless-stopped

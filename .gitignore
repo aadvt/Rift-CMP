@@ -13,3 +13,4 @@ database/generated
 
 # Built SDK bundle, published into the API for the install snippet
 api/public/js
+.vercel
