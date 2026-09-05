@@ -75,6 +75,7 @@ model Website {
   consentSessions      ConsentSession[]
   scans                Scan[]
   enforcementEvents    EnforcementEvent[]
+  experiments          Experiment[]
 
   @@unique([id, organisationId])
   @@index([organisationId])
@@ -357,6 +358,24 @@ model ConsentRecord {
   proofPreviousHash  String? @map("proof_previous_hash")
   /// Position in that chain, 1-based.
   proofSequence      Int?    @map("proof_sequence")
+  /// Which proof scheme produced the signature, so a document written under an
+  /// older canonical form is rebuilt under that form and still verifies. Null
+  /// means the original scheme.
+  proofVersion       String? @map("proof_version")
+
+  // ── Phase 3: experiment attribution ────────────────────────────────────────
+  //
+  // Which consent experience the visitor was actually shown. Both nullable: a
+  // decision taken outside an experiment has no arm, and that is the ordinary
+  // case rather than missing data.
+  //
+  // The variant is stored by its stable key rather than its row id, so deleting
+  // an experiment cannot orphan the attribution on an append-only record.
+
+  /// The experiment running when the decision was taken.
+  experimentId  String? @map("experiment_id")
+  /// The arm the visitor was shown, by key.
+  variantKey    String? @map("variant_key")
 
   // Composite foreign keys keep every reference inside one tenant, in the same
   // way Phase 1 ties an event's session to its site.
@@ -1168,4 +1187,125 @@ model EnforcementEvent {
   @@index([siteId, occurredAt])
   @@index([siteId, decision, occurredAt])
   @@map("enforcement_events")
+}
+
+// ─── Consent experimentation (Phase 3) ───────────────────────────────────────
+//
+// An experiment varies how a consent choice is *presented*. It cannot vary what
+// the choice means, which purposes exist, what the policy engine decides, or
+// what enforcement does. That is not a rule enforced by validation alone - it is
+// the shape of the schema: a variant has one place to put a difference, and that
+// place holds six strings of display copy. There is nowhere to write a purpose,
+// a rule, a jurisdiction or an action, so a variant cannot express one.
+//
+// The alternative - letting a variant carry a configuration override and
+// checking it for safety on the way in - was rejected because it puts the
+// guarantee in a validator that somebody will later extend.
+
+/// One consent-UX experiment on one site.
+model Experiment {
+  id             String @id @default(uuid())
+  organisationId String @map("organisation_id")
+  siteId         String @map("site_id")
+
+  name        String
+  description String?
+
+  /// DRAFT | SCHEDULED | RUNNING | PAUSED | COMPLETED | ARCHIVED.
+  /// Transitions are validated in `shared/experiment.ts`; the column stores the
+  /// result rather than policing it, the same way `consent_records.status` does.
+  status String @default("DRAFT")
+
+  startsAt DateTime? @map("starts_at")
+  endsAt   DateTime? @map("ends_at")
+
+  /// The approved consent policy version this experiment runs against.
+  ///
+  /// Recorded so an analysis can say which configuration was in force, and so a
+  /// variant cannot be quietly carried across a policy change that altered what
+  /// the banner offers - which would make its two arms incomparable.
+  policyVersionId String? @map("policy_version_id")
+
+  /// The dashboard user who created it, where the session carried one.
+  createdBy String?  @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  website  Website             @relation(fields: [siteId, organisationId], references: [id, organisationId], onDelete: Cascade)
+  variants ExperimentVariant[]
+  events   ExperimentEvent[]
+
+  @@unique([id, organisationId])
+  @@index([organisationId, createdAt])
+  @@index([siteId, status])
+  @@map("experiments")
+}
+
+/// One arm of an experiment.
+model ExperimentVariant {
+  id             String @id @default(uuid())
+  experimentId   String @map("experiment_id")
+  organisationId String @map("organisation_id")
+
+  /// Short stable handle - "control", "b". Recorded on consent decisions, so it
+  /// is the identifier that has to survive; the row id is not.
+  key         String
+  name        String
+  description String?
+
+  /// Whole percent. The set must sum to exactly 100, checked before an
+  /// experiment may start.
+  allocation Int
+
+  /// Copy overrides, and nothing else.
+  ///
+  /// Validated against exactly the six fields the banner renders. A key outside
+  /// that set is rejected rather than ignored: silently dropping an override an
+  /// operator wrote would leave them believing an experiment is running a
+  /// difference it is not.
+  text Json?
+
+  /// The arm representing current production copy. Exactly one per experiment,
+  /// so a comparison always has something to be a comparison against.
+  isControl Boolean @default(false) @map("is_control")
+
+  experiment Experiment        @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  events     ExperimentEvent[]
+
+  @@unique([experimentId, key])
+  @@index([organisationId])
+  @@map("experiment_variants")
+}
+
+/// Something an experiment arm was shown to do.
+///
+/// Only what a consent decision cannot already record. A decision is a row in
+/// `consent_records` and is attributed there, by column; this table exists for
+/// impressions - the banner was displayed and nothing was chosen - which leave
+/// no consent record and would otherwise make every acceptance rate a rate over
+/// an unknown denominator.
+///
+/// Deliberately carries no principal. Counting how many people saw a banner does
+/// not require knowing which people, and a per-visitor row here would rebuild the
+/// identity link consent analytics does not have.
+model ExperimentEvent {
+  id             String @id @default(uuid())
+  organisationId String @map("organisation_id")
+  siteId         String @map("site_id")
+  experimentId   String @map("experiment_id")
+  variantId      String @map("variant_id")
+
+  /// impression | interaction. Never a consent decision - those live in
+  /// `consent_records`, which is the append-only log the evidence depends on.
+  kind String
+
+  occurredAt DateTime @default(now()) @map("occurred_at")
+
+  experiment Experiment        @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  variant    ExperimentVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([experimentId, kind, occurredAt])
+  @@index([siteId, occurredAt])
+  @@index([organisationId, occurredAt])
+  @@map("experiment_events")
 }

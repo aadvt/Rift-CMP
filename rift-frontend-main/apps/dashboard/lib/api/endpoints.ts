@@ -806,3 +806,49 @@ export async function getEnforcement(
     revalidate: 30,
   }).catch(() => null);
 }
+
+/** Consent-UX experiments for this organisation. */
+export async function listExperiments(siteId?: string): Promise<W.WireExperiment[] | null> {
+  if (USE_FIXTURES) return null;
+  const query = siteId ? `?site_id=${encodeURIComponent(siteId)}` : '';
+  const body = await riftFetch<{ experiments: W.WireExperiment[] }>(
+    `${V1}/experiments${query}`,
+    { revalidate: 30 },
+  ).catch(() => null);
+  return body?.experiments ?? null;
+}
+
+export async function getExperiment(experimentId: string): Promise<W.WireExperiment | null> {
+  if (USE_FIXTURES) return null;
+  const body = await riftFetch<{ experiment: W.WireExperiment }>(
+    `${V1}/experiments/${experimentId}`,
+    { revalidate: 30 },
+  ).catch(() => null);
+  return body?.experiment ?? null;
+}
+
+/** How the arms compared, with what the comparison does not show. */
+export async function getExperimentComparison(
+  experimentId: string,
+): Promise<W.WireExperimentComparison | null> {
+  if (USE_FIXTURES) return null;
+  const body = await riftFetch<{ comparison: W.WireExperimentComparison }>(
+    `${V1}/experiments/${experimentId}/analytics`,
+    // Short: a running experiment's numbers move, and a stale "no difference"
+    // is the reading most likely to be believed and least likely to be true.
+    { revalidate: 30 },
+  ).catch(() => null);
+  return body?.comparison ?? null;
+}
+
+/** Consent behaviour version by version. Observed changes only. */
+export async function getPolicyComparison(
+  siteId: string,
+): Promise<W.WirePolicyComparison | null> {
+  if (USE_FIXTURES) return null;
+  const body = await riftFetch<{ comparison: W.WirePolicyComparison }>(
+    `${V1}/sites/${siteId}/policy-analytics`,
+    { tags: [tag.config(siteId)], revalidate: WINDOW.policy },
+  ).catch(() => null);
+  return body?.comparison ?? null;
+}

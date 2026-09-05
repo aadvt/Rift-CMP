@@ -34,3 +34,5 @@ export * from "./tracker-catalogue";
 export * from "./scans";
 export * from "./consent-policy";
 export * from "./enforcement";
+export * from "./experiments";
+export * from "./experiment-analytics";

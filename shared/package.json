@@ -20,7 +20,9 @@
     "./consent-signature": "./consent-signature.ts",
     "./consent-firewall": "./consent-firewall.ts",
     "./redaction": "./redaction.ts",
-    "./enforcement": "./enforcement.ts"
+    "./enforcement": "./enforcement.ts",
+    "./experiment": "./experiment.ts",
+    "./experiment-analytics": "./experiment-analytics.ts"
   },
   "types": "./index.ts",
   "dependencies": {

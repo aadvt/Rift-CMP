@@ -1,7 +1,7 @@
 import type { ConsentEvidence } from "@rift-cmp/shared/consent-proof";
 import {
   PROOF_CAVEAT,
-  PROOF_VERSION,
+  PROOF_VERSION_V1,
   proofDigest,
   type SignedConsentProof,
 } from "@rift-cmp/shared/consent-signature";
@@ -40,6 +40,9 @@ export interface ProofRow {
   proofDocumentHash: string | null;
   proofPreviousHash: string | null;
   proofSequence: number | null;
+  proofVersion: string | null;
+  experimentId: string | null;
+  variantKey: string | null;
   purpose: { code: string };
   principal: { externalId: string };
 }
@@ -81,6 +84,12 @@ export function proofFor(record: ProofRow): BuiltProof {
     return { proof: null, evidence, reassemblyMismatch: false };
   }
 
+  // The scheme that signed it. Null means the original one: every record
+  // written before proof versioning existed was signed under `/1`, and
+  // rebuilding it under a newer canonical form would break a signature that is
+  // perfectly good.
+  const version = (record.proofVersion ?? PROOF_VERSION_V1) as SignedConsentProof["version"];
+
   const facts = {
     consentRecordId: record.id,
     siteId: record.siteId,
@@ -94,13 +103,15 @@ export function proofFor(record: ProofRow): BuiltProof {
     receiptHash: record.proofHash ?? "",
     sequence: record.proofSequence,
     previousProofHash: record.proofPreviousHash,
+    experimentId: record.experimentId,
+    variantKey: record.variantKey,
   };
 
-  const recomputed = proofDigest(facts);
+  const recomputed = proofDigest(facts, version);
 
   return {
     proof: {
-      version: PROOF_VERSION,
+      version,
       facts,
       proofHash: record.proofDocumentHash,
       signature: record.proofSignature

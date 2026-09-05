@@ -101,6 +101,7 @@ export function configVersion(
   purposes: readonly ConsentPurposeConfig[],
   notice: ActiveNotice | null,
   enforcement?: EnforcementConfig | null,
+  experiment?: ConsentRuntimeConfig["experiment"],
 ): string {
   const material = JSON.stringify({
     purposes: purposes.map((p) => [p.code, p.name, p.description, p.kind, p.vendors]),
@@ -110,6 +111,13 @@ export function configVersion(
     // behind the thing an operator just pressed a button to change.
     enforcement: enforcement
       ? [enforcement.mode, enforcement.unknown_host, enforcement.rules]
+      : null,
+    // Included, or starting an experiment would leave every cached banner
+    // serving the old copy for the length of its lifetime - and an operator
+    // would read the first minutes of a run as evidence the variant did
+    // nothing.
+    experiment: experiment
+      ? [experiment.experiment_id, experiment.variants.map((v) => [v.key, v.allocation, v.text])]
       : null,
   });
   return createHash("sha256").update(material).digest("hex").slice(0, 16);
@@ -127,6 +135,7 @@ export function buildRuntimeConfig(input: {
   vendorsByPurpose?: Readonly<Record<string, string[]>>;
   text?: Partial<ConsentRuntimeConfig["text"]>;
   enforcement?: EnforcementConfig | null;
+  experiment?: ConsentRuntimeConfig["experiment"];
 }): ConsentRuntimeConfig {
   const purposes: ConsentPurposeConfig[] = input.purposes
     .filter((p) => p.isActive)
@@ -146,7 +155,12 @@ export function buildRuntimeConfig(input: {
 
   return {
     site_id: input.siteId,
-    config_version: configVersion(purposes, input.notice, input.enforcement ?? null),
+    config_version: configVersion(
+      purposes,
+      input.notice,
+      input.enforcement ?? null,
+      input.experiment ?? null,
+    ),
     purposes,
     notice: input.notice
       ? {
@@ -167,6 +181,7 @@ export function buildRuntimeConfig(input: {
       policy_url: input.text?.policy_url ?? input.notice?.documentUrl ?? null,
     },
     enforcement: input.enforcement ?? null,
+    experiment: input.experiment ?? null,
     // A banner with no purposes offers no choices. Rendering one would present
     // a consent mechanism that cannot record a decision.
     ready: purposes.length > 0,

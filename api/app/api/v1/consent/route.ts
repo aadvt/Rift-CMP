@@ -4,6 +4,7 @@ import {
   consumeConsentSessionDecision,
   getEffectiveConsent,
   prisma,
+  getServingExperiment,
   recordConsentDecision,
 } from "database";
 import type { ConsentDecisionResponse, ConsentStateResponse } from "@rift-cmp/shared";
@@ -56,6 +57,13 @@ const decisionSchema = z
     status: z.enum(CONSENT_STATUSES),
     notice_id: z.string().uuid().optional(),
     policy_version_id: z.string().uuid().optional(),
+    // Phase 3. A claim about which consent experience was shown. Validated
+    // below against the experiment actually serving on this site; an
+    // unrecognised pair is dropped rather than rejected, because a stale banner
+    // naming a finished experiment is an ordinary race, not an attack, and
+    // failing the decision would lose a real consent choice over a label.
+    experiment_id: z.string().uuid().optional(),
+    variant_key: z.string().min(1).max(32).optional(),
     decided_at: z
       .string()
       .refine((value) => !Number.isNaN(Date.parse(value)), {
@@ -141,6 +149,21 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Only an arm that is genuinely serving on this site is recorded. Without
+  // this the attribution is whatever the page asserts, and experiment analytics
+  // becomes a surface any script could write fiction into - including a
+  // competitor's, since the public key is in every page's source.
+  const serving = input.experiment_id
+    ? await getServingExperiment(prisma, siteId)
+    : null;
+  const attributed =
+    serving &&
+    serving.experiment_id === input.experiment_id &&
+    input.variant_key !== undefined &&
+    serving.variants.some((variant) => variant.key === input.variant_key)
+      ? { experimentId: serving.experiment_id, variantKey: input.variant_key }
+      : {};
+
   const result = await recordConsentDecision(prisma, {
     organisationId,
     siteId,
@@ -162,6 +185,7 @@ export async function POST(request: NextRequest) {
     // accidentally log. Null when no key is configured, which issues an
     // integrity-and-chain proof with no signature - a supported state.
     signingKey: activeSigningKey(),
+    ...attributed,
   });
 
   if (!result.ok) {

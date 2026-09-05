@@ -50,9 +50,20 @@ import { createHash, createPrivateKey, createPublicKey, sign, verify } from "nod
 import type { ConsentEvidence } from "./consent-proof";
 import { proofHash } from "./consent-proof";
 
-export const PROOF_VERSION = "rift-consent-proof/1";
+/**
+ * The scheme new proofs are written under.
+ *
+ * `/2` adds experiment attribution. `/1` is still produced for nothing and still
+ * verified for everything written before this existed: a proof made in March
+ * must not stop verifying because a newer canonical form was introduced, and the
+ * only way to guarantee that is to keep rebuilding old documents under the form
+ * that signed them.
+ */
+export const PROOF_VERSION = "rift-consent-proof/2";
+export const PROOF_VERSION_V1 = "rift-consent-proof/1";
+
 /** Versions this build can verify. An unknown version is reported, never guessed at. */
-export const SUPPORTED_PROOF_VERSIONS = [PROOF_VERSION] as const;
+export const SUPPORTED_PROOF_VERSIONS = [PROOF_VERSION_V1, PROOF_VERSION] as const;
 
 export const PROOF_CAVEAT =
   "A valid signature shows this proof was produced by the holder of the named " +
@@ -88,10 +99,26 @@ export interface ConsentProofFacts {
   sequence: number;
   /** The digest of the previous proof in the chain, or null for the first. */
   previousProofHash: string | null;
+
+  // ── /2: experiment attribution ─────────────────────────────────────────────
+  //
+  // Which consent experience the visitor was actually shown. Bound because
+  // otherwise a decision recorded under one banner's copy is indistinguishable
+  // from one recorded under another's, and an experiment result rests on
+  // attribution nobody can check.
+  //
+  // Two identifiers and nothing more. The variant's copy is not bound: it is
+  // large, it is already versioned by the experiment record, and putting it in a
+  // signature would make every proof carry a paragraph of marketing text.
+
+  /** The experiment running when the decision was taken, or null. */
+  experimentId?: string | null;
+  /** The arm the visitor was shown, by key, or null. */
+  variantKey?: string | null;
 }
 
 export interface SignedConsentProof {
-  version: typeof PROOF_VERSION;
+  version: typeof PROOF_VERSION | typeof PROOF_VERSION_V1;
   facts: ConsentProofFacts;
   /** Digest of the canonical document. This is what the next proof links to. */
   proofHash: string;
@@ -114,11 +141,14 @@ export interface SignedConsentProof {
  * carry out is not a verification procedure. Anyone holding a proof, the public
  * key and this function can check it without us.
  */
-export function canonicalProof(facts: ConsentProofFacts): string {
+export function canonicalProof(
+  facts: ConsentProofFacts,
+  version: string = PROOF_VERSION,
+): string {
   const jurisdictions = [...facts.jurisdictions].map((j) => j.trim()).sort();
 
-  return [
-    PROOF_VERSION,
+  const common = [
+    version,
     facts.consentRecordId,
     facts.siteId,
     facts.principalExternalId,
@@ -131,12 +161,23 @@ export function canonicalProof(facts: ConsentProofFacts): string {
     facts.receiptHash,
     String(facts.sequence),
     facts.previousProofHash ?? "",
-  ].join("\n");
+  ];
+
+  // `/1` is reproduced exactly as it was, field for field. Appending the new
+  // fields to an old document would change bytes that were already signed, so
+  // every historical proof would fail to verify — which is indistinguishable
+  // from tampering, and far worse than not having the attribution at all.
+  if (version === PROOF_VERSION_V1) return common.join("\n");
+
+  return [...common, facts.experimentId ?? "", facts.variantKey ?? ""].join("\n");
 }
 
 /** The digest of a proof document. The chain link. */
-export function proofDigest(facts: ConsentProofFacts): string {
-  return createHash("sha256").update(canonicalProof(facts), "utf8").digest("hex");
+export function proofDigest(
+  facts: ConsentProofFacts,
+  version: string = PROOF_VERSION,
+): string {
+  return createHash("sha256").update(canonicalProof(facts, version), "utf8").digest("hex");
 }
 
 // ─── Keys ────────────────────────────────────────────────────────────────────
@@ -312,7 +353,10 @@ export function verifySignedProof(input: {
   // it stands now, or the record changed after the proof was made; and the
   // proof digest must match the document, or the document itself was edited.
   const expectedReceipt = proofHash(input.evidence);
-  const recomputed = proofDigest(facts);
+  // Rebuilt under the version the proof declares, not the current one. A `/1`
+  // document checked against the `/2` canonical form would fail for every
+  // historical proof, and the failure would look exactly like tampering.
+  const recomputed = proofDigest(facts, version);
 
   let integrity: IntegrityResult = "valid";
   if (facts.receiptHash !== expectedReceipt) {
@@ -344,7 +388,7 @@ export function verifySignedProof(input: {
       try {
         good = verify(
           null,
-          Buffer.from(canonicalProof(facts), "utf8"),
+          Buffer.from(canonicalProof(facts, version), "utf8"),
           createPublicKey(key.publicKeyPem),
           Buffer.from(sig.value, "base64url"),
         );

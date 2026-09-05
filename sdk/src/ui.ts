@@ -56,6 +56,8 @@ export interface ConsentUiOptions {
   fetchRef?: typeof fetch;
 }
 
+import { applyVariant, resolveVariant, type AssignedVariant } from "./experiment";
+
 const HOST_ID = "rift-consent-root";
 
 /** Copy: operator's where present, neutral fallback where not. Never invented. */
@@ -140,6 +142,14 @@ export class ConsentUi {
   private readonly doc: Document;
   private readonly fetchImpl: typeof fetch;
   private previouslyFocused: Element | null = null;
+  /**
+   * The consent-UX arm this browser is in, resolved once when the configuration
+   * loads and then reused. Resolving it per render would be the same answer
+   * every time - the assignment is deterministic - but it would also mean a
+   * banner and its preference centre could disagree if the config were reloaded
+   * between them.
+   */
+  private variant: AssignedVariant | null = null;
 
   constructor(
     private readonly consent: ConsentApi,
@@ -163,8 +173,15 @@ export class ConsentUi {
       if (!config || config.ready !== true || !Array.isArray(config.purposes)) {
         return null;
       }
-      this.config = config;
-      return config;
+      // The arm is picked here, from a key held only in this browser. What the
+      // rest of the runtime sees is a configuration whose copy has already been
+      // varied - so no render path needs to know an experiment exists, and none
+      // of them can accidentally bypass one.
+      this.variant = resolveVariant(config);
+      const varied = applyVariant(config, this.variant);
+
+      this.config = varied;
+      return varied;
     } catch {
       // A failed fetch is not evidence that consent is not required, and it is
       // not grounds to render invented content either. Show nothing.
@@ -192,6 +209,7 @@ export class ConsentUi {
     }
 
     this.renderBanner(config);
+    this.reportImpression();
     return true;
   }
 
@@ -205,6 +223,54 @@ export class ConsentUi {
     );
     this.renderPreferences(config, granted);
     return true;
+  }
+
+  /**
+   * Tell the server an arm was shown.
+   *
+   * Only once the banner has actually rendered, and only inside an experiment.
+   * Fire-and-forget: this is telemetry about a measurement, not part of the
+   * consent flow, and a failed report must never delay or break a banner a
+   * visitor is waiting on.
+   */
+  private reportImpression(): void {
+    const variant = this.variant;
+    if (!variant) return;
+
+    try {
+      void this.fetchImpl(
+        `${this.options.apiUrl.replace(/\/$/, "")}/api/v1/experiments/events`,
+        {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            authorization: `Bearer ${this.options.publicKey}`,
+          },
+          body: JSON.stringify({
+            experiment_id: variant.experimentId,
+            variant_key: variant.variantKey,
+            kind: "impression",
+          }),
+          keepalive: true,
+        },
+      ).catch(() => {
+        // Silent. A lost impression skews a denominator; a thrown error breaks
+        // somebody's banner.
+      });
+    } catch {
+      // Same.
+    }
+  }
+
+  /**
+   * The arm in force, for attributing a decision.
+   *
+   * Read by the decision path so a consent record can say which experience the
+   * visitor was actually shown. Null when no experiment is running, which is the
+   * ordinary case.
+   */
+  assignedVariant(): AssignedVariant | null {
+    return this.variant;
   }
 
   close(): void {
@@ -418,12 +484,25 @@ export class ConsentUi {
         .map((s) => s.purpose_code),
     );
 
-    const options = config.notice
-      ? {
-          noticeId: config.notice.notice_id,
-          policyVersionId: config.notice.policy_version_id ?? undefined,
-        }
-      : undefined;
+    // The arm travels with every decision this banner records, so a result can
+    // be attributed to the experience that produced it. Absent outside an
+    // experiment, which is the ordinary case rather than missing data.
+    const attribution = this.variant
+      ? { experimentId: this.variant.experimentId, variantKey: this.variant.variantKey }
+      : {};
+
+    const options =
+      config.notice || this.variant
+        ? {
+            ...(config.notice
+              ? {
+                  noticeId: config.notice.notice_id,
+                  policyVersionId: config.notice.policy_version_id ?? undefined,
+                }
+              : {}),
+            ...attribution,
+          }
+        : undefined;
 
     for (const purpose of config.purposes) {
       if (granted.has(purpose.code)) {

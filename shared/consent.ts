@@ -100,6 +100,15 @@ export interface ConsentRecordSummary {
     /** Position in this principal's chain on this site, or null for older rows. */
     sequence: number | null;
   };
+  /**
+   * Which consent experience the visitor was shown, where one was running.
+   *
+   * Null is the ordinary case, not missing data — most decisions are taken
+   * outside an experiment. An arm is named by its stable key rather than a row
+   * id, so deleting an experiment cannot orphan the attribution on a record that
+   * can never be updated.
+   */
+  experiment: { experiment_id: string; variant_key: string | null } | null;
 }
 
 /** The decision currently in force for one purpose. Derived, never stored. */

@@ -12,6 +12,7 @@ const NAV: Array<{ href: Route; label: string; icon: IconName }> = [
   { href: '/dashboard/sites', label: 'Sites', icon: 'sites' },
   { href: '/dashboard/scans', label: 'Scans', icon: 'scans' },
   { href: '/dashboard/consent', label: 'Consent', icon: 'consent' },
+  { href: '/dashboard/experiments', label: 'Experiments', icon: 'analytics' },
   { href: '/dashboard/analytics', label: 'Analytics', icon: 'analytics' },
   { href: '/dashboard/settings', label: 'Settings', icon: 'settings' },
 ];

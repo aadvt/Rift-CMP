@@ -121,6 +121,26 @@ export interface ConsentRuntimeConfig {
    */
   enforcement: EnforcementConfig | null;
   /**
+   * The consent-UX experiment running on this site, if any.
+   *
+   * Copy and allocation only. The browser picks its own arm from a key that
+   * never leaves it, so this payload stays identical for every visitor and the
+   * endpoint stays cacheable — which is why assignment happens in the browser
+   * rather than here.
+   *
+   * A variant can override the strings in `text` and nothing else. There is no
+   * field in this shape through which an experiment could alter a purpose, a
+   * rule, or what enforcement does.
+   */
+  experiment?: {
+    experiment_id: string;
+    variants: Array<{
+      key: string;
+      allocation: number;
+      text: Partial<ConsentRuntimeConfig["text"]> | null;
+    }>;
+  } | null;
+  /**
    * Whether the operator has done enough for the banner to be meaningful.
    *
    * False when no purposes are declared. The runtime then renders nothing at

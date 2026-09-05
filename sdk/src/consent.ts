@@ -53,6 +53,16 @@ export type ConsentRecordOptions = {
   /** When the principal decided, if not "now". ISO 8601. */
   decidedAt?: string;
   metadata?: Record<string, unknown>;
+  /**
+   * Which consent experience the visitor was shown.
+   *
+   * A claim by the browser, and treated as one: the server checks the pair
+   * against the experiment actually serving on this site and drops it otherwise.
+   * Recording it unchecked would make experiment analytics a surface any page
+   * could write fiction into.
+   */
+  experimentId?: string;
+  variantKey?: string;
 };
 
 export type ConsentChangeListener = (state: EffectiveConsent[]) => void;
@@ -457,6 +467,8 @@ export class ConsentClient implements ConsentApi {
         status,
         ...(options.noticeId ? { notice_id: options.noticeId } : {}),
         ...(options.policyVersionId ? { policy_version_id: options.policyVersionId } : {}),
+        ...(options.experimentId ? { experiment_id: options.experimentId } : {}),
+        ...(options.variantKey ? { variant_key: options.variantKey } : {}),
         ...(options.decidedAt ? { decided_at: options.decidedAt } : {}),
         ...(options.metadata ? { metadata: options.metadata } : {}),
         source: DECISION_SOURCE,

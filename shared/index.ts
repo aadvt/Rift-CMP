@@ -18,6 +18,10 @@ export * from "./consent-config";
 export * from "./consent-firewall";
 export * from "./redaction";
 export * from "./enforcement";
+// Pure: the assignment hash is FNV-1a rather than node:crypto precisely so the
+// browser SDK can compute an arm without pulling a Node built-in into the bundle.
+export * from "./experiment";
+export * from "./experiment-analytics";
 
 // `consent-proof` is deliberately NOT re-exported here.
 //

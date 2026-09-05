@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import {
   getApprovedPolicyVersion,
+  getServingExperiment,
   hostsForVendor,
   listNotices,
   listPurposes,
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   const { caller, allowOrigin } = guard.guarded;
 
-  const [purposes, notices, approved] = await Promise.all([
+  const [purposes, notices, approved, experiment] = await Promise.all([
     listPurposes(prisma, caller.organisationId),
     listNotices(prisma, caller.organisationId),
     // Phase 9A. An approved policy version is what an operator agreed the site
@@ -64,6 +65,10 @@ export async function GET(request: NextRequest): Promise<Response> {
     // and inventing one here would produce a banner recording consent against
     // something the log cannot hold.
     getApprovedPolicyVersion(prisma, caller.organisationId, caller.siteId),
+    // Phase 3. Copy and allocation only, and identical for every visitor: the
+    // browser picks its own arm, so this response stays cacheable and the server
+    // never learns which browser is in which arm.
+    getServingExperiment(prisma, caller.siteId),
   ]);
 
   // The notice in force is the most recently published one. `listNotices`
@@ -100,6 +105,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       })),
     vendorsByPurpose,
     enforcement,
+    ...(experiment ? { experiment } : {}),
     notice: current
       ? {
           noticeId: current.notice_id,

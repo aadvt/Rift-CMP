@@ -655,3 +655,121 @@ export interface WireProofVerification {
   chain: 'valid' | 'broken' | 'unverifiable' | null;
   findings: string[];
 }
+
+// ─── Phase 3: consent experiments ────────────────────────────────────────────
+
+export interface WireExperimentVariant {
+  variant_id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  allocation: number;
+  /** Display copy only. There is no other kind of override. */
+  text: Record<string, string | null> | null;
+  is_control: boolean;
+}
+
+export interface WireExperiment {
+  experiment_id: string;
+  site_id: string;
+  name: string;
+  description: string | null;
+  status: 'DRAFT' | 'SCHEDULED' | 'RUNNING' | 'PAUSED' | 'COMPLETED' | 'ARCHIVED';
+  starts_at: string | null;
+  ends_at: string | null;
+  policy_version_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  variants: WireExperimentVariant[];
+  /** Status and window together — whether it is assigning arms right now. */
+  serving: boolean;
+}
+
+export interface WireVariantMetrics {
+  variant_key: string;
+  variant_name: string;
+  is_control: boolean;
+  allocation: number;
+  impressions: number;
+  deciders: number;
+  accepted_all: number;
+  rejected_all: number;
+  partial: number;
+  withdrew: number;
+  /** Null when nobody has decided. Never zero — those are different findings. */
+  acceptance_rate: number | null;
+  rejection_rate: number | null;
+  partial_rate: number | null;
+  withdrawal_rate: number | null;
+  completion_rate: number | null;
+  by_purpose: Array<{
+    purpose_code: string;
+    granted: number;
+    denied: number;
+    rate: number | null;
+  }>;
+}
+
+export interface WireSignificance {
+  reading: 'observed_difference' | 'significant' | 'not_significant';
+  method: string | null;
+  confidence_level: number | null;
+  z: number | null;
+  p_value: number | null;
+  difference: number | null;
+  interval: { lower: number; upper: number } | null;
+  sample: { control: number; variant: number };
+  note: string | null;
+}
+
+export interface WireExperimentComparison {
+  experiment_id: string;
+  name: string;
+  status: string;
+  site_id: string;
+  policy_version_id: string | null;
+  range: { from: string; to: string };
+  control_key: string | null;
+  variants: WireVariantMetrics[];
+  posture: Record<
+    string,
+    {
+      shadow_trackers: number;
+      drift_findings: number;
+      enforcement_events: number;
+      enforcement_blocked: number;
+      /** Usually false: scans and enforcement are site-wide, not per arm. */
+      attributable_to_variant: boolean;
+    }
+  >;
+  significance: Record<string, Record<string, WireSignificance>>;
+  caveats: string[];
+}
+
+export interface WirePolicyComparison {
+  site_id: string;
+  versions: Array<{
+    policy_version_id: string;
+    version: number;
+    approved_at: string | null;
+    decisions: number;
+    principals: number;
+    acceptance_rate: number | null;
+    rejection_rate: number | null;
+    partial_rate: number | null;
+    withdrawal_rate: number | null;
+    shadow_trackers: number | null;
+    drift_findings: number | null;
+  }>;
+  changes: Array<{
+    from_version: number;
+    to_version: number;
+    metric: string;
+    from: number | null;
+    to: number | null;
+    /** Observed, never causal. A version ships alongside everything else. */
+    observed_change: number | null;
+  }>;
+  caveats: string[];
+}

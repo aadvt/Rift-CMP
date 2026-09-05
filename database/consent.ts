@@ -10,7 +10,7 @@ import type {
 } from "@rift-cmp/shared";
 import { resolveEffectiveConsent } from "@rift-cmp/shared";
 import { proofHash } from "@rift-cmp/shared/consent-proof";
-import { buildProof } from "@rift-cmp/shared/consent-signature";
+import { PROOF_VERSION, buildProof } from "@rift-cmp/shared/consent-signature";
 import type { SigningKey } from "@rift-cmp/shared/consent-signature";
 import type { Prisma, PrismaClient } from "./generated/client";
 
@@ -124,6 +124,8 @@ type ConsentRecordRow = {
   proofSignature: string | null;
   proofKeyId: string | null;
   proofSequence: number | null;
+  experimentId: string | null;
+  variantKey: string | null;
   purpose: { code: string };
   principal: { externalId: string };
 };
@@ -150,6 +152,9 @@ export function toConsentRecordSummary(row: ConsentRecordRow): ConsentRecordSumm
       key_id: row.proofKeyId,
       sequence: row.proofSequence,
     },
+    experiment: row.experimentId
+      ? { experiment_id: row.experimentId, variant_key: row.variantKey }
+      : null,
   };
 }
 
@@ -379,6 +384,21 @@ export async function recordConsentDecision(
      * never touches private material and cannot accidentally log it.
      */
     signingKey?: SigningKey | null;
+
+    // ── Phase 3: experiment attribution ──────────────────────────────────────
+    //
+    // Which consent experience the visitor was shown. Both optional: a decision
+    // taken outside an experiment has neither, which is the ordinary case.
+    //
+    // The caller resolves these against a *serving* experiment before passing
+    // them; a browser naming an arm that is not running has its claim dropped
+    // rather than recorded, because the alternative is an analytics surface any
+    // page can write fiction into.
+
+    /** The experiment running when the decision was taken. */
+    experimentId?: string | null;
+    /** The arm the visitor was shown, by key. */
+    variantKey?: string | null;
   },
 ): Promise<RecordConsentResult> {
   const purpose = await prisma.purpose.findFirst({
@@ -469,16 +489,27 @@ export async function recordConsentDecision(
     source,
   });
 
-  // The chain link. Read inside the same transaction as the write, so two
-  // decisions arriving together cannot both claim the same position - and the
-  // unique index on (site, principal, sequence) turns the remaining race into a
-  // failed insert rather than a silently forked chain.
+  // The chain link.
   //
-  // A forked chain is the worst available outcome here: after the fact it is
-  // indistinguishable from somebody having inserted a record, which is exactly
-  // the thing the chain exists to detect.
-  const record = await prisma.$transaction(async (tx) => {
-    const previous = await tx.consentRecord.findFirst({
+  // Read-then-insert, with the unique index on (site, principal, sequence) as
+  // the arbiter rather than a transaction. An interactive transaction was the
+  // first attempt and was wrong: Prisma's default holds it open for 5s, each
+  // round trip to a managed Postgres is a second or more, and the write then
+  // expires under ordinary latency - which showed up as unrelated tests failing
+  // with "transaction already closed".
+  //
+  // Optimistic is also the better shape. Two concurrent decisions both compute
+  // the same position, the index rejects the loser, and it retries against the
+  // row the winner wrote. What must never happen is two records claiming one
+  // position - a forked chain is indistinguishable from tampering afterwards -
+  // and the constraint guarantees that whether or not a transaction is open.
+  const MAX_ATTEMPTS = 5;
+  // Typed as the row the mapper needs, so the include is part of the contract
+  // rather than something a later edit could silently drop.
+  let record: ConsentRecordRow | null = null;
+
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+    const previous = await prisma.consentRecord.findFirst({
       where: { siteId: input.siteId, principalId: principal.id, proofSequence: { not: null } },
       orderBy: { proofSequence: "desc" },
       select: { proofSequence: true, proofDocumentHash: true },
@@ -487,6 +518,9 @@ export async function recordConsentDecision(
     const sequence = (previous?.proofSequence ?? 0) + 1;
     const recordId = randomUUID();
 
+    // Rebuilt every attempt: the sequence and the preceding digest are both
+    // part of what is signed, so a retry that reused the first proof would
+    // sign a position it no longer occupies.
     const signed = buildProof(
       {
         consentRecordId: recordId,
@@ -500,6 +534,8 @@ export async function recordConsentDecision(
         jurisdictions,
         sequence,
         previousProofHash: previous?.proofDocumentHash ?? null,
+        experimentId: input.experimentId ?? null,
+        variantKey: input.variantKey ?? null,
       },
       {
         siteId: input.siteId,
@@ -518,33 +554,55 @@ export async function recordConsentDecision(
       input.signingKey ?? null,
     );
 
-    return tx.consentRecord.create({
-      data: {
-        id: recordId,
-        organisationId: input.organisationId,
-        siteId: input.siteId,
-        principalId: principal.id,
-        purposeId: purpose.id,
-        noticeId: input.noticeId ?? null,
-        policyVersionId,
-        status: input.status,
-        source,
-        decidedAt,
-        jurisdictions,
-        vendors,
-        mechanism: input.mechanism ?? null,
-        policyConfigVersion: input.policyConfigVersion ?? null,
-        proofHash: proof,
-        proofDocumentHash: signed.proofHash,
-        proofPreviousHash: signed.facts.previousProofHash,
-        proofSequence: sequence,
-        proofSignature: signed.signature?.value ?? null,
-        proofKeyId: signed.signature?.keyId ?? null,
-        ...(input.metadata == null ? {} : { metadata: input.metadata }),
-      },
-      include: CONSENT_RECORD_INCLUDE,
-    });
-  });
+    try {
+      record = await prisma.consentRecord.create({
+        data: {
+          id: recordId,
+          organisationId: input.organisationId,
+          siteId: input.siteId,
+          principalId: principal.id,
+          purposeId: purpose.id,
+          noticeId: input.noticeId ?? null,
+          policyVersionId,
+          status: input.status,
+          source,
+          decidedAt,
+          jurisdictions,
+          vendors,
+          mechanism: input.mechanism ?? null,
+          policyConfigVersion: input.policyConfigVersion ?? null,
+          proofHash: proof,
+          proofDocumentHash: signed.proofHash,
+          proofPreviousHash: signed.facts.previousProofHash,
+          proofSequence: sequence,
+          proofSignature: signed.signature?.value ?? null,
+          proofKeyId: signed.signature?.keyId ?? null,
+          // Recorded so the document is rebuilt under the form that signed it. A
+          // proof written today must still verify after a later scheme exists.
+          proofVersion: PROOF_VERSION,
+          experimentId: input.experimentId ?? null,
+          variantKey: input.variantKey ?? null,
+          ...(input.metadata == null ? {} : { metadata: input.metadata }),
+        },
+        include: CONSENT_RECORD_INCLUDE,
+      });
+      break;
+    } catch (error) {
+      // P2002 on the chain position: somebody else took it between the read and
+      // the insert. Anything else is a real failure and is not swallowed.
+      const code = (error as { code?: string }).code;
+      const target = String((error as { meta?: { target?: unknown } }).meta?.target ?? "");
+      const collided = code === "P2002" && target.includes("proof_sequence");
+
+      if (!collided || attempt === MAX_ATTEMPTS - 1) throw error;
+    }
+  }
+
+  if (!record) {
+    // Unreachable: the loop either assigns or throws. Present so the type is
+    // honest rather than asserted away.
+    throw new Error("[rift-cmp] consent record was not written");
+  }
 
   return { ok: true, record: toConsentRecordSummary(record) };
 }

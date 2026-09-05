@@ -19,12 +19,13 @@
  * operator, and reporting either as a flat "invalid" would leave them unable to
  * act.
  */
-import { generateKeyPairSync } from "node:crypto";
+import { createHash, createPrivateKey, generateKeyPairSync, sign } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import type { ConsentEvidence } from "@rift-cmp/shared/consent-proof";
 import { proofHash } from "@rift-cmp/shared/consent-proof";
 import {
   PROOF_VERSION,
+  PROOF_VERSION_V1,
   buildProof,
   canonicalProof,
   proofDigest,
@@ -543,5 +544,126 @@ describe("what a proof carries", () => {
       "previousProofHash",
       "receiptHash",
     ]);
+  });
+});
+
+// ─── Scheme versions ─────────────────────────────────────────────────────────
+
+describe("proof schemes", () => {
+  /**
+   * `/2` added experiment attribution by appending two fields to the canonical
+   * form. Appending changes bytes, and every byte of a `/1` document was already
+   * signed — so the only thing keeping March's proofs verifiable in June is that
+   * a `/1` document is still rebuilt under `/1`.
+   *
+   * These are the tests that fail if somebody "tidies up" by folding the two
+   * forms into one.
+   */
+
+  it("writes new proofs under the current scheme", () => {
+    expect(proofFor().version).toBe(PROOF_VERSION);
+    expect(PROOF_VERSION).toBe("rift-consent-proof/2");
+  });
+
+  it("binds the experiment and the arm", () => {
+    const withExperiment = proofFor({ experimentId: "exp-1", variantKey: "b" });
+    const without = proofFor();
+    expect(withExperiment.proofHash).not.toBe(without.proofHash);
+  });
+
+  it("distinguishes two arms of the same experiment", () => {
+    // Otherwise a decision recorded under one banner's copy is
+    // indistinguishable from one recorded under another's, and the experiment
+    // result rests on attribution nobody can check.
+    const a = proofFor({ experimentId: "exp-1", variantKey: "control" });
+    const b = proofFor({ experimentId: "exp-1", variantKey: "b" });
+    expect(a.proofHash).not.toBe(b.proofHash);
+  });
+
+  it("verifies a proof that carries an experiment", () => {
+    const proof = proofFor({ experimentId: "exp-1", variantKey: "b" });
+    const result = verifySignedProof({
+      proof,
+      evidence: evidence(),
+      keyRing: ring,
+      expectedPreviousProofHash: null,
+    });
+
+    expect(result.integrity).toBe("valid");
+    expect(result.signature).toBe("valid");
+  });
+
+  it("catches a swapped variant", () => {
+    // Moving a decision from the losing arm to the winning one is the obvious
+    // way to fake an experiment result. It is bound, so it is caught.
+    const proof = proofFor({ experimentId: "exp-1", variantKey: "control" });
+    const tampered = { ...proof, facts: { ...proof.facts, variantKey: "b" } };
+
+    const result = verifySignedProof({
+      proof: tampered,
+      evidence: evidence(),
+      keyRing: ring,
+      expectedPreviousProofHash: null,
+    });
+
+    expect(result.signature).toBe("invalid");
+    expect(result.ok).toBe(false);
+  });
+
+  it("still verifies a proof written under the older scheme", () => {
+    // Built and signed exactly as the previous release would have.
+    const complete = { ...facts(), receiptHash: proofHash(evidence()) };
+    const canonical = canonicalProof(complete, PROOF_VERSION_V1);
+    const legacy = {
+      version: PROOF_VERSION_V1,
+      facts: complete,
+      proofHash: createHash("sha256").update(canonical, "utf8").digest("hex"),
+      signature: {
+        algorithm: "ed25519" as const,
+        keyId: alice.signing.keyId,
+        value: sign(null, Buffer.from(canonical, "utf8"), createPrivateKey(alice.signing.privateKeyPem)).toString("base64url"),
+      },
+      caveat: "",
+      legal_advice: false as const,
+    };
+
+    const result = verifySignedProof({
+      proof: legacy,
+      evidence: evidence(),
+      keyRing: ring,
+      expectedPreviousProofHash: null,
+    });
+
+    expect(result.integrity).toBe("valid");
+    expect(result.signature).toBe("valid");
+    expect(result.ok).toBe(true);
+  });
+
+  it("produces different bytes for the two schemes", () => {
+    const complete = { ...facts(), receiptHash: proofHash(evidence()) };
+    expect(canonicalProof(complete, PROOF_VERSION_V1)).not.toBe(
+      canonicalProof(complete, PROOF_VERSION),
+    );
+  });
+
+  it("leaves the older form untouched by the new fields", () => {
+    // A `/1` document must not change when experiment attribution is present:
+    // that is precisely the byte change that would break historical proofs.
+    const base = { ...facts(), receiptHash: proofHash(evidence()) };
+    const withExperiment = { ...base, experimentId: "exp-1", variantKey: "b" };
+
+    expect(canonicalProof(base, PROOF_VERSION_V1)).toBe(
+      canonicalProof(withExperiment, PROOF_VERSION_V1),
+    );
+  });
+
+  it("still reports a genuinely unknown scheme as unsupported", () => {
+    const result = verifySignedProof({
+      proof: { ...proofFor(), version: "rift-consent-proof/99" },
+      evidence: evidence(),
+      keyRing: ring,
+      expectedPreviousProofHash: null,
+    });
+    expect(result.unsupportedVersion).toBe(true);
   });
 });
