@@ -318,12 +318,12 @@ export const CONSENT: ConsentOverview = {
 };
 
 export const CONSENT_RECORDS: ConsentRecord[] = [
-  { recordId: 'cr_7f21a9', recordedAt: '2026-09-05T11:42:00Z', region: 'EU / EEA', decision: 'custom', categoriesAllowed: ['Analytics'], configurationVersion: 'cfg_2026.09.04-3', channel: 'banner' },
-  { recordId: 'cr_7f2198', recordedAt: '2026-09-05T11:41:00Z', region: 'United States', decision: 'accepted_all', categoriesAllowed: ['Analytics', 'Marketing', 'Preferences'], configurationVersion: 'cfg_2026.09.04-3', channel: 'banner' },
-  { recordId: 'cr_7f2187', recordedAt: '2026-09-05T11:39:00Z', region: 'EU / EEA', decision: 'rejected', categoriesAllowed: [], configurationVersion: 'cfg_2026.09.04-3', channel: 'banner' },
-  { recordId: 'cr_7f2172', recordedAt: '2026-09-05T11:38:00Z', region: 'India', decision: 'accepted_all', categoriesAllowed: ['Analytics', 'Marketing', 'Preferences'], configurationVersion: 'cfg_2026.09.04-3', channel: 'banner' },
-  { recordId: 'cr_7f2166', recordedAt: '2026-09-05T11:36:00Z', region: 'EU / EEA', decision: 'withdrawn', categoriesAllowed: [], configurationVersion: 'cfg_2026.09.04-2', channel: 'preference_centre' },
-  { recordId: 'cr_7f2150', recordedAt: '2026-09-05T11:35:00Z', region: 'United States', decision: 'custom', categoriesAllowed: ['Analytics', 'Preferences'], configurationVersion: 'cfg_2026.09.04-3', channel: 'preference_centre' },
+  { recordId: 'cr_7f21a9', recordedAt: '2026-09-05T11:42:00Z', region: 'EU / EEA', decision: 'custom', categoriesAllowed: ['Analytics'], configurationVersion: 'cfg_2026.09.04-3', channel: 'banner', proof: 'receipt' },
+  { recordId: 'cr_7f2198', recordedAt: '2026-09-05T11:41:00Z', region: 'United States', decision: 'accepted_all', categoriesAllowed: ['Analytics', 'Marketing', 'Preferences'], configurationVersion: 'cfg_2026.09.04-3', channel: 'banner', proof: 'signed' },
+  { recordId: 'cr_7f2187', recordedAt: '2026-09-05T11:39:00Z', region: 'EU / EEA', decision: 'rejected', categoriesAllowed: [], configurationVersion: 'cfg_2026.09.04-3', channel: 'banner', proof: 'none' },
+  { recordId: 'cr_7f2172', recordedAt: '2026-09-05T11:38:00Z', region: 'India', decision: 'accepted_all', categoriesAllowed: ['Analytics', 'Marketing', 'Preferences'], configurationVersion: 'cfg_2026.09.04-3', channel: 'banner', proof: 'signed' },
+  { recordId: 'cr_7f2166', recordedAt: '2026-09-05T11:36:00Z', region: 'EU / EEA', decision: 'withdrawn', categoriesAllowed: [], configurationVersion: 'cfg_2026.09.04-2', channel: 'preference_centre', proof: 'none' },
+  { recordId: 'cr_7f2150', recordedAt: '2026-09-05T11:35:00Z', region: 'United States', decision: 'custom', categoriesAllowed: ['Analytics', 'Preferences'], configurationVersion: 'cfg_2026.09.04-3', channel: 'preference_centre', proof: 'receipt' },
 ];
 
 export const ANALYTICS: AnalyticsOverview = {

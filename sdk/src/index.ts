@@ -4,6 +4,7 @@ import type { ConsentApi } from "./consent";
 import { DiscoveryClient } from "./discovery";
 import { ConsentUi } from "./ui";
 import { EnforcementClient } from "./enforce";
+import type { EnforcementDecision } from "@rift-cmp/shared";
 import type { ConsentCheck, SDKOptions } from "./types";
 import { validateTrackInput } from "./validate";
 import { DEFAULT_API_URL } from "./constants";
@@ -161,6 +162,83 @@ function getUi(force = false): ConsentUi | null {
   });
   return state.ui;
 }
+
+/**
+ * Report what enforcement decided, in batches, and never on the hot path.
+ *
+ * Only blocks and unreviewed hosts are sent. An allowed request is the ordinary
+ * case and there are hundreds of them a minute on a busy page; shipping those
+ * would build a second analytics pipeline out of the privacy control, which is
+ * both wasteful and a worse privacy posture than saying nothing.
+ *
+ * Failure is silent by design. This is telemetry about a control, not the
+ * control itself: if the report does not arrive, enforcement has still happened
+ * and the visitor is unaffected. Retrying or surfacing an error would make a
+ * reporting outage look like an enforcement outage.
+ */
+const REPORTABLE = new Set(["block"]);
+
+/**
+ * The unpatched `fetch`, captured at module load.
+ *
+ * Enforcement patches `window.fetch`, and reporting through the patched one is a
+ * loop waiting to happen: under `unknown_host: "block"` the report request is
+ * itself an unmatched host, so it gets blocked, and the block gets queued as a
+ * report. Beyond the loop it is simply wrong — Rift's own control-plane traffic
+ * is not subject to the customer's tracker policy, and a site that sets
+ * default-deny should not thereby lose its own enforcement telemetry.
+ *
+ * This module is imported before `enforcement.start()` can run, so what is
+ * captured here is the real one.
+ */
+const nativeFetch =
+  typeof globalThis.fetch === "function" ? globalThis.fetch.bind(globalThis) : null;
+let reportQueue: Array<Record<string, unknown>> = [];
+let reportTimer: ReturnType<typeof setTimeout> | null = null;
+
+function queueEnforcementReport(decision: EnforcementDecision): void {
+  if (!REPORTABLE.has(decision.decision)) return;
+  if (reportQueue.length >= 100) return;
+
+  reportQueue.push({
+    resource: decision.resource,
+    vendor: decision.vendor,
+    purpose: decision.purpose,
+    decision: decision.decision,
+    reason: decision.reason,
+    observed_only: decision.observed_only,
+    at: decision.at,
+  });
+
+  if (reportTimer !== null) return;
+  // Batched behind a timer so a page that blocks twenty tags on load sends one
+  // request rather than twenty, and none of it happens inside the patched
+  // `fetch` that produced the decision.
+  reportTimer = setTimeout(() => {
+    reportTimer = null;
+    flushEnforcementReports();
+  }, 3000);
+}
+
+function flushEnforcementReports(): void {
+  const decisions = reportQueue.splice(0, 100);
+  if (decisions.length === 0 || !state.publicKey) return;
+
+  if (!nativeFetch) return;
+
+  void nativeFetch(`${state.apiUrl}/api/v1/enforcement`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${state.publicKey}`,
+    },
+    body: JSON.stringify({ decisions }),
+    keepalive: true,
+  }).catch(() => {
+    // Silent. See the note above.
+  });
+}
+
 
 const analytics = {
   /**
@@ -334,8 +412,15 @@ const analytics = {
      * Resolves `false` when there is nothing to enforce: no approved policy
      * version, no rules in it, or the mode is `off`. That is not a failure -
      * it is a site whose operator has not approved a policy yet.
+     *
+     * Blocked and unreviewed decisions are reported back so an operator can see
+     * them in the dashboard. Allowed ones are not: a busy page allows hundreds of
+     * requests a minute, and sending all of them would be a second analytics
+     * pipeline nobody asked for. Pass `report: false` to send nothing at all.
      */
-    async start(options: { mode?: "observe" | "enforce" } = {}): Promise<boolean> {
+    async start(
+      options: { mode?: "observe" | "enforce"; report?: boolean } = {},
+    ): Promise<boolean> {
       try {
         if (!state.consent || !state.publicKey) return false;
         const ui = new ConsentUi(state.consent, {
@@ -353,6 +438,9 @@ const analytics = {
         state.enforcement?.stop();
         state.enforcement = new EnforcementClient(state.consent, {
           mode: options.mode,
+          ...(options.report === false
+            ? {}
+            : { onDecision: (decision) => queueEnforcementReport(decision) }),
         });
         return state.enforcement.start(config.enforcement);
       } catch (error) {

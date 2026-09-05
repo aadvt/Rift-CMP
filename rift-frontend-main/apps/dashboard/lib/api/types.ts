@@ -272,6 +272,19 @@ export interface ConsentRecord {
   categoriesAllowed: string[];
   configurationVersion: string;
   channel: 'banner' | 'preference_centre';
+  /**
+   * Three states, not two.
+   *
+   * `signed` means a key was configured when the decision was written.
+   * `receipt` means integrity only — which is what every record written before
+   * signed proofs existed carries, and is a real, defensible state rather than a
+   * failure. `none` means there is no evidence attached at all.
+   *
+   * None of these is a verification result. Whether a proof actually verifies is
+   * a separate question with its own endpoint, and conflating "a signature is
+   * present" with "the signature is valid" is the mistake this wording avoids.
+   */
+  proof: 'signed' | 'receipt' | 'none';
 }
 
 export interface AnalyticsOverview {

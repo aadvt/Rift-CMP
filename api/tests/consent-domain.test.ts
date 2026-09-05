@@ -28,6 +28,7 @@ function record(overrides: Partial<ConsentRecordSummary>): ConsentRecordSummary 
     decided_at: "2026-01-01T09:00:00.000Z",
     recorded_at: "2026-01-01T09:00:00.000Z",
     metadata: null,
+    proof: { receipt_hash: null, signed: false, key_id: null, sequence: null },
     ...overrides,
   };
 }

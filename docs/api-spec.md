@@ -1508,6 +1508,72 @@ in the database and a read model is not the place to start.
 
 ---
 
+## Enforcement and proof
+
+Full behaviour, limitations and the key-rotation procedure are in
+[consent-firewall.md](consent-firewall.md) and [consent-proof.md](consent-proof.md).
+
+### `POST /api/v1/sites/{siteId}/firewall`
+
+**Management plane.** Ask the firewall what it would do, without doing it.
+
+Body: `destination` (required), and optionally `principal_external_id`, `vendor`,
+`purpose`, `data_categories`, `payload`, `redaction`.
+
+Returns the classification (`ALLOW` | `BLOCK` | `REDACT` | `REQUIRE_CONSENT` |
+`REVIEW`), the `effect` that would follow, the matched rule, the evidence, and
+which redaction rules would fire and at which paths.
+
+The payload is never echoed back and the evaluation is never written to the
+enforcement log — an endpoint that returned the payload would be a way to launder
+sensitive data through the audit surface. `422` when the redaction rules fail
+validation; nothing is evaluated against a rule set that does not validate.
+
+### `GET /api/v1/sites/{siteId}/enforcement`
+
+**Management plane.** Recorded decisions, newest first, with a summary and a
+`coverage` block stating what the log does *not* include. Query: `limit`,
+`decision`, `since`.
+
+The coverage block is served with the data rather than documented elsewhere,
+because a count of blocked requests reads as completeness unless something says
+otherwise.
+
+### `POST /api/v1/enforcement`
+
+**Ingest plane** (site public key, origin-checked, rate-limited). The browser SDK
+reports the decisions it took. Only blocks are sent; allowed requests are not.
+
+Each `resource` is reduced to its host before storage — a tracking URL's query
+string is where the tracking data is, and this table holds no payloads. Returns
+`accepted` and `rejected` counts so a silent loss is visible.
+
+These are claims made by a browser, not measurements, and are stored with
+`source: "client"` accordingly.
+
+### `GET /api/v1/consent/records/{recordId}/proof`
+
+**Management plane.** The signed proof for one decision, the evidence it covers,
+and the id of the key that signed it. Returns the key **identifier** only; no
+private material is ever included, which is enforced by a scan over the finished
+response body.
+
+`404` for a record in another organisation — the same answer as for one that does
+not exist.
+
+### `POST /api/v1/consent/proof/verify`
+
+**Management plane.** Body: `consent_record_id`, `proof`, or both. A supplied
+proof is resolved against the record it *names*, which is what makes proof
+substitution detectable.
+
+Reports `integrity`, `signature`, `chain`, `malformed` and `unsupported_version`
+separately. They are never collapsed into one boolean: "the signature is genuine
+but a decision was removed from this person's history" and "somebody edited the
+record" are different findings that call for different responses.
+
+Verification uses public key material only.
+
 ## Delivery
 
 One endpoint, authenticated by a recipient delivery key:

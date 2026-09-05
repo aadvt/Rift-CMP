@@ -15,6 +15,20 @@ const DECISION_TONE = {
   withdrawn: { label: 'Withdrawn', tone: 'warning' },
 } as const;
 
+/**
+ * What evidence a record carries — never whether that evidence checks out.
+ *
+ * "Signed" says a signature is present, not that it verifies. Those are
+ * different claims and a green tick implying the second would be the single most
+ * misleading thing on this screen. Verification is a deliberate act against
+ * `/consent/proof/verify`, which needs the public key ring.
+ */
+const PROOF_TONE = {
+  signed: { label: 'Signed', tone: 'success', hint: 'A signature is attached. Verify it to check that it holds.' },
+  receipt: { label: 'Receipt only', tone: 'neutral', hint: 'Integrity digest, no signature. Written before signing was configured, or with no key set.' },
+  none: { label: 'No proof', tone: 'warning', hint: 'Recorded before proofs existed. The decision still stands; there is simply nothing to check it against.' },
+} as const;
+
 export default async function ConsentPage() {
   const siteId = await requireSiteId();
   const [c, records, analytics] = await Promise.all([
@@ -155,13 +169,13 @@ export default async function ConsentPage() {
 
           <Card>
             <div className="border-b border-md-outline-variant p-5 md:px-6">
-              <CardHeader title="Consent records" sub="Each record keeps the decision, the region it was made in, and the configuration version that was live." />
+              <CardHeader title="Consent records" sub="Each record keeps the decision, the configuration version that was live, and what evidence it carries. “Signed” means a signature is attached, not that it has been checked." />
             </div>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse" style={{ minWidth: 900 }}>
                 <thead>
                   <tr>
-                    {['Record', 'When', 'Region', 'Decision', 'Categories allowed', 'Configuration', 'Channel'].map((h) => (
+                    {['Record', 'When', 'Region', 'Decision', 'Categories allowed', 'Configuration', 'Channel', 'Proof'].map((h) => (
                       <th key={h} className="sticky top-0 z-[2] h-[42px] border-b border-md-outline-variant bg-md-surface-container px-4 text-left text-label-small font-semibold uppercase tracking-[0.05em] text-md-on-surface-variant/75">{h}</th>
                     ))}
                   </tr>
@@ -183,6 +197,11 @@ export default async function ConsentPage() {
                         <td className="border-b border-md-outline-variant/40 px-4 py-[13px] font-mono text-xs text-md-on-surface-variant">{r.configurationVersion}</td>
                         <td className="border-b border-md-outline-variant/40 px-4 py-[13px] text-[13.5px] text-md-on-surface-variant">
                           {r.channel === 'banner' ? 'Banner' : 'Preference centre'}
+                        </td>
+                        <td className="border-b border-md-outline-variant/40 px-4 py-[13px]">
+                          <Chip tone={PROOF_TONE[r.proof].tone} title={PROOF_TONE[r.proof].hint}>
+                            {PROOF_TONE[r.proof].label}
+                          </Chip>
                         </td>
                       </tr>
                     );

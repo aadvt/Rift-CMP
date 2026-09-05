@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@rift/ui';
 import { ScreenHeader, Screen } from '@/components/shell/ScreenHeader';
 import {
   getAutopilot,
+  getEnforcement,
   getIntelligence,
   getPageIntelligence,
   getQuality,
@@ -10,6 +11,7 @@ import { QualityScore } from '@/components/intelligence/QualityScore';
 import { ShadowTrackers, DriftFindings } from '@/components/intelligence/Findings';
 import { PageIntelligence } from '@/components/intelligence/PageIntelligence';
 import { Autopilot } from '@/components/intelligence/Autopilot';
+import { Enforcement } from '@/components/intelligence/Enforcement';
 
 export const metadata = { title: 'Intelligence' };
 export const dynamic = 'force-dynamic';
@@ -17,7 +19,7 @@ export const dynamic = 'force-dynamic';
 /**
  * Everything Rift has worked out about one site.
  *
- * Five readings of the same evidence, kept on one screen because they answer
+ * Six readings of the same evidence, kept on one screen because they answer
  * one question between them — is this site set up properly, and if not, what
  * exactly is wrong. Splitting them across the navigation would make an operator
  * assemble that answer themselves from four places.
@@ -32,16 +34,18 @@ export default async function IntelligencePage({
 }) {
   const { siteId } = await params;
 
-  const [quality, intelligence, pages, autopilot] = await Promise.all([
+  const [quality, intelligence, pages, autopilot, enforcement] = await Promise.all([
     getQuality(siteId),
     getIntelligence(siteId),
     getPageIntelligence(siteId),
     getAutopilot(siteId),
+    getEnforcement(siteId),
   ]);
 
   const shadow = intelligence?.shadow_trackers ?? [];
   const drift = intelligence?.drift ?? [];
   const pending = autopilot?.recommendations.length ?? 0;
+  const blocked = enforcement?.summary.blocked ?? 0;
 
   return (
     <>
@@ -63,6 +67,9 @@ export default async function IntelligencePage({
             <TabsTrigger value="recommendations">
               Recommendations{pending > 0 ? ` (${pending})` : ''}
             </TabsTrigger>
+            <TabsTrigger value="protection">
+              Protection{blocked > 0 ? ` (${blocked})` : ''}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="quality">
@@ -83,6 +90,10 @@ export default async function IntelligencePage({
 
           <TabsContent value="recommendations">
             <Autopilot autopilot={autopilot} />
+          </TabsContent>
+
+          <TabsContent value="protection">
+            <Enforcement history={enforcement} />
           </TabsContent>
         </Tabs>
       </Screen>

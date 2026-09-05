@@ -343,6 +343,16 @@ export interface WireConsentRecord {
   decided_at: string;
   recorded_at: string;
   metadata: Record<string, unknown> | null;
+  /**
+   * What evidence the record carries. Not a verification result — checking a
+   * proof needs the public key ring, which happens at `/consent/proof/verify`.
+   */
+  proof?: {
+    receipt_hash: string | null;
+    signed: boolean;
+    key_id: string | null;
+    sequence: number | null;
+  };
 }
 
 export interface WireConsentHistoryResponse {
@@ -585,4 +595,63 @@ export interface WireAutopilotIntelligence {
   /** Always true. Nothing here is applied without a person approving it. */
   requires_approval: true;
   legal_advice: false;
+}
+
+// ─── Phase 11B: enforcement and proof ────────────────────────────────────────
+
+export interface WireEnforcementEvent {
+  id: string;
+  site_id: string;
+  occurred_at: string;
+  /** "client" or "server". They are not equivalent controls. */
+  source: string;
+  destination_host: string | null;
+  vendor: string | null;
+  purpose: string | null;
+  decision: string;
+  effect: string;
+  observed_only: boolean;
+  policy_version: string | null;
+  matched_rule: { host?: string; action?: string } | null;
+  reason: string;
+  severity: string;
+  /** Rule ids and paths. Never values. */
+  redactions: Array<{ rule: string; location: string; path: string }> | null;
+}
+
+export interface WireEnforcementHistory {
+  events: WireEnforcementEvent[];
+  summary: {
+    by_decision: Record<string, number>;
+    observed_only: number;
+    blocked: number;
+    redacted: number;
+    needs_review: number;
+    total: number;
+    destinations: number;
+  };
+  /**
+   * What the log does and does not cover.
+   *
+   * Rendered beside the counts rather than filed in documentation, because a
+   * count of blocked requests reads as completeness unless something says
+   * otherwise.
+   */
+  coverage: {
+    client_enforcement: string;
+    server_enforcement: string;
+    not_covered: string[];
+  };
+}
+
+export interface WireProofVerification {
+  ok: boolean;
+  version: string;
+  malformed: string | null;
+  unsupported_version: boolean;
+  integrity: 'valid' | 'invalid' | null;
+  signature: 'valid' | 'invalid' | 'unsigned' | 'unknown_key' | 'revoked_key' | null;
+  key_id: string | null;
+  chain: 'valid' | 'broken' | 'unverifiable' | null;
+  findings: string[];
 }

@@ -11,6 +11,7 @@ import {
   getIntelligence,
   getPageIntelligence,
   getAutopilot,
+  getEnforcement,
 } from '@/lib/api/endpoints';
 import { IntelligenceSummary } from '@/components/intelligence/Summary';
 import { latestScanId } from '@/lib/current-site';
@@ -19,12 +20,13 @@ export const metadata = { title: 'Site overview' };
 
 export default async function SiteOverviewPage({ params }: { params: Promise<{ siteId: string }> }) {
   const { siteId } = await params;
-  const [site, config, changes, scanId, quality, intelligence, pages, autopilot] =
+  const [site, config, changes, scanId, quality, intelligence, pages, autopilot, enforcement] =
     await Promise.all([
       getSite(siteId), getConfiguration(siteId), listChanges(siteId), latestScanId(siteId),
       // Each of these resolves to null on failure rather than throwing, so an
       // intelligence outage costs the summary strip and nothing else on the page.
       getQuality(siteId), getIntelligence(siteId), getPageIntelligence(siteId), getAutopilot(siteId),
+      getEnforcement(siteId),
     ]);
 
   const unresolved = site.counts.unresolved;
@@ -77,6 +79,7 @@ export default async function SiteOverviewPage({ params }: { params: Promise<{ s
             intelligence={intelligence}
             pages={pages}
             autopilot={autopilot}
+            enforcement={enforcement}
           />
 
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)]">

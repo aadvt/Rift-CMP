@@ -1273,6 +1273,18 @@ export function toConsentOverview(
   };
 }
 
+/** The weakest evidence across a grouped decision. See the note at the call site. */
+function weakestProof(records: readonly W.WireConsentRecord[]): 'signed' | 'receipt' | 'none' {
+  let weakest: 'signed' | 'receipt' | 'none' = 'signed';
+  for (const record of records) {
+    const proof = record.proof;
+    const level = !proof || proof.receipt_hash === null ? 'none' : proof.signed ? 'signed' : 'receipt';
+    if (level === 'none') return 'none';
+    if (level === 'receipt') weakest = 'receipt';
+  }
+  return records.length === 0 ? 'none' : weakest;
+}
+
 export function toConsentRecords(
   records: readonly W.WireConsentRecord[],
   purposeNames: PurposeNames,
@@ -1292,6 +1304,10 @@ export function toConsentRecords(
         .map((r) => purposeLabel(r.purpose_code, purposeNames) ?? r.purpose_code),
       configurationVersion: group.records[0]!.policy_version_id ?? '—',
       channel: group.records[0]!.source === 'preference_centre' ? 'preference_centre' : 'banner',
+      // The weakest evidence in the group, not the strongest. A decision made of
+      // four records where one is unsigned is not a signed decision, and showing
+      // it as one would overstate exactly the thing an auditor came to check.
+      proof: weakestProof(group.records),
     }));
 }
 

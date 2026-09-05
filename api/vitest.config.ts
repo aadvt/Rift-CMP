@@ -20,8 +20,13 @@ const UNIT_TESTS = [
   "tests/setup-journey.test.tsx",
   "tests/site-status.test.tsx",
   "tests/intelligence-ui.test.tsx",
+  "tests/enforcement-ui.test.tsx",
   "tests/consent-intelligence.test.ts",
   "tests/consent-quality.test.ts",
+  "tests/consent-signature.test.ts",
+  "tests/proof-keys.test.ts",
+  "tests/redaction.test.ts",
+  "tests/consent-firewall.test.ts",
   "tests/ai-assist.test.ts",
   "tests/autopilot-intelligence.test.ts",
   "tests/discovery-classification.test.ts",
@@ -40,6 +45,7 @@ const UNIT_TESTS = [
   "tests/consent-experience.test.ts",
   "tests/autopilot.test.ts",
   "tests/enforcement.test.ts",
+  "tests/enforcement-resources.test.ts",
   "tests/rights-availability.test.ts",
 ];
 

@@ -74,6 +74,7 @@ model Website {
   discoveryViolations  DiscoveryViolation[]
   consentSessions      ConsentSession[]
   scans                Scan[]
+  enforcementEvents    EnforcementEvent[]
 
   @@unique([id, organisationId])
   @@index([organisationId])
@@ -331,6 +332,32 @@ model ConsentRecord {
   /// says so rather than letting the word "proof" do work it cannot.
   proofHash       String?  @map("proof_hash")
 
+  // ── Phase 11B: signature and chain ─────────────────────────────────────────
+  //
+  // These extend the receipt above rather than duplicating it. `proofHash` is
+  // still the integrity digest over the record's evidence; what is added is the
+  // two claims a bare hash could never make - that a specific key produced the
+  // proof, and that this decision sits where it says it does in the person's
+  // history. Columns rather than a second table because there is exactly one
+  // proof per decision, and a parallel table would be the same row twice with
+  // an opportunity for the two to disagree.
+  //
+  // All nullable: every record written before this migration has none, and no
+  // signing key need ever be configured. An unsigned proof is a real, reportable
+  // state and is never presented as a signed one.
+
+  /// Ed25519 signature over the canonical proof document, base64url.
+  proofSignature     String? @map("proof_signature")
+  /// Which key signed it, so rotation does not strand historical proofs.
+  proofKeyId         String? @map("proof_key_id")
+  /// SHA-256 of the canonical proof document. This is what the next proof links to.
+  proofDocumentHash  String? @map("proof_document_hash")
+  /// The preceding proof's document hash for this principal on this site.
+  /// Null for the first decision. A gap here is what makes a deletion visible.
+  proofPreviousHash  String? @map("proof_previous_hash")
+  /// Position in that chain, 1-based.
+  proofSequence      Int?    @map("proof_sequence")
+
   // Composite foreign keys keep every reference inside one tenant, in the same
   // way Phase 1 ties an event's session to its site.
   website       Website        @relation(fields: [siteId, organisationId], references: [id, organisationId], onDelete: Cascade)
@@ -345,6 +372,13 @@ model ConsentRecord {
   @@index([siteId, decidedAt])
   @@index([organisationId, decidedAt])
   @@index([purposeId])
+  // Walks one principal's proof chain in order - the only query the chain
+  // verifier makes, and the one it makes for every verification. Unique rather
+  // than a plain index so two concurrent decisions cannot be written into the
+  // same position: the second fails and retries instead of silently forking the
+  // chain, which would look identical to tampering afterwards. Rows written
+  // before this migration have a null sequence, and Postgres permits many nulls.
+  @@unique([siteId, principalId, proofSequence])
   @@map("consent_records")
 }
 
@@ -1082,4 +1116,56 @@ model User {
 
   @@index([organisationId])
   @@map("users")
+}
+
+/// One enforcement decision, as it was actually taken.
+///
+/// Deliberately thin. An enforcement log is attractive to over-fill - the
+/// request body would make debugging easy - and that is exactly why it must not
+/// hold one: this table would then become a copy of every payload the firewall
+/// ever inspected, including the fields redaction exists to remove. What is kept
+/// is the decision and enough context to explain it, and nothing that identifies
+/// a person.
+///
+/// There is no principal reference here, and that is not an oversight. Joining
+/// an enforcement event to a visitor would rebuild, on the enforcement side, the
+/// identity link that consent analytics deliberately does not have.
+model EnforcementEvent {
+  id             String   @id @default(uuid())
+  organisationId String   @map("organisation_id")
+  siteId         String   @map("site_id")
+  occurredAt     DateTime @default(now()) @map("occurred_at")
+
+  /// "client" (the browser SDK) or "server" (a request path Rift controls).
+  /// The two are not equivalent controls and the column keeps them apart.
+  source         String
+
+  /// Host only. Never a full URL - a URL carries query parameters, and query
+  /// parameters carry exactly the values redaction was configured to remove.
+  destinationHost String? @map("destination_host")
+  vendor          String?
+  purpose         String?
+
+  /// ALLOW | BLOCK | REDACT | REQUIRE_CONSENT | REVIEW
+  decision       String
+  /// allow | block - what actually happened to the request.
+  effect         String
+  /// True when the policy was in observe mode, so nothing was actually stopped.
+  observedOnly   Boolean  @default(false) @map("observed_only")
+
+  /// The approved consent configuration version this was judged against.
+  policyVersion  String?  @map("policy_version")
+  /// The matched rule's host pattern and action, for an auditor. Not the payload.
+  matchedRule    Json?    @map("matched_rule")
+  reason         String
+  severity       String   @default("info")
+  /// Redaction rule ids and the paths they hit. Ids and paths only, never values.
+  redactions     Json?
+
+  website Website @relation(fields: [siteId, organisationId], references: [id, organisationId], onDelete: Cascade)
+
+  @@index([organisationId, occurredAt])
+  @@index([siteId, occurredAt])
+  @@index([siteId, decision, occurredAt])
+  @@map("enforcement_events")
 }

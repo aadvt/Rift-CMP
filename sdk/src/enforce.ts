@@ -44,12 +44,17 @@
  * act taken after looking at the observed decisions.
  */
 
-import type {
-  EnforcementConfig,
-  EnforcementDecision,
-  EnforcementRule,
-} from "@rift-cmp/shared";
+import type { EnforcementConfig, EnforcementDecision } from "@rift-cmp/shared";
+import { decide, hostOf } from "@rift-cmp/shared";
 import type { ConsentApi } from "./consent";
+
+// The decision function and its host matching used to live here. They now live
+// in `@rift-cmp/shared/consent-firewall`, unchanged, so the server can reach
+// exactly the same evaluator - two implementations of "is this allowed" would
+// drift, and the drift is invisible until a tag that should have been gated was
+// not. They are re-exported here so every existing importer is unaffected.
+export { decide, hostMatches, hostOf } from "@rift-cmp/shared";
+export type { DecisionInput } from "@rift-cmp/shared";
 
 export interface EnforcementOptions {
   /** Overrides the mode the server sent. For a test mode or a dry run. */
@@ -62,135 +67,27 @@ export interface EnforcementOptions {
 
 const DEFAULT_MAX_DECISIONS = 500;
 
-/** Suffix match, identical to the server's catalogue matching. */
-export function hostMatches(host: string, pattern: string): boolean {
-  const h = host.trim().toLowerCase().replace(/\.$/, "");
-  const p = pattern.trim().toLowerCase().replace(/\.$/, "");
-  if (!h || !p) return false;
-  return h === p || h.endsWith(`.${p}`);
-}
-
-/** The host of a URL, or null when it is not one we can reason about. */
-export function hostOf(raw: string, base?: string): string | null {
-  try {
-    const url = new URL(raw, base ?? globalThis.location?.href);
-    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
-    return url.hostname.toLowerCase();
-  } catch {
-    return null;
-  }
-}
-
-export interface DecisionInput {
-  resource: string;
-  host: string | null;
-  rules: readonly EnforcementRule[];
-  unknownHost: EnforcementConfig["unknown_host"];
-  /** Purpose codes currently GRANTED for this visitor. */
-  granted: ReadonlySet<string>;
-  /** Purpose codes with any recorded decision, granted or not. */
-  decided: ReadonlySet<string>;
-}
-
 /**
- * The decision, as a pure function.
+ * The attribute that makes each element fetch something.
  *
- * Exported and tested directly, because "would this have been blocked" is the
- * question an operator asks of the test mode and the one a regression test has
- * to be able to ask without a browser.
+ * Keyed by tag name, because "the URL" is a different attribute per element and
+ * checking `src` alone would miss every stylesheet and every `<object>`.
  */
-export function decide(
-  input: DecisionInput,
-): Omit<EnforcementDecision, "observed_only" | "at"> {
-  const { host } = input;
+const URL_ATTRIBUTE: Record<string, string> = {
+  SCRIPT: "src",
+  IFRAME: "src",
+  IMG: "src",
+  LINK: "href",
+  EMBED: "src",
+  OBJECT: "data",
+  SOURCE: "src",
+  VIDEO: "src",
+  AUDIO: "src",
+  TRACK: "src",
+};
 
-  if (host === null) {
-    return {
-      resource: input.resource,
-      vendor: null,
-      purpose: null,
-      user_state: "n/a",
-      policy: null,
-      decision: "allow",
-      reason: "Not an http(s) URL, so no rule can apply to it.",
-    };
-  }
-
-  // First match wins, and rules arrive sorted by host so the choice is stable.
-  const rule = input.rules.find((r) => hostMatches(host, r.host)) ?? null;
-
-  if (!rule) {
-    const block = input.unknownHost === "block";
-    return {
-      resource: input.resource,
-      vendor: null,
-      purpose: null,
-      user_state: "n/a",
-      policy: null,
-      decision: block ? "block" : "allow",
-      reason: block
-        ? "No rule matches this host and the policy sets unknown hosts to block."
-        : "No rule matches this host. The policy allows unmatched hosts, so this is not evidence it was reviewed.",
-    };
-  }
-
-  if (rule.action === "allow") {
-    return {
-      resource: input.resource,
-      vendor: rule.vendor,
-      purpose: rule.purpose,
-      user_state: "n/a",
-      policy: rule,
-      decision: "allow",
-      reason: `The approved policy allows ${rule.vendor} without a consent gate.`,
-    };
-  }
-
-  if (rule.action === "block") {
-    return {
-      resource: input.resource,
-      vendor: rule.vendor,
-      purpose: rule.purpose,
-      user_state: "n/a",
-      policy: rule,
-      decision: "block",
-      reason: `The approved policy blocks ${rule.vendor} outright.`,
-    };
-  }
-
-  // require_consent
-  if (!rule.purpose) {
-    // A consent gate with no purpose cannot be satisfied by any decision, so
-    // allowing it would make the rule meaningless while looking like a control.
-    return {
-      resource: input.resource,
-      vendor: rule.vendor,
-      purpose: null,
-      user_state: "undecided",
-      policy: rule,
-      decision: "block",
-      reason: `${rule.vendor} requires consent but the policy names no purpose, so no decision can satisfy it.`,
-    };
-  }
-
-  const granted = input.granted.has(rule.purpose);
-  const decided = input.decided.has(rule.purpose);
-  const state = granted ? "granted" : decided ? "denied_or_withdrawn" : "undecided";
-
-  return {
-    resource: input.resource,
-    vendor: rule.vendor,
-    purpose: rule.purpose,
-    user_state: state,
-    policy: rule,
-    decision: granted ? "allow" : "block",
-    reason: granted
-      ? `"${rule.purpose}" is granted, so ${rule.vendor} is allowed.`
-      : decided
-        ? `"${rule.purpose}" is not granted, so ${rule.vendor} is blocked.`
-        : `"${rule.purpose}" has no recorded decision. Silence is not consent, so ${rule.vendor} is blocked.`,
-  };
-}
+/** Ceiling on the subtree walk during insertion. See `blocksInsertion`. */
+const MAX_INSERTION_NODES = 500;
 
 /**
  * Applies a policy to the live page.
@@ -223,7 +120,10 @@ export class EnforcementClient {
     this.patchXhr();
     this.patchBeacon();
     this.patchImage();
-    this.patchScriptInsertion();
+    this.patchFrame();
+    this.patchSetAttribute();
+    this.patchElementInsertion();
+    this.patchCookie();
     return true;
   }
 
@@ -433,39 +333,103 @@ export class EnforcementClient {
   }
 
   /**
-   * Stop a blocked `<script src>` from being inserted.
+   * Stop a blocked frame from loading.
    *
-   * Patches `appendChild` and `insertBefore` on `Node.prototype` rather than
-   * `HTMLScriptElement.src`, because setting `src` on a detached element does
-   * not fetch anything — insertion is what does. A script already in the served
-   * HTML is fetched by the parser before any of this exists; see the boundary
-   * note at the top of the file.
+   * Same shape as the image patch and for the same reason: an iframe is one of
+   * the few elements that can carry a whole tag manager, and pointing one at a
+   * blocked vendor is the ordinary way a tag gets reintroduced after somebody
+   * removed the script.
    */
-  private patchScriptInsertion(): void {
-    if (typeof Node === "undefined") return;
+  private patchFrame(): void {
+    if (typeof HTMLIFrameElement === "undefined") return;
+    const descriptor = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, "src");
+    if (!descriptor?.set) return;
+    const originalSet = descriptor.set;
     const self = this;
-    const originalAppend = Node.prototype.appendChild;
-    const originalInsert = Node.prototype.insertBefore;
 
-    const blocked = (node: unknown): boolean => {
+    Object.defineProperty(HTMLIFrameElement.prototype, "src", {
+      ...descriptor,
+      set(this: HTMLIFrameElement, value: string) {
+        try {
+          if (self.shouldBlock(value)) return;
+        } catch {
+          // fall through
+        }
+        originalSet.call(this, value);
+      },
+    });
+
+    this.restore.push(() => {
+      Object.defineProperty(HTMLIFrameElement.prototype, "src", descriptor);
+    });
+  }
+
+  /**
+   * Close the `setAttribute` route.
+   *
+   * `img.src = url` goes through the property setter patched above.
+   * `img.setAttribute("src", url)` does not - it writes the attribute directly,
+   * and the element fetches just the same. Without this, every property-setter
+   * patch in this file has a one-line bypass that an ordinary tag could already
+   * be using without meaning anything by it.
+   */
+  private patchSetAttribute(): void {
+    if (typeof Element === "undefined") return;
+    const original = Element.prototype.setAttribute;
+    const self = this;
+
+    Element.prototype.setAttribute = function patchedSetAttribute(
+      this: Element,
+      name: string,
+      value: string,
+    ): void {
       try {
-        const element = node as { tagName?: string; src?: string };
-        if (!element?.tagName || element.tagName.toUpperCase() !== "SCRIPT") return false;
-        if (!element.src) return false;
-        return self.shouldBlock(element.src);
+        const attribute = URL_ATTRIBUTE[this.tagName?.toUpperCase() ?? ""];
+        if (attribute && name.toLowerCase() === attribute && self.shouldBlock(value)) {
+          return;
+        }
       } catch {
-        return false;
+        // fall through
       }
+      return original.call(this, name, value);
     };
 
-    Node.prototype.appendChild = function patchedAppend<T extends Node>(
-      this: Node,
-      node: T,
-    ): T {
+    this.restore.push(() => {
+      Element.prototype.setAttribute = original;
+    });
+  }
+
+  /**
+   * Stop a blocked resource from entering the document.
+   *
+   * Setting `src` on a detached element fetches nothing; insertion is what
+   * does. This previously covered `<script src>` through `appendChild` and
+   * `insertBefore` only, which left three ways round it costing one line each:
+   * use `replaceChild`, use `append`/`prepend`, or put the script inside a
+   * wrapper `<div>` and insert that. All of those entry points now run the same
+   * check, and the check walks the subtree of whatever is being inserted.
+   *
+   * It also covers iframes, pixels, stylesheets and media rather than scripts
+   * alone - a tracking pixel is an `<img>`, and a vendor blocked as a script is
+   * not less blocked when it arrives as one.
+   *
+   * A script already present in the served HTML is fetched by the parser before
+   * any of this exists. Nothing on the page can change that; see the boundary
+   * note at the top of the file.
+   */
+  private patchElementInsertion(): void {
+    if (typeof Node === "undefined") return;
+    const self = this;
+
+    const originalAppend = Node.prototype.appendChild;
+    const originalInsert = Node.prototype.insertBefore;
+    const originalReplace = Node.prototype.replaceChild;
+
+    Node.prototype.appendChild = function patchedAppend<T extends Node>(this: Node, node: T): T {
       // Returning the node unappended keeps the caller's contract - it gets its
       // element back - while the element never enters the document and so never
       // fetches.
-      if (blocked(node)) return node;
+      if (self.blocksInsertion(node)) return node;
       return originalAppend.call(this, node) as T;
     };
 
@@ -474,13 +438,143 @@ export class EnforcementClient {
       node: T,
       child: Node | null,
     ): T {
-      if (blocked(node)) return node;
+      if (self.blocksInsertion(node)) return node;
       return originalInsert.call(this, node, child) as T;
+    };
+
+    Node.prototype.replaceChild = function patchedReplace<T extends Node>(
+      this: Node,
+      node: Node,
+      child: T,
+    ): T {
+      // Refusing the replacement leaves the existing child in place, which is
+      // the state the page was already in and therefore the safe one.
+      if (self.blocksInsertion(node)) return child;
+      return originalReplace.call(this, node, child) as T;
     };
 
     this.restore.push(() => {
       Node.prototype.appendChild = originalAppend;
       Node.prototype.insertBefore = originalInsert;
+      Node.prototype.replaceChild = originalReplace;
     });
+
+    // `append`, `prepend`, `after`, `before` and `replaceWith` take variadic
+    // nodes and strings and do not route through `appendChild`.
+    if (typeof Element !== "undefined") {
+      for (const method of ["append", "prepend", "after", "before", "replaceWith"] as const) {
+        const target = Element.prototype as unknown as Record<string, unknown>;
+        const originalMethod = target[method] as
+          | ((...nodes: Array<Node | string>) => void)
+          | undefined;
+        if (typeof originalMethod !== "function") continue;
+
+        target[method] = function patchedVariadic(this: Element, ...nodes: Array<Node | string>) {
+          const permitted = nodes.filter((n) => typeof n === "string" || !self.blocksInsertion(n));
+          return originalMethod.apply(this, permitted);
+        };
+
+        this.restore.push(() => {
+          target[method] = originalMethod;
+        });
+      }
+    }
+  }
+
+  /**
+   * Whether inserting this node would load something the policy blocks.
+   *
+   * Walks the subtree, because a blocked script inside an appended wrapper is
+   * still a blocked script. The walk is bounded: an unbounded one turns a large
+   * DOM insertion into a page freeze, which is a worse outcome than a missed
+   * pixel.
+   */
+  private blocksInsertion(node: unknown): boolean {
+    try {
+      const element = node as Element | null;
+      if (!element || typeof element !== "object") return false;
+
+      const queue: Element[] = [element];
+      let examined = 0;
+
+      while (queue.length > 0 && examined < MAX_INSERTION_NODES) {
+        const current = queue.shift() as Element;
+        examined += 1;
+
+        const tag = (current as { tagName?: string }).tagName?.toUpperCase();
+        if (tag) {
+          const attribute = URL_ATTRIBUTE[tag];
+          if (attribute) {
+            const url = (current as unknown as Record<string, unknown>)[attribute];
+            if (typeof url === "string" && url && this.shouldBlock(url)) return true;
+          }
+        }
+
+        const children = (current as { children?: ArrayLike<Element> }).children;
+        if (children) {
+          for (let i = 0; i < children.length; i += 1) queue.push(children[i] as Element);
+        }
+      }
+
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Refuse a cookie written for a blocked vendor's domain.
+   *
+   * The honest scope of this is narrow and worth stating. A cookie is only
+   * attributable to a vendor when the write names a `domain=` that a rule
+   * matches. The overwhelming majority of tracking cookies are first-party
+   * cookies written by a third-party script onto the site's own domain, and
+   * those are indistinguishable from the site's own session cookie - blocking
+   * by name would be guesswork, and guessing wrong logs a customer out.
+   *
+   * So this catches the attributable case and does not pretend to catch the
+   * rest. The rest is what `require_consent` on the script itself is for: a
+   * vendor that never loads never writes anything.
+   */
+  private patchCookie(): void {
+    if (typeof document === "undefined" || typeof Document === "undefined") return;
+
+    // Where the accessor actually lives matters for putting it back. Browsers
+    // define `cookie` on `Document.prototype`; patching there and restoring onto
+    // `document` would leave an own property behind that shadows the prototype
+    // forever, so `stop()` would not really be a stop.
+    const onPrototype = Object.getOwnPropertyDescriptor(Document.prototype, "cookie");
+    const target: object = onPrototype ? Document.prototype : document;
+    const descriptor = onPrototype ?? Object.getOwnPropertyDescriptor(document, "cookie");
+    if (!descriptor?.set || !descriptor.get) return;
+
+    const originalSet = descriptor.set;
+    const originalGet = descriptor.get;
+    const self = this;
+
+    try {
+      Object.defineProperty(target, "cookie", {
+        configurable: true,
+        get(this: Document): string {
+          return originalGet.call(this) as string;
+        },
+        set(this: Document, value: string) {
+          try {
+            const domain = /;\s*domain\s*=\s*([^;]+)/i.exec(String(value))?.[1]?.trim();
+            if (domain && self.shouldBlock(`https://${domain.replace(/^\./, "")}/`)) return;
+          } catch {
+            // fall through
+          }
+          originalSet.call(this, value);
+        },
+      });
+
+      this.restore.push(() => {
+        Object.defineProperty(target, "cookie", descriptor);
+      });
+    } catch {
+      // Some environments make `document.cookie` non-configurable. Losing this
+      // one control must not stop the rest of enforcement from starting.
+    }
   }
 }

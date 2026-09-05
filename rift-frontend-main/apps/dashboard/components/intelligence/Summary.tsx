@@ -52,12 +52,14 @@ export function IntelligenceSummary({
   intelligence,
   pages,
   autopilot,
+  enforcement,
 }: {
   siteId: string;
   quality: W.WireQuality | null;
   intelligence: W.WireSiteIntelligence | null;
   pages: W.WirePageIntelligence[] | null;
   autopilot: W.WireAutopilotIntelligence | null;
+  enforcement: W.WireEnforcementHistory | null;
 }) {
   const tiles: Array<{ label: string; value: string; tone: 'neutral' | 'warning' }> = [];
 
@@ -89,6 +91,19 @@ export function IntelligenceSummary({
       label: 'recommendations pending',
       value: String(autopilot.recommendations.length),
       tone: autopilot.recommendations.length > 0 ? 'warning' : 'neutral',
+    });
+  }
+
+  if (enforcement) {
+    tiles.push({
+      label:
+        enforcement.summary.observed_only > 0 && enforcement.summary.blocked > 0
+          ? 'would have been blocked'
+          : 'blocked or gated',
+      value: String(enforcement.summary.blocked),
+      // Not a warning. Blocking is the control working, and colouring it as a
+      // fault would teach an operator to treat a healthy site as a broken one.
+      tone: 'neutral',
     });
   }
 

@@ -10,6 +10,7 @@ import type { ConsentDecisionResponse, ConsentStateResponse } from "@rift-cmp/sh
 import { CONSENT_STATUSES } from "@rift-cmp/shared";
 import { jsonError, setCorsHeaders } from "@/lib/cors";
 import { guardIngest, requireConsentSession } from "@/lib/ingest-guard";
+import { activeSigningKey } from "@/lib/proof-keys";
 
 /**
  * The browser-facing consent plane, authenticated with the site public key —
@@ -156,6 +157,11 @@ export async function POST(request: NextRequest) {
     source: input.source ?? "sdk",
     decidedAt: input.decided_at ? new Date(input.decided_at) : undefined,
     metadata: input.metadata ?? null,
+    // Loaded here rather than inside `database`, so private key material stays
+    // in the API layer and the database package never holds a secret it could
+    // accidentally log. Null when no key is configured, which issues an
+    // integrity-and-chain proof with no signature - a supported state.
+    signingKey: activeSigningKey(),
   });
 
   if (!result.ok) {

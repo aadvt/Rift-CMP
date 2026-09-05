@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type {
   ConsentRecordSummary,
   ConsentStatus,
@@ -9,6 +10,8 @@ import type {
 } from "@rift-cmp/shared";
 import { resolveEffectiveConsent } from "@rift-cmp/shared";
 import { proofHash } from "@rift-cmp/shared/consent-proof";
+import { buildProof } from "@rift-cmp/shared/consent-signature";
+import type { SigningKey } from "@rift-cmp/shared/consent-signature";
 import type { Prisma, PrismaClient } from "./generated/client";
 
 /**
@@ -117,6 +120,10 @@ type ConsentRecordRow = {
   decidedAt: Date;
   recordedAt: Date;
   metadata: Prisma.JsonValue | null;
+  proofHash: string | null;
+  proofSignature: string | null;
+  proofKeyId: string | null;
+  proofSequence: number | null;
   purpose: { code: string };
   principal: { externalId: string };
 };
@@ -134,6 +141,15 @@ export function toConsentRecordSummary(row: ConsentRecordRow): ConsentRecordSumm
     decided_at: row.decidedAt.toISOString(),
     recorded_at: row.recordedAt.toISOString(),
     metadata: (row.metadata as Record<string, unknown> | null) ?? null,
+    proof: {
+      receipt_hash: row.proofHash,
+      // The presence of a signature, not a claim about its validity. Verifying
+      // it needs the public key ring, which this package deliberately does not
+      // hold.
+      signed: row.proofSignature !== null,
+      key_id: row.proofKeyId,
+      sequence: row.proofSequence,
+    },
   };
 }
 
@@ -351,6 +367,18 @@ export async function recordConsentDecision(
     policyConfigVersion?: string | null;
     /** Vendors the surface named. Display names only. */
     vendors?: readonly string[];
+
+    // ── Phase 11B: signature ─────────────────────────────────────────────────
+
+    /**
+     * The key that signs this decision's proof, or null to issue an unsigned one.
+     *
+     * Passed in rather than read from the environment here, because this module
+     * has no business loading secrets: key configuration lives in the API layer
+     * (`api/lib/proof-keys.ts`), and keeping it there means the database package
+     * never touches private material and cannot accidentally log it.
+     */
+    signingKey?: SigningKey | null;
   },
 ): Promise<RecordConsentResult> {
   const purpose = await prisma.purpose.findFirst({
@@ -441,25 +469,81 @@ export async function recordConsentDecision(
     source,
   });
 
-  const record = await prisma.consentRecord.create({
-    data: {
-      organisationId: input.organisationId,
-      siteId: input.siteId,
-      principalId: principal.id,
-      purposeId: purpose.id,
-      noticeId: input.noticeId ?? null,
-      policyVersionId,
-      status: input.status,
-      source,
-      decidedAt,
-      jurisdictions,
-      vendors,
-      mechanism: input.mechanism ?? null,
-      policyConfigVersion: input.policyConfigVersion ?? null,
-      proofHash: proof,
-      ...(input.metadata == null ? {} : { metadata: input.metadata }),
-    },
-    include: CONSENT_RECORD_INCLUDE,
+  // The chain link. Read inside the same transaction as the write, so two
+  // decisions arriving together cannot both claim the same position - and the
+  // unique index on (site, principal, sequence) turns the remaining race into a
+  // failed insert rather than a silently forked chain.
+  //
+  // A forked chain is the worst available outcome here: after the fact it is
+  // indistinguishable from somebody having inserted a record, which is exactly
+  // the thing the chain exists to detect.
+  const record = await prisma.$transaction(async (tx) => {
+    const previous = await tx.consentRecord.findFirst({
+      where: { siteId: input.siteId, principalId: principal.id, proofSequence: { not: null } },
+      orderBy: { proofSequence: "desc" },
+      select: { proofSequence: true, proofDocumentHash: true },
+    });
+
+    const sequence = (previous?.proofSequence ?? 0) + 1;
+    const recordId = randomUUID();
+
+    const signed = buildProof(
+      {
+        consentRecordId: recordId,
+        siteId: input.siteId,
+        principalExternalId: input.principalExternalId,
+        purposeCode: input.purposeCode,
+        status: input.status,
+        decidedAt: decidedAt.toISOString(),
+        policyVersionId,
+        policyConfigVersion: input.policyConfigVersion ?? null,
+        jurisdictions,
+        sequence,
+        previousProofHash: previous?.proofDocumentHash ?? null,
+      },
+      {
+        siteId: input.siteId,
+        principalExternalId: input.principalExternalId,
+        purposeCode: input.purposeCode,
+        status: input.status,
+        decidedAt,
+        noticeId: input.noticeId ?? null,
+        policyVersionId,
+        policyConfigVersion: input.policyConfigVersion ?? null,
+        jurisdictions,
+        vendors,
+        mechanism: input.mechanism ?? null,
+        source,
+      },
+      input.signingKey ?? null,
+    );
+
+    return tx.consentRecord.create({
+      data: {
+        id: recordId,
+        organisationId: input.organisationId,
+        siteId: input.siteId,
+        principalId: principal.id,
+        purposeId: purpose.id,
+        noticeId: input.noticeId ?? null,
+        policyVersionId,
+        status: input.status,
+        source,
+        decidedAt,
+        jurisdictions,
+        vendors,
+        mechanism: input.mechanism ?? null,
+        policyConfigVersion: input.policyConfigVersion ?? null,
+        proofHash: proof,
+        proofDocumentHash: signed.proofHash,
+        proofPreviousHash: signed.facts.previousProofHash,
+        proofSequence: sequence,
+        proofSignature: signed.signature?.value ?? null,
+        proofKeyId: signed.signature?.keyId ?? null,
+        ...(input.metadata == null ? {} : { metadata: input.metadata }),
+      },
+      include: CONSENT_RECORD_INCLUDE,
+    });
   });
 
   return { ok: true, record: toConsentRecordSummary(record) };

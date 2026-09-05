@@ -4,6 +4,14 @@ Acting on an approved policy rather than only recording what a visitor chose.
 
 Research artifact, not legal advice.
 
+> **Phase 11B extended this.** The browser now also covers iframes, pixels,
+> stylesheets, media, `setAttribute`, `replaceChild`, the variadic insertion
+> methods and inserted subtrees, and there is a server-side plane for requests
+> the customer routes through Rift. See **[docs/consent-firewall.md](consent-firewall.md)**
+> for the current decision model, the audit trail, redaction, and a fuller
+> statement of what neither plane can reach. This page remains accurate about
+> the boundary; the firewall page supersedes it on scope.
+
 ```text
 Approved policy  +  recorded decision
         ↓

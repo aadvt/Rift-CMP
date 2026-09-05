@@ -792,3 +792,17 @@ export async function getAutopilot(siteId: string): Promise<W.WireAutopilotIntel
   ).catch(() => null);
   return body?.autopilot ?? null;
 }
+
+/** What the firewall decided on one site, with what the log does not cover. */
+export async function getEnforcement(
+  siteId: string,
+): Promise<W.WireEnforcementHistory | null> {
+  if (USE_FIXTURES) return null;
+  return riftFetch<W.WireEnforcementHistory>(`${V1}/sites/${siteId}/enforcement`, {
+    tags: [tag.config(siteId)],
+    // Enforcement events arrive continuously, so this is cached far more
+    // briefly than a policy: a stale "nothing blocked" is the reading most
+    // likely to be believed and least likely to be true.
+    revalidate: 30,
+  }).catch(() => null);
+}

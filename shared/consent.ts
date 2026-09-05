@@ -81,6 +81,25 @@ export interface ConsentRecordSummary {
   /** When we durably stored the decision. */
   recorded_at: string;
   metadata: Record<string, unknown> | null;
+  /**
+   * What evidence this decision carries.
+   *
+   * Additive, and deliberately shaped so the three states stay distinct. A
+   * record from before signed proofs existed is `signed: false` with a receipt —
+   * which is a real, defensible state and not the same as a proof that failed to
+   * verify. Nothing here is a verification result: checking a proof requires the
+   * public key ring, and that happens at `/consent/proof/verify`.
+   */
+  proof: {
+    /** The receipt digest. Null only for records written before Phase 10A. */
+    receipt_hash: string | null;
+    /** True when a signing key was configured at the time it was written. */
+    signed: boolean;
+    /** Which key signed it. The identifier, never the key. */
+    key_id: string | null;
+    /** Position in this principal's chain on this site, or null for older rows. */
+    sequence: number | null;
+  };
 }
 
 /** The decision currently in force for one purpose. Derived, never stored. */
