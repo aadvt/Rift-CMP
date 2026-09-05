@@ -6,6 +6,8 @@ import {
   isDeliveryKeyFormat,
   isPublicKeyFormat,
   isSecretKeyFormat,
+  isDashboardSessionTokenFormat,
+  resolveDashboardSession,
 } from "database";
 import { jsonError, managementError } from "./cors";
 
@@ -45,6 +47,14 @@ export interface OrganisationCaller {
   organisationId: string;
   name: string;
   slug: string;
+  /**
+   * The person behind the request, when one signed in.
+   *
+   * Null for an organisation key, which has no person attached — and saying so
+   * with `null` rather than omitting the field keeps "a machine did this" and
+   * "we did not record who" from looking identical.
+   */
+  userId: string | null;
 }
 
 /** A target fiduciary collecting sealed envelopes addressed to it. */
@@ -66,7 +76,7 @@ export type AuthResult<T> = { ok: true; caller: T } | { ok: false; response: Res
  * credential of any kind belongs in a URL, where it can reach access logs,
  * browser history and `Referer`.
  */
-function readBearerToken(request: NextRequest): string | null {
+export function readBearerToken(request: NextRequest): string | null {
   const header = request.headers.get("authorization") ?? "";
   const match = /^Bearer\s+(.+)$/i.exec(header);
   return match?.[1]?.trim() ?? null;
@@ -158,17 +168,64 @@ export async function authenticateIngest(
 }
 
 /**
- * Authenticates a management request against an organisation secret key.
- * A website public key is explicitly rejected here.
+ * Authenticates a management request, by organisation key or by session.
+ *
+ * Two credentials are accepted and they mean different things:
+ *
+ *   **`sk_...`** — an organisation secret key. Machine to machine, no person
+ *   attached, no expiry. This is what an integrator uses.
+ *
+ *   **`ds_...`** — a dashboard session, opened either by typing a key or by a
+ *   user signing in with an email and password. It is revocable, expires, and
+ *   goes stale when idle, none of which a key does.
+ *
+ * Both resolve to exactly one organisation, and every route downstream scopes on
+ * that id, so tenant isolation is unchanged by adding the second one. What a
+ * session adds is a person: `userId` is set when one signed in, which is what
+ * makes an audit trail able to say who rather than only which organisation.
+ *
+ * A website public key is explicitly rejected here — `pk_` is designed to ship
+ * in page source, and a browser-readable credential must never reach the plane
+ * that can read another site's data.
  */
 export async function authenticateManagement(
   request: NextRequest,
 ): Promise<AuthResult<OrganisationCaller>> {
   const unauthorized = () =>
-    managementError("unauthorized", "A valid organisation secret key is required.", [], 401);
+    managementError(
+      "unauthorized",
+      "A valid organisation secret key or dashboard session is required.",
+      [],
+      401,
+    );
 
   const token = readBearerToken(request);
-  if (!token || !isSecretKeyFormat(token)) {
+  if (!token) return { ok: false, response: unauthorized() };
+
+  if (isDashboardSessionTokenFormat(token)) {
+    // `touch` advances the idle clock: a caller actively using the dashboard is
+    // not idle, and without this a long working session would expire mid-task.
+    const session = await resolveDashboardSession(prisma, token, { touch: true });
+    if (!session) return { ok: false, response: unauthorized() };
+
+    const organisation = await prisma.organisation.findUnique({
+      where: { id: session.organisationId },
+      select: { id: true, name: true, slug: true },
+    });
+    if (!organisation) return { ok: false, response: unauthorized() };
+
+    return {
+      ok: true,
+      caller: {
+        organisationId: organisation.id,
+        name: organisation.name,
+        slug: organisation.slug,
+        userId: session.userId,
+      },
+    };
+  }
+
+  if (!isSecretKeyFormat(token)) {
     return { ok: false, response: unauthorized() };
   }
 
@@ -183,7 +240,12 @@ export async function authenticateManagement(
 
   return {
     ok: true,
-    caller: { organisationId: organisation.id, name: organisation.name, slug: organisation.slug },
+    caller: {
+      organisationId: organisation.id,
+      name: organisation.name,
+      slug: organisation.slug,
+      userId: null,
+    },
   };
 }
 

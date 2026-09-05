@@ -1,6 +1,12 @@
 generator client {
   provider = "prisma-client-js"
   output   = "../generated/client"
+  /// `native` is whatever machine generated this; the second target is the
+  /// runtime Vercel and most Linux hosts actually run. Without it the generated
+  /// client carries only a Windows or macOS query engine, the build succeeds,
+  /// and every query fails at runtime on the server — which is the worst place
+  /// to find out.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
@@ -25,6 +31,7 @@ model Organisation {
   notices    Notice[]
   recipients DataRecipient[]
   dashboardSessions DashboardSession[]
+  users      User[]
   consentPolicyVersions ConsentPolicyVersion[]
   recommendationOverrides ConsentRecommendationOverride[]
   rightsRequests    RightsRequest[]
@@ -594,20 +601,32 @@ model ConsentSession {
 model DashboardSession {
   id             String   @id @default(uuid())
   organisationId String   @map("organisation_id")
+  /// The person this session belongs to, when it was created by signing in with
+  /// an email and password. Null for a session created by typing an
+  /// organisation secret key directly, which predates user accounts and still
+  /// works.
+  userId         String?  @map("user_id")
   /// SHA-256 of the opaque `ds_...` cookie token.
   tokenHash      String   @unique @map("token_hash")
   /// AES-256-GCM ciphertext of the organisation secret, base64.
-  sealedSecret   String   @map("sealed_secret")
-  sealIv         String   @map("seal_iv")
-  sealTag        String   @map("seal_tag")
+  ///
+  /// Null for a session created by a user signing in, because nobody typed a
+  /// secret and the platform cannot produce one: `secret_key_hash` is a digest
+  /// and the plaintext was shown once at creation. Such a session proves which
+  /// organisation the caller belongs to without carrying its key.
+  sealedSecret   String?  @map("sealed_secret")
+  sealIv         String?  @map("seal_iv")
+  sealTag        String?  @map("seal_tag")
   createdAt      DateTime @default(now()) @map("created_at")
   lastSeenAt     DateTime @default(now()) @map("last_seen_at")
   expiresAt      DateTime @map("expires_at")
   revokedAt      DateTime? @map("revoked_at")
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([organisationId])
+  @@index([userId])
   @@map("dashboard_sessions")
 }
 
@@ -1035,4 +1054,32 @@ model RightsRequest {
   @@index([siteId, status])
   @@index([principalId])
   @@map("rights_requests")
+}
+
+/// A person who may sign in to the dashboard.
+///
+/// Deliberately separate from the key planes. `sk_`, `pk_` and `rk_` say which
+/// organisation a request represents; a user says which human is asking. Mixing
+/// the two is how a shared password becomes an API credential.
+///
+/// The password hash is produced by scrypt, never by `hashSecretKey()`. That
+/// function is SHA-256, which is right for a 256-bit random token and wrong for
+/// a phrase a person chose: a fast digest over a human password is a wordlist
+/// away from being no protection at all.
+model User {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  passwordHash   String   @map("password_hash")
+  /// `owner` today. Present now so adding `admin` and `viewer` later is a value
+  /// change rather than a migration during an incident.
+  role           String   @default("owner")
+  organisationId String   @map("organisation_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organisation Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  sessions     DashboardSession[]
+
+  @@index([organisationId])
+  @@map("users")
 }

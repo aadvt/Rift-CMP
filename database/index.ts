@@ -23,6 +23,7 @@ export * from "./tenancy";
 export * from "./consent";
 export * from "./consent-sessions";
 export * from "./dashboard-sessions";
+export * from "./users";
 export * from "./transfers";
 export * from "./authorisation";
 export * from "./audit";

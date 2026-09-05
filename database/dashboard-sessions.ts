@@ -132,31 +132,50 @@ export interface CreatedDashboardSession {
  */
 export async function createDashboardSession(
   prisma: PrismaClient,
-  input: { organisationId: string; secretKey: string; maxAgeSeconds?: number },
+  input: {
+    organisationId: string;
+    /**
+     * Present when somebody typed an organisation key and it was verified. It
+     * is sealed against the session id so later requests can recover it.
+     *
+     * Absent when a user signed in with an email and password: there is no
+     * secret to seal, and the platform cannot produce one, because
+     * `secret_key_hash` is a digest and the plaintext was shown once at
+     * creation and never stored. Such a session still proves which organisation
+     * the caller belongs to, which is what the management plane checks.
+     */
+    secretKey?: string;
+    userId?: string;
+    maxAgeSeconds?: number;
+  },
 ): Promise<CreatedDashboardSession> {
   const token = generateDashboardSessionToken();
   const expiresAt = new Date(
     Date.now() + (input.maxAgeSeconds ?? DASHBOARD_SESSION_MAX_AGE_SECONDS) * 1000,
   );
 
-  const placeholder = sealSecret(token, "pending", input.secretKey);
+  const placeholder = input.secretKey ? sealSecret(token, "pending", input.secretKey) : null;
   const row = await prisma.dashboardSession.create({
     data: {
       organisationId: input.organisationId,
       tokenHash: digest(token),
-      sealedSecret: placeholder.sealedSecret,
-      sealIv: placeholder.sealIv,
-      sealTag: placeholder.sealTag,
+      ...(input.userId ? { userId: input.userId } : {}),
+      ...(placeholder
+        ? {
+            sealedSecret: placeholder.sealedSecret,
+            sealIv: placeholder.sealIv,
+            sealTag: placeholder.sealTag,
+          }
+        : {}),
       expiresAt,
     },
     select: { id: true },
   });
 
-  const sealed = sealSecret(token, row.id, input.secretKey);
-  await prisma.dashboardSession.update({
-    where: { id: row.id },
-    data: sealed,
-  });
+  if (input.secretKey) {
+    const sealed = sealSecret(token, row.id, input.secretKey);
+    await prisma.dashboardSession.update({ where: { id: row.id }, data: sealed });
+  }
 
   return { token, expiresAt };
 }
@@ -164,7 +183,9 @@ export async function createDashboardSession(
 export interface ResolvedDashboardSession {
   sessionId: string;
   organisationId: string;
-  secretKey: string;
+  userId: string | null;
+  /** Null for a session opened by signing in, which seals no key. */
+  secretKey: string | null;
 }
 
 /**
@@ -192,6 +213,7 @@ export async function resolveDashboardSession(
     select: {
       id: true,
       organisationId: true,
+      userId: true,
       sealedSecret: true,
       sealIv: true,
       sealTag: true,
@@ -205,12 +227,18 @@ export async function resolveDashboardSession(
   if (row.expiresAt.getTime() <= now.getTime()) return null;
   if (now.getTime() - row.lastSeenAt.getTime() > idleSeconds * 1000) return null;
 
-  const secretKey = openSecret(token, row.id, {
-    sealedSecret: row.sealedSecret,
-    sealIv: row.sealIv,
-    sealTag: row.sealTag,
-  });
-  if (!secretKey) return null;
+  // Nothing sealed means a user session, which is valid and simply carries no
+  // key. Ciphertext that will not open is different: that is a tampered or
+  // corrupt row, and it fails like every other failure here.
+  let secretKey: string | null = null;
+  if (row.sealedSecret !== null && row.sealIv !== null && row.sealTag !== null) {
+    secretKey = openSecret(token, row.id, {
+      sealedSecret: row.sealedSecret,
+      sealIv: row.sealIv,
+      sealTag: row.sealTag,
+    });
+    if (!secretKey) return null;
+  }
 
   if (options.touch) {
     await prisma.dashboardSession.update({
@@ -219,7 +247,12 @@ export async function resolveDashboardSession(
     });
   }
 
-  return { sessionId: row.id, organisationId: row.organisationId, secretKey };
+  return {
+    sessionId: row.id,
+    organisationId: row.organisationId,
+    userId: row.userId,
+    secretKey,
+  };
 }
 
 /** Signing out. Deleting rather than flagging: the row holds a sealed secret. */

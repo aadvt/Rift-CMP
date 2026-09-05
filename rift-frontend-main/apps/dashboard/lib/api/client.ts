@@ -1,6 +1,7 @@
 import 'server-only';
 import type { RiftError } from './errors';
 import { riftError } from './errors';
+import { readSessionToken } from '../auth/session';
 
 /**
  * The one place the frontend talks to the Rift API.
@@ -81,7 +82,22 @@ export async function riftFetch<T>(path: string, options: RiftFetchOptions = {})
  * Swap this for your session lookup once auth is wired. During development
  * a static token from the environment is enough to talk to a backend.
  */
+/**
+ * The credential for this request.
+ *
+ * A signed-in session comes first: it is per-person, revocable and expires, and
+ * it is what the audit trail can attribute an action to. `RIFT_API_TOKEN` is the
+ * fallback for a deployment that has no user accounts yet and for local work
+ * against a fixed organisation key.
+ *
+ * The order matters. Preferring the env key would mean signing out changed
+ * nothing, because every request would keep using the shared credential
+ * underneath.
+ */
 async function authHeaders(): Promise<Record<string, string>> {
+  const session = await readSessionToken().catch(() => null);
+  if (session) return { Authorization: `Bearer ${session}` };
+
   const token = process.env.RIFT_API_TOKEN;
   return token ? { Authorization: `Bearer ${token}` } : {};
 }

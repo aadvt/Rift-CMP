@@ -54,11 +54,18 @@ describe("the cookie is not the credential", () => {
 
     const row = await prisma.dashboardSession.findFirstOrThrow();
 
+    // A session opened with a key must actually seal it. The columns are
+    // nullable because a session opened by signing in seals nothing, so this
+    // also pins which kind of session was created.
+    expect(row.sealedSecret).not.toBeNull();
+    expect(row.sealIv).not.toBeNull();
+    expect(row.sealTag).not.toBeNull();
+
     // Everything an attacker with a full dump has, and a guess at the token.
     const opened = openSecret(generateDashboardSessionToken(), row.id, {
-      sealedSecret: row.sealedSecret,
-      sealIv: row.sealIv,
-      sealTag: row.sealTag,
+      sealedSecret: row.sealedSecret as string,
+      sealIv: row.sealIv as string,
+      sealTag: row.sealTag as string,
     });
 
     expect(opened).toBeNull();
