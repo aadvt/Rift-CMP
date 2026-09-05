@@ -96,6 +96,11 @@ RUN npm install --no-audit --no-fund
 FROM dashboard-deps AS dashboard-build
 WORKDIR /web
 COPY rift-frontend-main/ ./
+# Baked in rather than passed at run time: `allowedOrigins` is read when the
+# config is evaluated during the build, so setting it only on the container
+# would have no effect and the failure it prevents is invisible.
+ARG RIFT_PUBLIC_HOST=""
+ENV RIFT_PUBLIC_HOST=$RIFT_PUBLIC_HOST
 RUN npm run build -w @rift/dashboard
 
 FROM dashboard-build AS dashboard
