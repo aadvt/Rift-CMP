@@ -10,9 +10,19 @@ import { cookies } from 'next/headers';
  * a forged identity, and signing out is a revocation the server records rather
  * than a value the browser agrees to forget.
  *
- * `httpOnly` keeps it away from page scripts and `secure` is set outside
- * development, so the cookie is never readable by a script and never travels in
- * clear once deployed.
+ * `httpOnly` keeps it away from page scripts, so the cookie is never readable
+ * by a script.
+ *
+ * `secure` is on by default outside development and can be turned off only by
+ * setting `RIFT_INSECURE_COOKIES`. That escape hatch exists because a `Secure`
+ * cookie is silently discarded by the browser when the page is served over
+ * plain HTTP — the sign-in succeeds, the server sets the cookie, the browser
+ * throws it away, and the person lands back on the form with no error anywhere
+ * to explain it. A deployment without TLS needs to say so out loud rather than
+ * appear broken.
+ *
+ * It is a downgrade and it is named like one. Anything reachable by someone
+ * other than its author should be on HTTPS, at which point this goes away.
  *
  * `sameSite: 'lax'` rather than `'strict'`. Strict is the tighter setting and it
  * was the first choice, but it withholds the cookie on navigations that arrive
@@ -36,7 +46,10 @@ export async function writeSessionToken(token: string, expiresAt: string): Promi
   jar.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure:
+      process.env.RIFT_INSECURE_COOKIES === 'true'
+        ? false
+        : process.env.NODE_ENV === 'production',
     path: '/',
     expires: new Date(expiresAt),
   });
