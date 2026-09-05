@@ -12,12 +12,16 @@
     "database"
   ],
   "scripts": {
-    "dev": "npm -w sdk run build && npm -w api run dev",
+    "dev": "node scripts/dev.mjs",
     "build": "npm -w sdk run build && npm -w api run build",
     "lint": "npm -w api run lint",
     "test": "npm -w api run test",
     "typecheck": "npm -w api run typecheck",
     "test:unit": "npm -w api run test:unit",
-    "test:browser": "npm -w api run test:browser"
+    "test:browser": "npm -w api run test:browser",
+    "dev:api": "npm -w sdk run build && npm -w api run dev",
+    "dev:worker": "npm -w @rift-cmp/crawler run worker",
+    "dev:dashboard": "npm --prefix rift-frontend-main run dev -w @rift/dashboard",
+    "dev:marketing": "npm --prefix rift-frontend-main run dev -w @rift/marketing"
   }
 }

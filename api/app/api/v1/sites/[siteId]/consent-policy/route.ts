@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import {
   approvePolicyVersion,
   getApprovedPolicyVersion,
-  getScanWithObservations,
+  getScanTechnologies,
   listOverrides,
   listPolicyVersions,
   listPurposes,
@@ -63,9 +63,10 @@ async function gather(organisationId: string, siteId: string, url: URL) {
 
   const scans = await listScans(prisma, organisationId, { siteId, limit: 25 });
   const latest = scans.find((scan) => scan.status === "completed") ?? null;
-  const withObservations = latest
-    ? await getScanWithObservations(prisma, organisationId, latest.id)
-    : null;
+  // Only the technologies are read below, so only the technologies are loaded.
+  const technologies = latest
+    ? ((await getScanTechnologies(prisma, organisationId, latest.id)) ?? [])
+    : [];
 
   const [purposes, overrides] = await Promise.all([
     listPurposes(prisma, organisationId),
@@ -74,7 +75,7 @@ async function gather(organisationId: string, siteId: string, url: URL) {
 
   return {
     scanId: latest?.id ?? null,
-    technologies: (withObservations?.technologies ?? []).map((t) => ({
+    technologies: technologies.map((t) => ({
       name: t.name,
       category: t.category,
       confidence: (t.confidence === "high" || t.confidence === "medium"

@@ -17,7 +17,7 @@
   "types": "./src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "worker": "tsx src/worker.ts",
+    "worker": "tsx scripts/worker.mjs",
     "e2e": "tsx scripts/e2e.mjs",
     "crawl": "tsx scripts/crawl-demo.mjs"
   },
@@ -27,6 +27,7 @@
     "playwright": "^1.49.0"
   },
   "devDependencies": {
+    "dotenv": "^16.6.1",
     "tsx": "^4.20.0",
     "typescript": "^5.6.2"
   }

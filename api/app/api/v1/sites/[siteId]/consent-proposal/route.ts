@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import {
-  getScanWithObservations,
+  getScanTechnologies,
   listPurposes,
   listScans,
   prisma,
@@ -81,16 +81,17 @@ export async function GET(
   });
   const latest = scans.find((scan) => scan.status === "completed") ?? null;
 
-  const withObservations = latest
-    ? await getScanWithObservations(prisma, auth.caller.organisationId, latest.id)
-    : null;
+  // The proposal reads technologies and nothing else, so nothing else is loaded.
+  const technologies = latest
+    ? ((await getScanTechnologies(prisma, auth.caller.organisationId, latest.id)) ?? [])
+    : [];
 
   const purposes = await listPurposes(prisma, auth.caller.organisationId);
 
   const proposal = buildProposal({
     siteId,
     scanId: latest?.id ?? null,
-    technologies: (withObservations?.technologies ?? []).map((t) => ({
+    technologies: technologies.map((t) => ({
       name: t.name,
       category: t.category,
       confidence: (t.confidence === "high" || t.confidence === "medium"

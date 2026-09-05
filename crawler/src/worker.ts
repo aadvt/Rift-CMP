@@ -1,4 +1,10 @@
-import { claimNextScan, markScanFailed, persistScanResult, prisma } from "database";
+import {
+  claimNextScan,
+  markScanFailed,
+  persistScanResult,
+  prisma,
+  recordScanProgress,
+} from "database";
 import { crawl, CRAWLER_VERSION, ScanFatalError, type CrawlEvent } from "./crawl";
 import type { CrawlLimits, ScanMode } from "./types";
 
@@ -22,6 +28,9 @@ import type { CrawlLimits, ScanMode } from "./types";
  * `database/scans.ts` and to the crawler through `crawl()`. Replacing this file
  * with a real queue consumer later changes nothing else.
  */
+
+/** How often a running scan publishes its page counters. */
+const PROGRESS_INTERVAL_MS = 1_500;
 
 export interface WorkerOptions {
   /** Stop after this many scans. Undefined means run until stopped. */
@@ -68,6 +77,31 @@ export async function runScan(scan: {
 
   log({ ...base, event: "scan_started", url: scan.startUrl, crawler_version: CRAWLER_VERSION });
 
+  // Page counters, published as the crawl goes so a progress screen has
+  // something true to show. Throttled: a crawl can visit several pages a second
+  // and one write each would be a lot of traffic for a number nobody reads that
+  // often. Every write is fire-and-forget and swallows its own errors — losing a
+  // progress update is a cosmetic loss, and failing a scan over one would be
+  // trading something that matters for something that does not.
+  let pagesScanned = 0;
+  let pagesFailed = 0;
+  let lastProgressAt = 0;
+  let progressInFlight = false;
+
+  const publishProgress = (force = false) => {
+    const now = Date.now();
+    if (progressInFlight) return;
+    if (!force && now - lastProgressAt < PROGRESS_INTERVAL_MS) return;
+
+    lastProgressAt = now;
+    progressInFlight = true;
+    void recordScanProgress(prisma, scan.id, { pagesScanned, pagesFailed })
+      .catch((error) => log({ ...base, event: "scan_progress_write_failed", error: String(error) }))
+      .finally(() => {
+        progressInFlight = false;
+      });
+  };
+
   try {
     const overrides = (scan.config ?? {}) as Partial<CrawlLimits>;
 
@@ -79,6 +113,14 @@ export async function runScan(scan: {
       onEvent: (event) => {
         log({ ...base, ...event });
         options.onEvent?.({ ...event, scan_id: scan.id });
+
+        if (event.event === "page_scanned") {
+          pagesScanned += 1;
+          publishProgress();
+        } else if (event.event === "page_failed") {
+          pagesFailed += 1;
+          publishProgress();
+        }
       },
     });
 
@@ -108,15 +150,60 @@ export async function runScan(scan: {
   }
 }
 
-/** Claims and runs scans until stopped or `maxScans` is reached. */
+/**
+ * Claims and runs scans until stopped or `maxScans` is reached.
+ *
+ * ## Why claiming is allowed to fail
+ *
+ * The one database call in this loop is `claimNextScan`, and a managed Postgres
+ * closes idle connections, suspends compute and drops sockets as a matter of
+ * routine. Letting that throw ended the process, and a worker that exits on a
+ * transient reset leaves every queued scan stuck at "queued" — the failure looks
+ * like a broken crawler to anyone watching a progress screen, and there is
+ * nothing in the scan row to say otherwise.
+ *
+ * So a claim failure is logged and retried with a backoff rather than being
+ * fatal. Only the claim: a failure *inside* a scan is already handled by
+ * `runScan`, which records it against that scan and never throws.
+ *
+ * A bounded run (`maxScans`) still gives up after `MAX_CLAIM_FAILURES`, because
+ * a test or a one-shot invocation retrying forever against a database that is
+ * genuinely gone is worse than a clear failure.
+ */
+const CLAIM_BACKOFF_MS = [1_000, 2_000, 5_000, 10_000, 30_000];
+const MAX_CLAIM_FAILURES = CLAIM_BACKOFF_MS.length;
+
 export async function runWorker(options: WorkerOptions = {}): Promise<number> {
   const idleDelayMs = options.idleDelayMs ?? 2_000;
   let completed = 0;
+  let consecutiveClaimFailures = 0;
 
   while (!options.signal?.aborted) {
     if (options.maxScans !== undefined && completed >= options.maxScans) break;
 
-    const scan = await claimNextScan(prisma);
+    let scan: Awaited<ReturnType<typeof claimNextScan>>;
+    try {
+      scan = await claimNextScan(prisma);
+      consecutiveClaimFailures = 0;
+    } catch (error) {
+      consecutiveClaimFailures += 1;
+      const delay =
+        CLAIM_BACKOFF_MS[Math.min(consecutiveClaimFailures - 1, CLAIM_BACKOFF_MS.length - 1)]!;
+
+      log({
+        event: "scan_claim_failed",
+        error: String(error),
+        attempt: consecutiveClaimFailures,
+        retry_in: delay,
+      });
+
+      if (consecutiveClaimFailures >= MAX_CLAIM_FAILURES && options.maxScans !== undefined) {
+        throw error;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      continue;
+    }
 
     if (!scan) {
       if (options.maxScans !== undefined) break; // bounded run: nothing left to do

@@ -84,6 +84,37 @@ export async function claimNextScan(prisma: PrismaClient) {
   return prisma.scan.findUnique({ where: { id: candidate.id } });
 }
 
+/**
+ * Live page counters for a scan that is still running.
+ *
+ * A crawl writes its observations once, at the end, which is right: a
+ * half-written scan is not a scan, and a reader must never see one. But it left
+ * a running scan reporting zeros for its whole duration, so a progress screen
+ * had nothing truthful to show for minutes at a time and sat at the first step
+ * until everything appeared at once.
+ *
+ * These three counters are the exception, and they are safe to move early
+ * precisely because they are counters rather than observations: they say how far
+ * the crawl has got, not what it found. `persistScanResult` overwrites them with
+ * the authoritative totals when the scan finishes.
+ *
+ * Scoped to a running scan, so a late write from an abandoned worker cannot
+ * touch a scan that has already completed or failed.
+ */
+export async function recordScanProgress(
+  prisma: PrismaClient,
+  scanId: string,
+  progress: { pagesScanned: number; pagesFailed: number },
+): Promise<void> {
+  await prisma.scan.updateMany({
+    where: { id: scanId, status: "running" },
+    data: {
+      pagesScanned: progress.pagesScanned,
+      pagesFailed: progress.pagesFailed,
+    },
+  });
+}
+
 export async function markScanFailed(
   prisma: PrismaClient,
   scanId: string,
@@ -411,6 +442,39 @@ export async function getScanWithObservations(
       technologies: { orderBy: { category: "asc" }, take: 300 },
     },
   });
+}
+
+/**
+ * Just the technologies a scan detected, tenant-scoped.
+ *
+ * The consent autopilot and the proposal builder both need this and nothing
+ * else, and both were reaching for `getScanWithObservations`, which loads up to
+ * two thousand rows of pages, cookies, scripts, requests and storage so that a
+ * caller can read one of the six lists. Against a remote database that was
+ * seconds per call, on the slowest endpoint the dashboard has.
+ *
+ * Kept separate rather than turned into an option on the fuller query, because
+ * "give me the technologies" and "give me everything this scan observed" are
+ * different questions and a boolean argument would hide which one a caller is
+ * asking.
+ */
+export async function getScanTechnologies(
+  prisma: PrismaClient,
+  organisationId: string,
+  scanId: string,
+) {
+  const scan = await prisma.scan.findFirst({
+    where: { id: scanId, organisationId },
+    select: {
+      id: true,
+      technologies: {
+        orderBy: { category: "asc" },
+        take: 300,
+        select: { detectorId: true, name: true, category: true, confidence: true },
+      },
+    },
+  });
+  return scan?.technologies ?? null;
 }
 
 export async function listScans(
