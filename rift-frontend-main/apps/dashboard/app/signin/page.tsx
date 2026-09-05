@@ -14,8 +14,17 @@ export const dynamic = 'force-dynamic';
  * Same shell as the landing and sign-up screens, so the three read as one
  * product rather than three pages that happen to share a domain.
  */
-export default async function SignInPage() {
-  if (await readSessionToken()) redirect('/dashboard');
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ expired?: string }>;
+}) {
+  const { expired } = await searchParams;
+
+  // A cookie is normally enough to send somebody on to the dashboard. Not when
+  // the API has just rejected that very cookie: the dashboard would fail the
+  // same way and redirect straight back here, forever.
+  if (!expired && (await readSessionToken())) redirect('/dashboard');
 
   return (
     <main className="min-h-dvh bg-md-surface px-5 py-10 md:px-8 md:py-14">
@@ -43,6 +52,16 @@ export default async function SignInPage() {
             <p className="mt-4 max-w-[440px] text-body-large leading-relaxed text-md-on-surface-variant">
               Manage your websites, their scans and the consent they record.
             </p>
+
+            {expired ? (
+              <p
+                role="status"
+                className="mt-6 flex max-w-[440px] items-start gap-2 rounded-xl border border-md-outline/40 px-4 py-3 text-body-small text-md-on-surface-variant"
+              >
+                <Icon name="clock" size={16} className="mt-0.5 shrink-0" />
+                Your session expired, so you were signed out. Sign in to carry on — nothing was lost.
+              </p>
+            ) : null}
 
             {USE_FIXTURES ? (
               <p

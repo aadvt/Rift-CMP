@@ -1,7 +1,8 @@
 import 'server-only';
 import type { RiftError } from './errors';
 import { riftError } from './errors';
-import { readSessionToken } from '../auth/session';
+import { redirect } from 'next/navigation';
+import { clearSessionToken, readSessionToken } from '../auth/session';
 
 /**
  * The one place the frontend talks to the Rift API.
@@ -50,6 +51,32 @@ export async function riftFetch<T>(path: string, options: RiftFetchOptions = {})
         ...(revalidate !== undefined ? { revalidate: revalidate === false ? 0 : revalidate } : {}),
       },
     });
+
+    /**
+     * An expired session is not an error to show somebody.
+     *
+     * Sessions lapse — eight hours at most, one idle — and every read on every
+     * screen then fails with a 401. Left to propagate, the first one throws and
+     * the person gets "a server-side exception has occurred" with a digest,
+     * which says nothing, offers nothing to do, and is indistinguishable from
+     * the product being broken.
+     *
+     * The honest response to "your session is no longer valid" is to stop
+     * treating them as signed in and ask them to sign in. The cookie is cleared
+     * first so the middleware does not bounce them straight back here with the
+     * same dead token.
+     *
+     * Only when a session was actually presented: a 401 with no cookie is the
+     * API rejecting something else, and redirecting would hide that.
+     */
+    if (res.status === 401 && (await readSessionToken().catch(() => null))) {
+      // Deleting a cookie is not permitted while rendering a page, so this is
+      // best-effort and the marker below is what actually breaks the loop:
+      // /signin sends anyone holding a cookie to /dashboard, which would fail
+      // the same way and come straight back.
+      await clearSessionToken().catch(() => {});
+      redirect('/signin?expired=1');
+    }
 
     if (!res.ok) {
       const payload = await safeJson(res);
