@@ -112,3 +112,43 @@ export async function signUp(input: { email: string; password: string; website?:
   revalidateTag('sites');
   return { ok: true, siteId };
 }
+
+/**
+ * Signing in.
+ *
+ * A result rather than a redirect-on-failure, matching every other form in this
+ * app. The `<form action={serverAction}>` shape this replaced looked tidier and
+ * did not work: the action returned 500 from the deployed build, so the button
+ * appeared to do nothing at all. Calling a server action as a function from a
+ * client component is the path the rest of the codebase already uses and the
+ * one that demonstrably works.
+ *
+ * It also displays the error next to the field instead of bouncing through a
+ * query parameter, which means a wrong password no longer discards the email
+ * that was typed with it.
+ */
+export async function signIn(input: { email: string; password: string }): Promise<
+  { ok: true } | { ok: false; message: string }
+> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/v1/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+      cache: 'no-store',
+    });
+  } catch {
+    // Unreachable is not the same as rejected, and saying so saves somebody
+    // retyping a password that was never the problem.
+    return { ok: false, message: 'Could not reach Rift. Check your connection and try again.' };
+  }
+
+  if (!response.ok) {
+    return { ok: false, message: 'That email and password do not match.' };
+  }
+
+  const body = (await response.json()) as { session_token: string; expires_at: string };
+  await writeSessionToken(body.session_token, body.expires_at);
+  return { ok: true };
+}
