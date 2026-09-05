@@ -28,6 +28,7 @@ export * from "./transfers";
 export * from "./authorisation";
 export * from "./audit";
 export * from "./analytics";
+export * from "./consent-analytics";
 export * from "./discovery";
 export * from "./tracker-catalogue";
 export * from "./scans";
