@@ -3,6 +3,8 @@ import { cookies } from 'next/headers';
 import { revalidateTag } from 'next/cache';
 import { createSite, rescanSite, acceptConfiguration, overrideTechnology, restoreRecommendation } from '@/lib/api/endpoints';
 import { SITE_COOKIE } from '@/lib/current-site';
+import { API_URL } from '@/lib/api/client';
+import { writeSessionToken } from '@/lib/auth/session';
 
 /** Server Actions are the only write path. Each one invalidates the tags the
  *  reads it affects were fetched under. */
@@ -56,4 +58,57 @@ export async function setTechnologyCategory(siteId: string, technologyId: string
 export async function restoreRiftRecommendation(siteId: string, technologyId: string) {
   await restoreRecommendation(siteId, technologyId);
   revalidateTag(`config:${siteId}`);
+}
+
+/**
+ * Creates an account, its organisation, and — when a website came with it — the
+ * first site and scan.
+ *
+ * Returns a result rather than throwing or redirecting, because everything that
+ * can go wrong here is something the person can fix by editing the form in
+ * front of them. A thrown error would replace the page they are filling in with
+ * an error screen and lose what they typed.
+ */
+export async function signUp(input: { email: string; password: string; website?: string }): Promise<
+  { ok: true; siteId: string | null } | { ok: false; message: string }
+> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/v1/auth/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+      cache: 'no-store',
+    });
+  } catch {
+    return { ok: false, message: 'Could not reach Rift. Check your connection and try again.' };
+  }
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { error?: { message?: string } } | null;
+    return {
+      ok: false,
+      message: body?.error?.message ?? 'That did not work. Check the details and try again.',
+    };
+  }
+
+  const body = (await response.json()) as {
+    session_token: string;
+    expires_at: string;
+    site: { site_id: string } | null;
+  };
+
+  await writeSessionToken(body.session_token, body.expires_at);
+
+  const siteId = body.site?.site_id ?? null;
+  if (siteId) {
+    // The scan is started here rather than by the signup endpoint: creating an
+    // account and crawling somebody's website are different acts, and the one
+    // that reaches out to the internet belongs where it can be seen.
+    await rescanSite(siteId).catch(() => null);
+    await selectSite(siteId);
+  }
+
+  revalidateTag('sites');
+  return { ok: true, siteId };
 }
