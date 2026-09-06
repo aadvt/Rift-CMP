@@ -455,16 +455,46 @@ export async function recordConsentDecision(
     }
   }
 
-  const principal = await prisma.principal.upsert({
-    where: { siteId_externalId: { siteId: input.siteId, externalId: input.principalExternalId } },
-    update: {},
-    create: {
-      siteId: input.siteId,
-      externalId: input.principalExternalId,
-      kind: input.principalKind ?? "anonymous",
-    },
-    select: { id: true },
-  });
+  // `upsert` is not race-free here.
+  //
+  // Prisma compiles this to a find followed by an insert, so two decisions
+  // arriving together for a principal nobody has seen before both find nothing
+  // and both insert - and the second gets a unique violation on
+  // (site_id, external_id). It is a narrow window and a real one: two tabs, a
+  // retried request, or a page that records several purposes in parallel all
+  // reach it, and the visitor's decision is lost with a 500.
+  //
+  // Losing the insert is fine. The row it collided with is the row we wanted,
+  // so the collision is read rather than retried blindly.
+  const findPrincipal = () =>
+    prisma.principal.findUnique({
+      where: {
+        siteId_externalId: { siteId: input.siteId, externalId: input.principalExternalId },
+      },
+      select: { id: true },
+    });
+
+  let principal = await findPrincipal();
+
+  if (!principal) {
+    try {
+      principal = await prisma.principal.create({
+        data: {
+          siteId: input.siteId,
+          externalId: input.principalExternalId,
+          kind: input.principalKind ?? "anonymous",
+        },
+        select: { id: true },
+      });
+    } catch (error) {
+      if ((error as { code?: string }).code !== "P2002") throw error;
+      principal = await findPrincipal();
+    }
+  }
+
+  if (!principal) {
+    throw new Error("[rift-cmp] principal could not be resolved");
+  }
 
   const decidedAt = input.decidedAt ?? new Date();
   const jurisdictions = [...(input.jurisdictions ?? [])];
@@ -503,7 +533,15 @@ export async function recordConsentDecision(
   // row the winner wrote. What must never happen is two records claiming one
   // position - a forked chain is indistinguishable from tampering afterwards -
   // and the constraint guarantees that whether or not a transaction is open.
-  const MAX_ATTEMPTS = 5;
+  // Enough attempts to absorb a burst on one principal.
+  //
+  // Every contender reads the same latest position, so at most one wins per
+  // round and N racing writers need N rounds. Five was too few and produced the
+  // one failure mode this whole approach exists to avoid - a real decision
+  // rejected under contention. Twelve covers far more parallelism than a banner
+  // can generate, and the loop still fails loudly rather than silently dropping
+  // a decision if it is ever exceeded.
+  const MAX_ATTEMPTS = 12;
   // Typed as the row the mapper needs, so the include is part of the contract
   // rather than something a later edit could silently drop.
   let record: ConsentRecordRow | null = null;
@@ -595,6 +633,11 @@ export async function recordConsentDecision(
       const collided = code === "P2002" && target.includes("proof_sequence");
 
       if (!collided || attempt === MAX_ATTEMPTS - 1) throw error;
+
+      // Jittered, so contenders do not re-read in lockstep and collide again on
+      // the same position. Without it a burst re-converges every round and only
+      // makes progress by luck.
+      await new Promise((resolve) => setTimeout(resolve, 10 + Math.random() * 40));
     }
   }
 
