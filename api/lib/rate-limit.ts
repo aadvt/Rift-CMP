@@ -78,6 +78,16 @@ export const RATE_LIMITS = {
    * flood cannot make the database do a credential lookup per request.
    */
   unauthenticated: { limit: 300, windowMs: 60_000 },
+  /**
+   * The landing page preview. By far the tightest limit here, because it is the
+   * only unauthenticated endpoint that launches a browser and fetches a URL the
+   * caller chose - which is to say, the only one where an attacker gets to spend
+   * the server's CPU and network on a target they picked.
+   *
+   * Three a minute is enough for somebody trying their own site and retyping the
+   * address twice. It is not enough to be a scanning service for anybody else.
+   */
+  previewScan: { limit: 3, windowMs: 60_000 },
 } as const satisfies Record<string, RateLimitRule>;
 
 export type RateLimitName = keyof typeof RATE_LIMITS;

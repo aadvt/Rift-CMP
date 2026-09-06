@@ -22,6 +22,7 @@ export * from "./enforcement";
 // browser SDK can compute an arm without pulling a Node built-in into the bundle.
 export * from "./experiment";
 export * from "./experiment-analytics";
+export * from "./preview-scan";
 // `graph` is deliberately not re-exported: it names MAX_NODES and MAX_DEPTH,
 // and so does `redaction`. Two modules owning one name in the barrel is a real
 // ambiguity, and renaming either would make that one read worse for the sake of

@@ -24,7 +24,8 @@
     "./experiment": "./experiment.ts",
     "./experiment-analytics": "./experiment-analytics.ts",
     "./graph": "./graph.ts",
-    "./simulation": "./simulation.ts"
+    "./simulation": "./simulation.ts",
+    "./preview-scan": "./preview-scan.ts"
   },
   "types": "./index.ts",
   "dependencies": {
