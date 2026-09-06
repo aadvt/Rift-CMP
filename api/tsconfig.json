@@ -53,6 +53,7 @@
   "exclude": [
     "node_modules",
     "tests/intelligence-ui.test.tsx",
-    "tests/enforcement-ui.test.tsx"
+    "tests/enforcement-ui.test.tsx",
+    "tests/preview-recommendations.test.ts"
   ]
 }

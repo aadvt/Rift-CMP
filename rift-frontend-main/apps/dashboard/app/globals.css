@@ -64,3 +64,56 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ── Printing a report ───────────────────────────────────────────────────
+   "Save as PDF" in the print dialog is how a report leaves this app, so the
+   printed page is a real output rather than an accident of the screen one.
+
+   Everything is hidden and the marked region is shown again, rather than the
+   region being moved into a print-only container. The region stays where it is
+   in the DOM, so nothing about the layout, the data or the component tree
+   differs between what was on screen and what came out — which is the whole
+   reason for printing the page instead of rebuilding it.
+
+   `visibility` rather than `display`: hiding an ancestor with `display: none`
+   would take the descendant with it however visible it claims to be. */
+@media print {
+  body * { visibility: hidden; }
+
+  [data-print-region],
+  [data-print-region] * { visibility: visible; }
+
+  [data-print-region] {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Anything interactive is dead weight on paper: buttons that cannot be
+     pressed, tabs that cannot be switched, a sticky bar over the content. */
+  [data-print-hide],
+  [data-print-region] button { display: none !important; }
+
+  /* Tonal surfaces read as grey boxes in print and cost a great deal of toner
+     for no information. The tonal ladder is doing depth, which paper does with
+     rules instead. */
+  [data-print-region] * {
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #111 !important;
+  }
+
+  [data-print-region] [class*="rounded"] {
+    border: 1px solid #d4d4d8 !important;
+  }
+
+  /* A card broken across a page boundary loses the association between its
+     heading and its numbers, which is the only thing it was for. */
+  [data-print-region] section,
+  [data-print-region] li { break-inside: avoid; }
+
+  @page { margin: 16mm; }
+}

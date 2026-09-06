@@ -1,6 +1,12 @@
 {
-  // Everything `tsconfig.json` checks, plus the two component tests it excludes
-  // so the api image can build without the dashboard's workspace.
+  // Everything `tsconfig.json` checks, plus the tests it excludes so the api
+  // image can build without the dashboard's workspace present.
+  //
+  // Anything under `tests/` that imports across the workspace boundary belongs
+  // in that exclude list. `next build` type-checks every file it can reach, and
+  // the api container has no `rift-frontend-main/node_modules` to resolve, so a
+  // cross-workspace import left in the default config breaks the Docker build
+  // while passing locally — which is exactly how it got shipped once already.
   //
   // `next build` cannot be pointed at a different tsconfig, so the split runs the
   // other way: the default config is the narrow one the bundler uses, and this is

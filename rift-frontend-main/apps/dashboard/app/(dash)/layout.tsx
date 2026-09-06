@@ -4,6 +4,7 @@ import { listSites, getOrganisation } from '@/lib/api/endpoints';
 import { currentSite } from '@/lib/current-site';
 import { USE_FIXTURES } from '@/lib/api/client';
 import { readSessionToken } from '@/lib/auth/session';
+import { PageTransition } from '@/components/motion/PageTransition';
 import { Icon } from '@rift/ui';
 
 /**
@@ -49,7 +50,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <main className="relative flex min-w-0 flex-1 flex-col">
         <MobileNav activeSite={activeSite} signedIn={signedIn} />
         {USE_FIXTURES ? <FixtureBanner /> : null}
-        {children}
+        <PageTransition>{children}</PageTransition>
       </main>
     </div>
   );

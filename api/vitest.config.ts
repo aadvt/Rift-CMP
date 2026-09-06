@@ -47,6 +47,7 @@ const UNIT_TESTS = [
   "tests/crawler-detectors.test.ts",
   "tests/crawler-diff.test.ts",
   "tests/preview-scan.test.ts",
+  "tests/preview-recommendations.test.ts",
   "tests/consent-experience.test.ts",
   "tests/autopilot.test.ts",
   "tests/enforcement.test.ts",

@@ -7,6 +7,9 @@ import {
 import { ScreenHeader, Screen } from '@/components/shell/ScreenHeader';
 import { FindingsExplorer } from '@/components/FindingsExplorer';
 import { useScanProgress } from '@/hooks/useScanProgress';
+import { CountUp } from '@/components/motion/CountUp';
+import { ScanOrbit } from '@/components/motion/ScanOrbit';
+import { ExportReportButton } from '@/components/ExportReportButton';
 import type { Finding, Scan } from '@/lib/api/types';
 
 /**
@@ -44,7 +47,7 @@ export function ScanScreen({
         actions={
           done ? (
             <>
-              <Button variant="tonal" icon="download">Export findings</Button>
+              <ExportReportButton label="Save as PDF" />
               <Link href={`/dashboard/sites/${siteId}/privacy`}>
                 <Button variant="filled" iconAfter="arrowRight">Review Rift configuration</Button>
               </Link>
@@ -56,7 +59,18 @@ export function ScanScreen({
       />
 
       <Screen>
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-5" data-print-region>
+          {/* On screen the site and date are in the header bar, which does not
+              print. A report that does not say which site it is about, or when
+              it was taken, is not a report. */}
+          <div className="hidden print:block">
+            <h1 className="text-headline-medium text-md-on-surface">Rift scan report — {host}</h1>
+            <p className="mt-1 text-body-small text-md-on-surface-variant">
+              Scan {scan.scanId} · {new Date().toLocaleDateString('en-GB', { dateStyle: 'long' })} · Reports what
+              this website does. Not legal advice.
+            </p>
+          </div>
+
           {partial ? <LimitationsNotice scan={scan} /> : null}
           {done ? <Outcome scan={scan} partial={partial} host={host} /> : <Progress scan={scan} transport={transport} />}
           {done ? <ConfidenceKey /> : null}
@@ -96,13 +110,20 @@ function Progress({ scan, transport }: { scan: Scan; transport: 'stream' | 'poll
                 exactly what has been checked.
               </p>
             </div>
-            <div className="shrink-0 text-right">
-              <div className="text-display-large font-normal leading-none tracking-[-0.02em] text-md-primary tabular-nums">
-                {percent}<span className="text-headline-medium text-md-on-surface-variant">%</span>
+            {/* The orbit says "working", the percentage says "how far". Neither
+                alone is enough: a spinner with no number is opaque, and a number
+                that only moves nine times looks stuck between stages. */}
+            <div className="flex shrink-0 items-center gap-6">
+              <div className="text-right">
+                <div className="text-display-large font-normal leading-none tracking-[-0.02em] text-md-primary tabular-nums">
+                  <CountUp value={percent} duration={0.6} />
+                  <span className="text-headline-medium text-md-on-surface-variant">%</span>
+                </div>
+                <div className="mt-2 text-label-medium text-md-on-surface-variant">
+                  Stage {Math.min(completed + 1, 9)} of 9
+                </div>
               </div>
-              <div className="mt-2 text-label-medium text-md-on-surface-variant">
-                Stage {Math.min(completed + 1, 9)} of 9
-              </div>
+              <ScanOrbit size={96} className="hidden sm:block" />
             </div>
           </div>
 
@@ -157,7 +178,10 @@ function Counter({ label, value, tone, last }: { label: string; value: number; t
           !shown ? 'text-md-on-surface-variant/50' : tone === 'warning' ? 'text-md-warning' : 'text-md-on-surface'
         }`}
       >
-        {shown ? value : '—'}
+        {/* Counting rather than swapping is what makes this read as a live
+            feed: a number that ticks 12 → 15 while you watch says three more
+            were found, where a silent replacement says nothing happened. */}
+        {shown ? <CountUp value={value} duration={0.6} /> : '—'}
       </dd>
     </div>
   );

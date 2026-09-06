@@ -1,13 +1,16 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { BlurField, Card, Chip, Icon, RiftMark, type IconName } from '@rift/ui';
+import { BlurField, Card, Icon, RiftMark, type IconName } from '@rift/ui';
 import { LandingScanForm } from '@/components/LandingScanForm';
+import { HeroIntro } from '@/components/landing/HeroIntro';
+import { RegimeStrip } from '@/components/landing/RegimeStrip';
+import { Reveal } from '@/components/motion/Reveal';
 import { readSessionToken } from '@/lib/auth/session';
 
 export const metadata = {
   title: 'Rift — see what your website actually does',
   description:
-    'Scan your website, see the trackers, cookies and cross-border transfers it really has, and turn that into working consent with one snippet.',
+    'Scan your site, see every tracker, cookie and cross-border transfer, and configure consent for GDPR, ePrivacy, CCPA and India’s DPDP Act in one place.',
 };
 export const dynamic = 'force-dynamic';
 
@@ -16,22 +19,17 @@ export const dynamic = 'force-dynamic';
  *
  * ## It answers before it asks
  *
- * The page leads with a scan, not a sign-up form. A stranger came here to find
- * something out about their own site; making them create an account first means
- * charging them before they know whether the product is worth anything. So the
- * scan runs for anybody, it is real rather than a canned demo, and the account
- * is proposed only once there is a result on the screen worth keeping.
+ * The page leads with a scan, not a sign-up form. A stranger came to find
+ * something out about their own site; asking them to create an account first
+ * charges them before they know whether this is worth anything.
  *
- * Nothing about a preview scan is stored — see `LandingScanForm` for why that
- * constraint exists and what it costs.
+ * ## Short on purpose
  *
- * ## Why there is this much prose
- *
- * Consent tooling is a market full of products that look identical from the
- * outside: they all show a banner. The difference is whether anything is
- * actually stopped from running before somebody agrees, and whether there is a
- * record afterwards that would survive being asked about. That difference
- * cannot be conveyed by a headline, so the page explains it.
+ * An earlier version of this page explained itself at length and nobody was
+ * going to read it. The argument is made by the scan — somebody's own site,
+ * their own trackers, in about twenty seconds — so the prose around it only has
+ * to get them to the field and label what they are looking at afterwards. Every
+ * section here is a heading and one line.
  *
  * Somebody already signed in has no business here and goes straight through.
  */
@@ -39,38 +37,23 @@ export default async function Home() {
   if (await readSessionToken()) redirect('/dashboard');
 
   return (
-    <main className="min-h-dvh bg-md-surface">
+    <main className="min-h-dvh overflow-x-hidden bg-md-surface">
       <SiteHeader />
 
-      {/* ── Hero: one field, and the reason to use it ── */}
-      <section className="px-5 pb-14 md:px-8">
-        <div className="relative mx-auto max-w-[1200px] overflow-hidden rounded-3xl bg-md-surface-container px-6 py-12 md:px-12 md:py-16">
+      <section className="px-5 pb-10 md:px-8">
+        <div className="relative mx-auto max-w-[1200px] overflow-hidden rounded-3xl bg-md-surface-container px-6 py-14 md:px-12 md:py-20">
           <BlurField variant="hero" />
-
-          <div className="relative mx-auto max-w-[760px] motion-safe:animate-[md-rise_400ms_var(--md-ease)_both]">
-            <Chip tone="primary" glyph="sparkle">
-              No account needed to scan
-            </Chip>
-
-            <h1 className="mt-5 text-headline-large font-normal leading-[1.08] tracking-[-0.015em] text-md-on-surface">
-              See what your website actually does
-            </h1>
-
-            <p className="mt-5 max-w-[58ch] text-body-large leading-relaxed text-md-on-surface-variant">
-              Enter your address and Rift opens your site in a real browser, follows a few links, and
-              reports every third party it contacts, every cookie it sets and every border the data
-              crosses. Then it can turn that into working consent — one snippet, no legal homework.
-            </p>
-
-            <LandingScanForm className="mt-8" />
+          <div className="relative mx-auto max-w-[720px]">
+            <HeroIntro />
+            <LandingScanForm className="mt-9" />
           </div>
         </div>
       </section>
 
+      <RegimeStrip />
       <HowItWorks />
       <WhatYouGet />
-      <TheDifference />
-      <Trust />
+      <Limits />
       <ClosingCta />
       <SiteFooter />
     </main>
@@ -93,7 +76,7 @@ function SiteHeader() {
         </Link>
         <Link
           href="/signup"
-          className="rounded-full bg-md-primary px-5 py-2 text-label-large font-medium text-md-on-primary transition-transform active:scale-95"
+          className="rounded-full bg-md-primary px-5 py-2 text-label-large font-medium text-md-on-primary transition-transform duration-[--md-duration-fast] hover:scale-[1.03] active:scale-95"
         >
           Create account
         </Link>
@@ -102,86 +85,45 @@ function SiteHeader() {
   );
 }
 
-const STEPS: Array<[string, string]> = [
-  [
-    'Rift scans your website',
-    'A real browser loads your pages and records what happens: scripts, cookies, storage, network requests and the third parties behind them. No tag list to fill in — Rift finds them.',
-  ],
-  [
-    'Rift works out what applies',
-    'Each third party is matched against a catalogue that knows what it is for and where it operates, and read against the markets you actually sell to. Nothing is guessed in the permissive direction.',
-  ],
-  [
-    'Rift writes the configuration',
-    'Consent categories, which scripts belong in each, banner copy and regional behaviour — proposed as a change you approve, with the evidence that produced it attached.',
-  ],
-  [
-    'You paste one snippet',
-    'A single script tag. From then on Rift shows the banner, blocks what has not been agreed to, keeps a signed record of every decision, and tells you when your site changes underneath it.',
-  ],
+const STEPS: Array<[IconName, string, string]> = [
+  ['scans', 'Scan', 'A real browser loads your pages and records what runs.'],
+  ['layers', 'Resolve', 'Each third party is matched to a vendor, a purpose and a country.'],
+  ['consent', 'Configure', 'Rift writes the categories and the banner. You approve it.'],
+  ['code', 'Install', 'One script tag. Rift enforces and records from there.'],
 ];
 
 function HowItWorks() {
   return (
-    <Section
-      eyebrow="How it works"
-      title="Four steps, and only one of them is yours"
-      lede="Most consent tools hand you a configuration screen and a legal question. Rift starts from what your site does, because that is the only part anybody can check."
-    >
-      <ol className="grid grid-cols-1 gap-5 md:grid-cols-2">
-        {STEPS.map(([title, body], i) => (
+    <Section eyebrow="How it works" title="Four steps, one of them yours">
+      <Reveal as="ol" stagger={0.08} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {STEPS.map(([icon, title, body], i) => (
           <li key={title}>
-            <Card tone="low" className="h-full rounded-2xl">
-              <div className="flex h-full gap-4 p-6">
-                <span className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-md-secondary-container text-label-large font-medium text-md-on-secondary-container tabular-nums">
-                  {i + 1}
+            <Card tone="low" className="group h-full rounded-2xl transition-shadow duration-[--md-duration-base] hover:shadow-e2">
+              <div className="p-6">
+                <span className="inline-flex size-11 items-center justify-center rounded-full bg-md-secondary-container text-md-on-secondary-container transition-transform duration-[--md-duration-base] ease-md group-hover:scale-110">
+                  <Icon name={icon} size={22} />
                 </span>
-                <span>
-                  <span className="block text-title-small font-medium text-md-on-surface">{title}</span>
-                  <span className="mt-2 block text-body-small leading-relaxed text-md-on-surface-variant">
-                    {body}
-                  </span>
-                </span>
+                <p className="mt-5 text-label-small font-medium uppercase tracking-[0.08em] text-md-on-surface-variant tabular-nums">
+                  {String(i + 1).padStart(2, '0')}
+                </p>
+                <p className="mt-1 text-title-small font-medium text-md-on-surface">{title}</p>
+                <p className="mt-2 text-body-small leading-relaxed text-md-on-surface-variant">{body}</p>
               </div>
             </Card>
           </li>
         ))}
-      </ol>
+      </Reveal>
     </Section>
   );
 }
 
 const FEATURES: Array<{ icon: IconName; title: string; body: string }> = [
-  {
-    icon: 'scans',
-    title: 'Continuous discovery',
-    body: 'Sites change without anybody deciding to. Rift re-scans, and tells you what appeared, what moved and what started sending data somewhere new — with the two scans side by side.',
-  },
-  {
-    icon: 'shieldCheck',
-    title: 'Enforcement, not decoration',
-    body: 'A banner that does not stop anything is theatre. Rift blocks scripts, images, iframes, cookies and requests before they run, and keeps an audit trail of what it blocked and why.',
-  },
-  {
-    icon: 'consent',
-    title: 'Consent records that hold up',
-    body: 'Every decision is recorded with the policy version it was made against and signed with a key, chained per person. A record can be verified later without trusting the database it came from.',
-  },
-  {
-    icon: 'layers',
-    title: 'Data flow map',
-    body: 'A graph of what runs on your site, which vendor it belongs to, which purpose it serves, where it sends data and which consent gates it. Every edge says how it is known.',
-  },
-  {
-    icon: 'analytics',
-    title: 'Analytics without the tracking',
-    body: 'First-party, no cross-site identifiers, no personal data leaving your control. The numbers you needed the third-party tag for, from something you do not need consent to run.',
-  },
-  {
-    icon: 'wave',
-    title: 'Simulate before you commit',
-    body: 'Ask what happens if a market is added, a vendor dropped or a purpose withdrawn — and see the answer against your real graph, without changing anything.',
-  },
+  { icon: 'scans', title: 'Continuous discovery', body: 'Rift re-scans and shows what changed.' },
+  { icon: 'shieldCheck', title: 'Real enforcement', body: 'Scripts and cookies are blocked, not just hidden behind a banner.' },
+  { icon: 'consent', title: 'Signed consent records', body: 'Chained per person, verifiable without trusting the database.' },
+  { icon: 'layers', title: 'Data flow map', body: 'What runs, who owns it, where it sends data, what gates it.' },
+  { icon: 'analytics', title: 'Analytics without tracking', body: 'First-party, no cross-site identifiers.' },
+  { icon: 'wave', title: 'Simulate a change', body: 'Add a market or drop a vendor and see the effect first.' },
 ];
 
 function WhatYouGet() {
@@ -189,114 +131,48 @@ function WhatYouGet() {
     <Section
       eyebrow="What Rift does"
       title="A control plane, not a cookie banner"
-      lede="The banner is the smallest part. What matters is what runs before somebody agrees, what is recorded when they do, and whether you find out when it changes."
       tone="container"
     >
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+      <Reveal stagger={0.06} className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {FEATURES.map((f) => (
-          <Card key={f.title} className="h-full rounded-2xl">
+          <Card
+            key={f.title}
+            className="group h-full rounded-2xl transition-all duration-[--md-duration-base] ease-md hover:-translate-y-1 hover:shadow-e2"
+          >
             <div className="p-6">
-              <span className="inline-flex size-10 items-center justify-center rounded-full bg-md-secondary-container text-md-on-secondary-container">
+              <span className="inline-flex size-10 items-center justify-center rounded-full bg-md-secondary-container text-md-on-secondary-container transition-transform duration-[--md-duration-base] ease-md group-hover:rotate-6 group-hover:scale-110">
                 <Icon name={f.icon} size={20} />
               </span>
               <p className="mt-4 text-title-small font-medium text-md-on-surface">{f.title}</p>
-              <p className="mt-2 text-body-small leading-relaxed text-md-on-surface-variant">{f.body}</p>
+              <p className="mt-1.5 text-body-small leading-relaxed text-md-on-surface-variant">{f.body}</p>
             </div>
           </Card>
         ))}
-      </div>
+      </Reveal>
     </Section>
   );
 }
 
-const CONTRASTS: Array<[string, string]> = [
-  [
-    'A banner appears and the trackers load anyway',
-    'Nothing in a gated category runs until it has been agreed to — enforced in the page, and recorded when it is blocked.',
-  ],
-  [
-    'You maintain a list of tags by hand',
-    'Rift finds them by watching the site, so a tag somebody added last Tuesday is not invisible until the next audit.',
-  ],
-  [
-    '“Consent given” with nothing behind it',
-    'A signed, chained record naming the policy version, the categories and the moment — verifiable without trusting the store.',
-  ],
-  [
-    'A dashboard of numbers with no provenance',
-    'Every claim carries how it is known: observed in a scan, configured by you, enforced at runtime, or inferred — and inferred says so.',
-  ],
+const LIMITS: Array<[IconName, string]> = [
+  ['user', 'Reads only what a visitor would. Never signs in.'],
+  ['file', 'A preview scan stores nothing at all.'],
+  ['consent', 'Cookie names and domains only — never values.'],
+  ['info', 'Says what is observed and what is inferred.'],
 ];
 
-function TheDifference() {
+function Limits() {
   return (
-    <Section
-      eyebrow="The difference"
-      title="The part everyone skips"
-      lede="Consent products look identical from the outside. This is where they stop being identical."
-    >
-      <ul className="flex flex-col divide-y divide-md-outline-variant">
-        {CONTRASTS.map(([before, after]) => (
-          <li key={before} className="grid grid-cols-1 gap-3 py-6 md:grid-cols-2 md:gap-10">
-            <p className="flex gap-3 text-body-medium leading-relaxed text-md-on-surface-variant">
-              <Icon name="x" size={18} className="mt-0.5 shrink-0 text-md-error" />
-              {before}
-            </p>
-            <p className="flex gap-3 text-body-medium leading-relaxed text-md-on-surface">
-              <Icon name="check" size={18} className="mt-0.5 shrink-0 text-md-success" />
-              {after}
-            </p>
-          </li>
-        ))}
-      </ul>
-    </Section>
-  );
-}
-
-const TRUST: Array<[IconName, string, string]> = [
-  [
-    'user',
-    'It reads only what a visitor would',
-    'The scanner never signs in, never submits a form and never touches anything behind a login. If a visitor could not see it, Rift does not either.',
-  ],
-  [
-    'file',
-    'A preview keeps nothing',
-    'The scan on this page creates no account, no site and no stored result. It runs, it answers, and it is gone.',
-  ],
-  [
-    'consent',
-    'Cookie values never leave the scanner',
-    'Names and domains are what tell you a cookie is there. The value is the part that identifies somebody, and it is not reported.',
-  ],
-  [
-    'info',
-    'It does not pretend to be a lawyer',
-    'Rift reports what your site does and what typically applies. It says which parts are observed and which are inferred, and it never calls a heuristic a finding.',
-  ],
-];
-
-function Trust() {
-  return (
-    <Section
-      eyebrow="What Rift will not do"
-      title="Limits, stated up front"
-      lede="A privacy product that is vague about its own behaviour has already lost the argument."
-      tone="container"
-    >
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        {TRUST.map(([icon, title, body]) => (
-          <div key={title} className="flex gap-4">
+    <Section eyebrow="Limits" title="Stated up front">
+      <Reveal stagger={0.06} className="grid grid-cols-1 gap-x-10 gap-y-5 sm:grid-cols-2">
+        {LIMITS.map(([icon, text]) => (
+          <p key={text} className="flex items-start gap-3 text-body-medium leading-relaxed text-md-on-surface-variant">
             <span className="mt-0.5 shrink-0 text-md-primary">
-              <Icon name={icon} size={20} />
+              <Icon name={icon} size={18} />
             </span>
-            <div>
-              <p className="text-title-small font-medium text-md-on-surface">{title}</p>
-              <p className="mt-1.5 text-body-small leading-relaxed text-md-on-surface-variant">{body}</p>
-            </div>
-          </div>
+            {text}
+          </p>
         ))}
-      </div>
+      </Reveal>
     </Section>
   );
 }
@@ -304,32 +180,33 @@ function Trust() {
 function ClosingCta() {
   return (
     <section className="px-5 pb-16 md:px-8">
-      <div className="relative mx-auto max-w-[1200px] overflow-hidden rounded-3xl bg-md-surface-container p-8 text-center md:p-14">
-        <BlurField variant="hero" />
-        <div className="relative">
-          <h2 className="text-headline-medium font-normal leading-tight tracking-[-0.01em] text-md-on-surface">
-            Start with your own website
-          </h2>
-          <p className="mx-auto mt-4 max-w-[52ch] text-body-large leading-relaxed text-md-on-surface-variant">
-            Scroll back up and scan it — it takes half a minute and costs you nothing, not even an
-            email address. Create an account when the result is worth keeping.
-          </p>
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="/signup"
-              className="rounded-full bg-md-primary px-6 py-3 text-label-large font-medium text-md-on-primary transition-transform active:scale-95"
-            >
-              Create an account
-            </Link>
-            <Link
-              href="/signin"
-              className="rounded-full px-6 py-3 text-label-large font-medium text-md-on-surface-variant transition-colors hover:bg-md-surface-high hover:text-md-on-surface"
-            >
-              Sign in
-            </Link>
+      <Reveal>
+        <div className="relative mx-auto max-w-[1200px] overflow-hidden rounded-3xl bg-md-surface-container p-10 text-center md:p-16">
+          <BlurField variant="hero" />
+          <div className="relative">
+            <h2 className="text-headline-medium font-normal leading-tight tracking-[-0.01em] text-md-on-surface">
+              Start with your own website
+            </h2>
+            <p className="mx-auto mt-3 max-w-[46ch] text-body-large text-md-on-surface-variant">
+              Twenty seconds, no email address.
+            </p>
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="/signup"
+                className="rounded-full bg-md-primary px-6 py-3 text-label-large font-medium text-md-on-primary transition-transform duration-[--md-duration-fast] hover:scale-[1.03] active:scale-95"
+              >
+                Create an account
+              </Link>
+              <Link
+                href="/signin"
+                className="rounded-full px-6 py-3 text-label-large font-medium text-md-on-surface-variant transition-colors hover:bg-md-surface-high hover:text-md-on-surface"
+              >
+                Sign in
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }
@@ -339,14 +216,10 @@ function SiteFooter() {
     <footer className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 border-t border-md-outline-variant px-5 py-8 md:px-8">
       <span className="flex items-center gap-2.5">
         <RiftMark />
-        <span className="text-label-large text-md-on-surface-variant">
-          Rift — website privacy control plane
-        </span>
+        <span className="text-label-large text-md-on-surface-variant">Rift — website privacy control plane</span>
       </span>
-      <span className="flex items-center gap-2 text-label-medium text-md-on-surface-variant">
-        <Icon name="shieldCheck" size={16} />
-        Rift reads only what any visitor to your site would. It never signs in, and never submits a
-        form.
+      <span className="text-label-medium text-md-on-surface-variant">
+        Reports what your site does. Not legal advice.
       </span>
     </footer>
   );
@@ -356,28 +229,23 @@ function SiteFooter() {
 function Section({
   eyebrow,
   title,
-  lede,
   tone = 'surface',
   children,
 }: {
   eyebrow: string;
   title: string;
-  lede: string;
   tone?: 'surface' | 'container';
   children: React.ReactNode;
 }) {
   return (
     <section className={tone === 'container' ? 'bg-md-surface-low px-5 py-16 md:px-8 md:py-20' : 'px-5 py-16 md:px-8 md:py-20'}>
       <div className="mx-auto max-w-[1200px]">
-        <p className="text-label-small font-medium uppercase tracking-[0.08em] text-md-primary">
-          {eyebrow}
-        </p>
-        <h2 className="mt-3 max-w-[24ch] text-headline-medium font-normal leading-tight tracking-[-0.01em] text-md-on-surface">
-          {title}
-        </h2>
-        <p className="mt-4 max-w-[62ch] text-body-large leading-relaxed text-md-on-surface-variant">
-          {lede}
-        </p>
+        <Reveal>
+          <p className="text-label-small font-medium uppercase tracking-[0.08em] text-md-primary">{eyebrow}</p>
+          <h2 className="mt-3 max-w-[22ch] text-headline-medium font-normal leading-tight tracking-[-0.01em] text-md-on-surface">
+            {title}
+          </h2>
+        </Reveal>
         <div className="mt-10">{children}</div>
       </div>
     </section>

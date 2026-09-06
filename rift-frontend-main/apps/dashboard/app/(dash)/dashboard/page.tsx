@@ -8,6 +8,8 @@ import { listSites, listChanges, getConsentOverview } from '@/lib/api/endpoints'
 import { currentSiteId } from '@/lib/current-site';
 import { series } from '@rift/tokens';
 import type { ChangeEntry } from '@/lib/api/types';
+import { CountUp } from '@/components/motion/CountUp';
+import { Reveal } from '@/components/motion/Reveal';
 
 export const metadata = { title: 'Overview' };
 
@@ -52,7 +54,7 @@ export default async function OverviewPage() {
         title="Overview"
         actions={
           <Link href="/dashboard/sites/new">
-            <Link href="/dashboard/sites/new"><Button variant="filled" icon="plus">Add website</Button></Link>
+            <Button variant="filled" icon="plus">Add website</Button>
           </Link>
         }
       />
@@ -61,12 +63,15 @@ export default async function OverviewPage() {
         <div className="flex flex-col gap-5">
           {/* The stat band is the first thing on the screen, so it carries the
               atmospheric layer and the largest radius on the page. */}
-          <Card className="relative overflow-hidden rounded-2xl">
+          {/* The band counts up on arrival. It is the first thing looked at on
+              every visit, and a figure that settles in front of you reads as
+              current in a way a figure that was simply already there does not. */}
+          <Card className="relative overflow-hidden rounded-2xl motion-safe:animate-[md-rise_450ms_var(--md-ease)_both]">
             <BlurField variant="panel" />
             <CardBody className="relative grid grid-cols-2 gap-y-8 p-7 lg:grid-cols-4 lg:gap-y-0">
               <StatBlock
                 label="Sites protected"
-                value={<>{protectedSites}<span className="text-[19px] font-semibold tracking-normal text-md-on-surface-variant/75"> / {sites.length}</span></>}
+                value={<><CountUp value={protectedSites} /><span className="text-[19px] font-semibold tracking-normal text-md-on-surface-variant/75"> / {sites.length}</span></>}
                 meta={
                   notConnected > 0
                     ? <><StatusDot tone="neutral" /> {notConnected} not connected yet</>
@@ -89,7 +94,7 @@ export default async function OverviewPage() {
               />
               <StatBlock
                 label="Needs your attention"
-                value={unresolved}
+                value={<CountUp value={unresolved} />}
                 meta={
                   unresolved > 0
                     ? <Link href={`/dashboard/sites/${siteId}`} className="font-semibold text-md-primary hover:underline">Review finding</Link>
@@ -100,14 +105,20 @@ export default async function OverviewPage() {
             </CardBody>
           </Card>
 
-          <Card className="overflow-hidden rounded-2xl">
-            <div className="p-7">
-              <CardHeader title="Websites" sub="Select a row to open the site." />
-            </div>
-            <SitesTable sites={sites} />
-          </Card>
+          {/* Below the band the screen reveals as it is scrolled to. On a short
+              dashboard everything is already on screen and the guard resolves it
+              immediately, which is the correct behaviour rather than a fallback:
+              nothing here should ever wait on an animation to be readable. */}
+          <Reveal>
+            <Card className="overflow-hidden rounded-2xl">
+              <div className="p-7">
+                <CardHeader title="Websites" sub="Select a row to open the site." />
+              </div>
+              <SitesTable sites={sites} />
+            </Card>
+          </Reveal>
 
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+          <Reveal stagger={0.08} className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
             <Card className="rounded-2xl">
               <CardBody className="p-7">
                 <CardHeader
@@ -153,7 +164,7 @@ export default async function OverviewPage() {
                   <CardHeader title="Consent this week" action={<Link href="/dashboard/consent" className="text-label-medium font-medium text-md-primary hover:underline">Open consent</Link>} />
                   <div className="mt-3 flex items-baseline gap-3">
                     <span className="text-headline-large font-normal leading-none tracking-[-0.01em] text-md-on-surface tabular-nums">
-                      {decisions.toLocaleString('en-US')}
+                      <CountUp value={decisions} />
                     </span>
                     <span className="text-label-medium text-md-on-surface-variant">decisions</span>
                   </div>
@@ -189,7 +200,7 @@ export default async function OverviewPage() {
                 </CardBody>
               </Card>
             </div>
-          </div>
+          </Reveal>
         </div>
       </Screen>
     </>
