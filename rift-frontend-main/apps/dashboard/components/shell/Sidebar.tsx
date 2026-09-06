@@ -5,6 +5,7 @@ import type { Route } from 'next';
 import { usePathname } from 'next/navigation';
 import { Icon, RiftMark, cn, type IconName } from '@rift/ui';
 import { SiteSwitcher } from './SiteSwitcher';
+import { SignOutButton } from './SignOutButton';
 import type { Site } from '@/lib/api/types';
 
 /** Navigation follows the customer mental model, never internal components.
@@ -30,11 +31,20 @@ export function Sidebar({
   sites,
   activeSite,
   organisation,
+  signedIn,
   className,
 }: {
   sites: Site[];
   activeSite: Site | null;
   organisation: { name: string; slug: string } | null;
+  /**
+   * Whether there is a session to end.
+   *
+   * A deployment configured with a static organisation key has a credential but
+   * no person and nothing to sign out of, so the control would be a button that
+   * cannot work. This is the same distinction the platform's /auth/me draws.
+   */
+  signedIn: boolean;
   className?: string;
 }) {
   const pathname = usePathname();
@@ -104,8 +114,9 @@ export function Sidebar({
           Settings
         </Link>
 
-        {/* The platform authenticates an organisation, not a person. Showing a
-            name and avatar here would invent an account that does not exist. */}
+        {/* The label names the organisation, not a person: the credential a
+            request carries is the organisation's, and inventing a name and
+            avatar here would claim an identity the platform never returned. */}
         <div className="mt-2 flex items-center gap-3 rounded-full px-4 py-3">
           <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-md-tertiary-container text-label-medium font-medium text-md-on-tertiary-container">
             {(organisation?.name ?? '?').slice(0, 2).toUpperCase()}
@@ -119,6 +130,8 @@ export function Sidebar({
             </span>
           </span>
         </div>
+
+        {signedIn ? <SignOutButton className="mt-1" /> : null}
       </div>
     </aside>
   );

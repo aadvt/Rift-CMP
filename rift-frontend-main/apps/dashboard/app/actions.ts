@@ -3,8 +3,8 @@ import { cookies } from 'next/headers';
 import { revalidateTag } from 'next/cache';
 import { createSite, rescanSite, acceptConfiguration, overrideTechnology, restoreRecommendation } from '@/lib/api/endpoints';
 import { SITE_COOKIE } from '@/lib/current-site';
-import { API_URL } from '@/lib/api/client';
-import { writeSessionToken } from '@/lib/auth/session';
+import { API_URL, riftFetch } from '@/lib/api/client';
+import { clearSessionToken, writeSessionToken } from '@/lib/auth/session';
 
 /** Server Actions are the only write path. Each one invalidates the tags the
  *  reads it affects were fetched under. */
@@ -152,4 +152,29 @@ export async function signIn(input: { email: string; password: string }): Promis
   const body = (await response.json()) as { session_token: string; expires_at: string };
   await writeSessionToken(body.session_token, body.expires_at);
   return { ok: true };
+}
+
+/**
+ * Signing out.
+ *
+ * Two things have to happen and only one of them is the browser's. The cookie
+ * is deleted here, but a cookie is just a copy — the token it held is still
+ * valid until the platform is told to revoke it, and a session that survives
+ * "sign out" on every other device is not signed out. So the revocation goes
+ * first, and the cookie is cleared whether or not it succeeded: leaving
+ * somebody holding a cookie because the network dropped would mean the button
+ * visibly did nothing.
+ *
+ * The site cookie goes too. It names a website belonging to the organisation
+ * that has just left; every read is scoped by credential so a stale value
+ * resolves to nothing, but the next person to use this browser should not start
+ * inside somebody else's choice of site.
+ */
+export async function signOut(): Promise<void> {
+  // 204, and it answers the same way for a token that was already dead — so
+  // there is no failure here worth reporting to somebody who is leaving.
+  await riftFetch<void>(`/api/v1/auth/logout`, { method: 'POST' }).catch(() => {});
+
+  await clearSessionToken();
+  (await cookies()).delete(SITE_COOKIE);
 }

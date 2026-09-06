@@ -3,6 +3,7 @@ import { MobileNav } from '@/components/shell/MobileNav';
 import { listSites, getOrganisation } from '@/lib/api/endpoints';
 import { currentSite } from '@/lib/current-site';
 import { USE_FIXTURES } from '@/lib/api/client';
+import { readSessionToken } from '@/lib/auth/session';
 import { Icon } from '@rift/ui';
 
 /**
@@ -25,11 +26,16 @@ export const dynamic = 'force-dynamic';
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   // A fresh organisation has no websites at all, and the shell still has to
   // render — the screen that fixes that is inside it.
-  const [sites, activeSite, organisation] = await Promise.all([
+  // Read rather than requested: whether there is a session to end is already
+  // in the cookie jar, and asking the platform for it would add a round trip to
+  // every screen in order to decide whether to draw one button.
+  const [sites, activeSite, organisation, session] = await Promise.all([
     listSites(),
     currentSite(),
     getOrganisation(),
+    readSessionToken(),
   ]);
+  const signedIn = session !== null;
 
   return (
     <div className="flex min-h-screen bg-md-background">
@@ -37,10 +43,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
         sites={sites}
         activeSite={activeSite}
         organisation={organisation}
+        signedIn={signedIn}
         className="hidden md:flex"
       />
       <main className="relative flex min-w-0 flex-1 flex-col">
-        <MobileNav activeSite={activeSite} />
+        <MobileNav activeSite={activeSite} signedIn={signedIn} />
         {USE_FIXTURES ? <FixtureBanner /> : null}
         {children}
       </main>

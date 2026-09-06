@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import * as Dialog from '@radix-ui/react-dialog';
 import { Icon, RiftMark, cn, type IconName } from '@rift/ui';
 import type { Site } from '@/lib/api/types';
+import { SignOutButton } from './SignOutButton';
 
 const NAV: Array<{ href: Route; label: string; icon: IconName }> = [
   { href: '/dashboard', label: 'Overview', icon: 'overview' },
@@ -19,7 +20,7 @@ const NAV: Array<{ href: Route; label: string; icon: IconName }> = [
 
 /** Modal navigation drawer on small screens. Same 56px pills as the
  *  standard drawer, so the two read as one system. */
-export function MobileNav({ activeSite }: { activeSite: Site | null }) {
+export function MobileNav({ activeSite, signedIn }: { activeSite: Site | null; signedIn: boolean }) {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
 
@@ -61,6 +62,14 @@ export function MobileNav({ activeSite }: { activeSite: Site | null }) {
                 );
               })}
             </nav>
+
+            {/* Last in the drawer, below the destinations, because it is not
+                one — it leaves rather than navigates. */}
+            {signedIn ? (
+              <div className="relative mt-auto border-t border-md-outline-variant p-3">
+                <SignOutButton />
+              </div>
+            ) : null}
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
