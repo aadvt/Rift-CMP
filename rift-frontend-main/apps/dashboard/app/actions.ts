@@ -6,11 +6,14 @@ import {
   cancelScan as cancelScanUpstream,
   setExperimentStatus as setExperimentStatusUpstream,
   runSimulation,
+  updateRightsRequest,
+  verifyConsentProof,
 } from '@/lib/api/endpoints';
 import { SITE_COOKIE } from '@/lib/current-site';
 import { API_URL, riftFetch } from '@/lib/api/client';
 import { clearSessionToken, writeSessionToken } from '@/lib/auth/session';
 import type { ProposedChange, WireSimulation } from '@/lib/api/simulation';
+import type { ProofVerification } from '@/lib/api/endpoints';
 
 /** Server Actions are the only write path. Each one invalidates the tags the
  *  reads it affects were fetched under. */
@@ -102,6 +105,56 @@ export async function simulateScenario(
   } catch (error) {
     const message = error instanceof Error && error.message ? error.message : null;
     return { ok: false, message: message ?? 'The scenario could not be run.' };
+  }
+}
+
+/**
+ * Moves a rights request along, and records what was done about it.
+ *
+ * The note is not optional decoration. `completed` is the operator's claim that
+ * they did the work in their own systems — Rift cannot see into those systems
+ * and does not pretend to — so the note is the only account of what actually
+ * happened, and it is the thing a regulator would ask for.
+ */
+export async function setRightsRequestStatus(
+  requestId: string,
+  status: 'received' | 'in_progress' | 'completed' | 'refused' | 'withdrawn',
+  resolutionNote: string | null,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  try {
+    await updateRightsRequest(requestId, {
+      status,
+      ...(resolutionNote !== null ? { resolution_note: resolutionNote } : {}),
+    });
+    revalidateTag('rights');
+    return { ok: true };
+  } catch (error) {
+    const message = error instanceof Error && error.message ? error.message : null;
+    return { ok: false, message: message ?? 'Could not update the request.' };
+  }
+}
+
+/**
+ * Checks a consent proof against the record as it stands now.
+ *
+ * This is the auditor's question — has anything about this decision changed
+ * since it was recorded — rather than the holder's, which asks whether a
+ * document somebody was handed is genuine. Both are the same endpoint; this
+ * calls the first form.
+ *
+ * Verification touches only public key material. There is no path from here to
+ * a private key, which is the property that makes the check safe to expose and
+ * repeatable by anybody holding the proof.
+ */
+export async function checkConsentProof(
+  consentRecordId: string,
+): Promise<{ ok: true; verification: ProofVerification } | { ok: false; message: string }> {
+  try {
+    const verification = await verifyConsentProof(consentRecordId);
+    return { ok: true, verification };
+  } catch (error) {
+    const message = error instanceof Error && error.message ? error.message : null;
+    return { ok: false, message: message ?? 'The proof could not be checked.' };
   }
 }
 

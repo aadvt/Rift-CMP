@@ -5,6 +5,7 @@ import { ConsentAffected, Donut, HBars, Legend } from '@/components/charts';
 import { getConsentAnalytics, getConsentOverview, listConsentRecords } from '@/lib/api/endpoints';
 import { ConsentAnalytics } from '@/components/intelligence/ConsentAnalytics';
 import { requireSiteId } from '@/lib/current-site';
+import { VerifyProofButton } from '@/components/consent/VerifyProofButton';
 
 export const metadata = { title: 'Consent' };
 
@@ -199,9 +200,16 @@ export default async function ConsentPage() {
                           {r.channel === 'banner' ? 'Banner' : 'Preference centre'}
                         </td>
                         <td className="border-b border-md-outline-variant/40 px-4 py-[13px]">
-                          <Chip tone={PROOF_TONE[r.proof].tone} title={PROOF_TONE[r.proof].hint}>
-                            {PROOF_TONE[r.proof].label}
-                          </Chip>
+                          <span className="flex items-center gap-1">
+                            <Chip tone={PROOF_TONE[r.proof].tone} title={PROOF_TONE[r.proof].hint}>
+                              {PROOF_TONE[r.proof].label}
+                            </Chip>
+                            {/* Offered only where there is something to check.
+                                A verify control on a record with no evidence
+                                attached would return "nothing here" every time,
+                                which teaches people the check is broken. */}
+                            {r.proof !== 'none' ? <VerifyProofButton recordId={r.recordId} /> : null}
+                          </span>
                         </td>
                       </tr>
                     );

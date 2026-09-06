@@ -862,6 +862,102 @@ export async function runSimulation(
   return body.simulation;
 }
 
+/* ── Data subject rights ───────────────────────────────────────────────── */
+
+export interface RightsRequest {
+  request_id: string;
+  site_id: string;
+  principal_external_id: string;
+  kind: string;
+  status: 'received' | 'in_progress' | 'completed' | 'refused' | 'withdrawn';
+  jurisdictions: string[];
+  rule_references: string[];
+  message: string | null;
+  resolution_note: string | null;
+  /** Operator plane only. The browser plane never returns this. */
+  contact: string | null;
+  received_at: string;
+  responded_at: string | null;
+  due_at: string | null;
+}
+
+/**
+ * Rights requests people have submitted.
+ *
+ * Degrades to an empty list rather than null: an organisation with no requests
+ * and an organisation whose request store is unreachable look the same to a
+ * caller that returns null, and the first is the overwhelmingly common case.
+ * The screen distinguishes them by whether the fetch threw.
+ */
+export async function listRightsRequests(siteId?: string): Promise<RightsRequest[]> {
+  if (USE_FIXTURES) return [];
+  const query = siteId ? `?site_id=${encodeURIComponent(siteId)}` : '';
+  const body = await riftFetch<{ requests: RightsRequest[] }>(`${V1}/rights/requests${query}`, {
+    tags: ['rights'],
+    // These arrive from the public plane at any moment and a stale queue is a
+    // missed statutory deadline, so this is deliberately short.
+    revalidate: 15,
+  });
+  return body.requests ?? [];
+}
+
+/**
+ * Moves a request along.
+ *
+ * `completed` is the operator's claim that they did the work in their own
+ * systems — Rift cannot verify it and does not pretend to, which is why the
+ * resolution note travels with the status rather than being optional decoration.
+ */
+export async function updateRightsRequest(
+  requestId: string,
+  patch: { status?: RightsRequest['status']; resolution_note?: string | null },
+): Promise<RightsRequest> {
+  const body = await riftFetch<{ request: RightsRequest }>(`${V1}/rights/requests/${requestId}`, {
+    method: 'PATCH',
+    body: patch,
+    ...LIVE,
+  });
+  return body.request;
+}
+
+/**
+ * Verifies a consent proof.
+ *
+ * Integrity, signature and chain come back as separate verdicts and are kept
+ * that way. "The signature is genuine but a decision was removed from the
+ * middle of this person's history" and "somebody edited the record" are
+ * different findings calling for different responses, and collapsing them into
+ * one boolean would leave an operator unable to act on either.
+ *
+ * Each is a string rather than a boolean because the interesting states are not
+ * binary: a signature can be `unsigned`, `unknown_key` or `revoked_key`, and a
+ * chain can be `unverifiable` — which is not the same as broken, and must never
+ * be rendered as though it were.
+ */
+export interface ProofVerification {
+  result: {
+    ok: boolean;
+    version: string;
+    malformed: string | null;
+    unsupported_version: boolean;
+    integrity: 'valid' | 'invalid' | null;
+    signature: 'valid' | 'invalid' | 'unsigned' | 'unknown_key' | 'revoked_key' | null;
+    key_id: string | null;
+    chain: 'valid' | 'broken' | 'unverifiable' | null;
+    findings: string[];
+  };
+  caveat: string;
+  legal_advice: false;
+}
+
+export async function verifyConsentProof(consentRecordId: string): Promise<ProofVerification> {
+  return riftFetch<ProofVerification>(`${V1}/consent/proof/verify`, {
+    method: 'POST',
+    body: { consent_record_id: consentRecordId },
+    ...LIVE,
+  });
+}
+
 /** Consent-UX experiments for this organisation. */
 export async function listExperiments(siteId?: string): Promise<W.WireExperiment[] | null> {
   if (USE_FIXTURES) return null;
