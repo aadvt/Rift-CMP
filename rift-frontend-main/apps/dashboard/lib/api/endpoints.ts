@@ -316,6 +316,28 @@ export async function rescanSite(siteId: string): Promise<{ scanId: string }> {
   return { scanId: scan.scan.scan_id };
 }
 
+/**
+ * Cancels a queued or running scan.
+ *
+ * Cancellation is cooperative on the platform side — the row is marked and a
+ * running crawl notices at its next page boundary, rather than a browser being
+ * killed mid-navigation. So this returns once the intent is recorded, not once
+ * the crawler has stopped, and the scan screen keeps polling until the status
+ * actually changes.
+ *
+ * A 409 means the scan already finished. That is not a failure worth an error
+ * screen: the person wanted it to stop and it has stopped.
+ */
+export async function cancelScan(scanId: string): Promise<{ status: string }> {
+  if (USE_FIXTURES) return { status: 'cancelled' };
+
+  const body = await riftFetch<W.WireScanStatusResponse>(`${V1}/scans/${scanId}`, {
+    method: 'DELETE',
+    ...LIVE,
+  });
+  return { status: body.scan.status };
+}
+
 export async function createSite(url: string): Promise<{ siteId: string; scanId: string }> {
   if (USE_FIXTURES) return { siteId: 'site_9fb2c41a', scanId: 'scn_8841' };
 

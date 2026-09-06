@@ -1,7 +1,6 @@
 'use client';
 import * as React from 'react';
-import { toast } from 'sonner';
-import { Button, Card, CardBody, Chip, Confidence, Icon, Notice, RecommendationPair, cn } from '@rift/ui';
+import { Card, CardBody, Confidence, Icon, Notice, RecommendationPair, cn } from '@rift/ui';
 import { setTechnologyCategory } from '@/app/actions';
 import type { ConsentCategory, Finding } from '@/lib/api/types';
 
@@ -144,26 +143,50 @@ function ReviewCard({
                 icon="check"
                 title="Confirmed — this matches Rift’s recommendation"
                 className="mt-6"
-                actions={
-                  <Button
-                    size="sm"
-                    variant="filled"
-                    icon="check"
-                    onClick={() => toast.success('Applied', { description: `${finding.name} stays in ${recommended}.` })}
-                  >
-                    Apply and close
-                  </Button>
-                }
+
               >
-                {finding.name} stays in {recommended} and its confidence moves to confirmed. Rift will keep it there on
-                future scans without asking again.
+                {finding.name} stays in {recommended}. This was saved when you chose it — there is
+                nothing further to confirm, and Rift will keep it there on future scans without
+                asking again.
               </Notice>
             ) : null}
           </>
         ) : (
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Button variant="tonal">Classify it</Button>
-            <Button variant="text">Leave unresolved</Button>
+          /* A finding Rift could not recognise still has to be classifiable —
+             it is the case most likely to need a person. The two buttons here
+             previously did nothing at all, so the findings that most needed a
+             decision were the only ones that could not receive one. */
+          <div className="mt-6">
+            <div className="mb-3 text-label-small font-medium uppercase tracking-[0.08em] text-md-on-surface-variant">
+              Your decision
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {[...categories.map((c) => c.id), UNRESOLVED].map((id) => {
+                const on = id === choiceId;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => pick(id)}
+                    className={cn(
+                      'inline-flex h-10 items-center gap-2 rounded-full px-5 text-label-medium font-medium',
+                      'transition-all duration-[--md-duration-fast] ease-md active:scale-95',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-md-primary focus-visible:ring-offset-2',
+                      on
+                        ? 'bg-md-tertiary-container text-md-on-tertiary-container'
+                        : 'bg-md-surface-variant text-md-on-surface-variant hover:bg-md-primary/10',
+                    )}
+                  >
+                    {on ? <Icon name="check" size={16} strokeWidth={2.2} /> : null}
+                    {labelFor(id)}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-3 text-body-small text-md-on-surface-variant">
+              Saved as soon as you choose. Rift made no recommendation here, so nothing is assumed
+              either way.
+            </p>
           </div>
         )}
       </CardBody>

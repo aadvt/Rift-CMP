@@ -7,6 +7,8 @@ import {
 import { ScreenHeader, Screen } from '@/components/shell/ScreenHeader';
 import { FindingsExplorer } from '@/components/FindingsExplorer';
 import { useScanProgress } from '@/hooks/useScanProgress';
+import { RunScanButton } from '@/components/RunScanButton';
+import { CancelScanButton } from '@/components/CancelScanButton';
 import { CountUp } from '@/components/motion/CountUp';
 import { ScanOrbit } from '@/components/motion/ScanOrbit';
 import { ExportReportButton } from '@/components/ExportReportButton';
@@ -53,7 +55,7 @@ export function ScanScreen({
               </Link>
             </>
           ) : (
-            <Button variant="outlined">Cancel scan</Button>
+            <CancelScanButton scanId={scan.scanId} />
           )
         }
       />
@@ -71,10 +73,12 @@ export function ScanScreen({
             </p>
           </div>
 
-          {partial ? <LimitationsNotice scan={scan} /> : null}
+          {partial ? <LimitationsNotice scan={scan} siteId={siteId} /> : null}
           {done ? <Outcome scan={scan} partial={partial} host={host} /> : <Progress scan={scan} transport={transport} />}
           {done ? <ConfidenceKey /> : null}
-          {done ? <FindingsExplorer findings={findings} /> : null}
+          {done ? (
+            <FindingsExplorer findings={findings} siteId={siteId} host={host} scanId={scan.scanId} />
+          ) : null}
           {partial && scan.limitations?.unreachable.length ? <Unreachable scan={scan} /> : null}
         </div>
       </Screen>
@@ -255,7 +259,7 @@ function ConfidenceKey() {
 
 /* ── partial ───────────────────────────────────────────────────────────── */
 
-function LimitationsNotice({ scan }: { scan: Scan }) {
+function LimitationsNotice({ scan, siteId }: { scan: Scan; siteId: string }) {
   const l = scan.limitations;
   if (!l) return null;
 
@@ -270,8 +274,16 @@ function LimitationsNotice({ scan }: { scan: Scan }) {
       title={budget ? 'Rift scanned part of your website' : 'Some pages didn’t respond'}
       actions={
         <>
-          {l.unreachable.length ? <Button size="sm" variant="tonal">View limitations</Button> : null}
-          <Button size="sm" variant="outlined" icon="refresh">Scan again</Button>
+          {/* The unreachable pages are already tabled further down this
+              screen, so this jumps to them rather than opening anything. A
+              second surface showing the same rows is a second place for them to
+              disagree. */}
+          {l.unreachable.length ? (
+            <a href="#unreachable">
+              <Button size="sm" variant="tonal">View limitations</Button>
+            </a>
+          ) : null}
+          <RunScanButton siteId={siteId} size="sm" variant="outlined">Scan again</RunScanButton>
         </>
       }
     >
@@ -288,7 +300,7 @@ function Unreachable({ scan }: { scan: Scan }) {
   const l = scan.limitations;
   if (!l) return null;
   return (
-    <Card className="overflow-hidden rounded-2xl">
+    <Card id="unreachable" className="scroll-mt-24 overflow-hidden rounded-2xl">
       <div className="p-7">
         <CardHeader title="Pages Rift could not reach" sub="Each was attempted more than once before Rift moved on." />
       </div>

@@ -1,7 +1,10 @@
 'use server';
 import { cookies } from 'next/headers';
 import { revalidateTag } from 'next/cache';
-import { createSite, rescanSite, acceptConfiguration, overrideTechnology, restoreRecommendation } from '@/lib/api/endpoints';
+import {
+  createSite, rescanSite, acceptConfiguration, overrideTechnology, restoreRecommendation,
+  cancelScan as cancelScanUpstream,
+} from '@/lib/api/endpoints';
 import { SITE_COOKIE } from '@/lib/current-site';
 import { API_URL, riftFetch } from '@/lib/api/client';
 import { clearSessionToken, writeSessionToken } from '@/lib/auth/session';
@@ -31,6 +34,28 @@ export async function runScan(siteId: string) {
   const result = await rescanSite(siteId);
   revalidateTag(`site:${siteId}`);
   return result;
+}
+
+/**
+ * Stops a scan that is queued or running.
+ *
+ * The platform cancels cooperatively — a running crawl notices at its next page
+ * boundary — so this returns as soon as the intent is recorded. The scan screen
+ * is already polling and will show the status change when it lands, which is
+ * why nothing here waits for it.
+ */
+export async function stopScan(scanId: string): Promise<{ ok: boolean; message?: string }> {
+  try {
+    await cancelScanUpstream(scanId);
+    revalidateTag(`scan:${scanId}`);
+    return { ok: true };
+  } catch (error) {
+    // A 409 means it finished before the click landed. The person wanted it to
+    // stop and it has stopped, so that is a success with a different sentence.
+    const status = (error as { status?: number }).status;
+    if (status === 409) return { ok: true, message: 'That scan had already finished.' };
+    return { ok: false, message: 'Could not cancel the scan.' };
+  }
 }
 
 export async function selectSite(siteId: string) {

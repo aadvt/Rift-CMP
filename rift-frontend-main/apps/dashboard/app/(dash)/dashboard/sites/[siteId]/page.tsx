@@ -14,6 +14,7 @@ import {
   getEnforcement,
 } from '@/lib/api/endpoints';
 import { IntelligenceSummary } from '@/components/intelligence/Summary';
+import { RunScanButton } from '@/components/RunScanButton';
 import { latestScanId } from '@/lib/current-site';
 
 export const metadata = { title: 'Site overview' };
@@ -38,8 +39,13 @@ export default async function SiteOverviewPage({ params }: { params: Promise<{ s
         crumb={[{ label: 'Sites', href: '/dashboard/sites' }]}
         badge={site.status === 'connected' ? <Chip tone="success" dot>Connected</Chip> : <Chip tone="warning" dot>Needs review</Chip>}
         actions={<>
-          <Button variant="tonal" icon="external">Open website</Button>
-          <Button variant="filled" icon="scans">Run scan now</Button>
+          {/* The site's own address, opened in a new tab. `noreferrer` because
+              this is a customer's website and Rift has no business appearing in
+              their referrer log as the source of a visit they did not make. */}
+          <a href={`https://${site.host}`} target="_blank" rel="noreferrer noopener">
+            <Button variant="tonal" icon="external">Open website</Button>
+          </a>
+          <RunScanButton siteId={siteId} />
         </>}
       />
 

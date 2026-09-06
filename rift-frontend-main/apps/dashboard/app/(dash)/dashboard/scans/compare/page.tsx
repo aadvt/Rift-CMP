@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Button, Card, CardBody, CardHeader, Chip, Icon, Notice, cn } from '@rift/ui';
 import { ScreenHeader, Screen } from '@/components/shell/ScreenHeader';
 import { getScanDiff, listScans } from '@/lib/api/endpoints';
@@ -33,7 +34,8 @@ export default async function ComparePage({
   // Default to the two most recent completed scans, which is the comparison
   // anybody arriving here without naming one means.
   const params = await searchParams;
-  const scans = await listScans(await requireSiteId());
+  const siteId = await requireSiteId();
+  const scans = await listScans(siteId);
   const finished = scans.filter(
     (s) => s.status === 'completed' || s.status === 'completed_with_limitations',
   );
@@ -81,9 +83,17 @@ export default async function ComparePage({
       <ScreenHeader
         title="Compare scans"
         crumb={[{ label: 'Scans', href: '/dashboard/scans' }, { label: labelFor(diff.comparedScanId, diff.baselineScanId) }]}
-        actions={<>
-          <Button variant="filled" iconAfter="arrowRight">Review {needsReview} change{needsReview === 1 ? '' : 's'}</Button>
-        </>}
+        actions={
+          needsReview > 0 ? (
+            // Review happens on the configuration screen, against the site's
+            // own categories. This is a way in, not a second place to decide.
+            <Link href={`/dashboard/sites/${siteId}/configuration`}>
+              <Button variant="filled" iconAfter="arrowRight">
+                Review {needsReview} change{needsReview === 1 ? '' : 's'}
+              </Button>
+            </Link>
+          ) : null
+        }
       />
 
       <Screen>
@@ -184,13 +194,20 @@ export default async function ComparePage({
                   tone="warning"
                   icon="question"
                   title={`${needsReview} change is waiting on you`}
-                  actions={<>
-                    <Button size="sm" variant="tonal">Review this change</Button>
-                    <Button size="sm" variant="text">Accept Rift’s classification</Button>
-                  </>}
+                  actions={
+                    <Link href={`/dashboard/sites/${siteId}/configuration`}>
+                      <Button size="sm" variant="tonal">Review in configuration</Button>
+                    </Link>
+                  }
                 >
-                  TikTok Pixel was classified as Marketing with <strong className="font-medium">likely</strong>{' '}
-                  confidence. Rift configured it, but wants you to confirm the category before treating it as settled.
+                  {/* This paragraph named a specific vendor and confidence
+                      level that were invented, not read from the diff — the
+                      same sentence appeared whatever the scan had actually
+                      found. It says what the diff supports and nothing more;
+                      the review screen has the per-technology detail. */}
+                  {needsReview === 1
+                    ? 'One technology changed in a way Rift configured but will not treat as settled until you confirm it.'
+                    : `${needsReview} technologies changed in ways Rift configured but will not treat as settled until you confirm them.`}
                 </Notice>
               ) : null}
             </div>

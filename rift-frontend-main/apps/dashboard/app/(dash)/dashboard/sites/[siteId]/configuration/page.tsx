@@ -135,7 +135,11 @@ export default async function ConfigurationPage({ params }: { params: Promise<{ 
                   tone="neutral"
                   icon="question"
                   title={`${config.unresolved.length} item is still unresolved — it isn’t blocking you`}
-                  actions={<Button size="sm" variant="tonal">Review the finding</Button>}
+                  actions={
+                    <Link href={`/dashboard/sites/${siteId}/configuration/review`}>
+                      <Button size="sm" variant="tonal">Review the finding</Button>
+                    </Link>
+                  }
                 >
                   Rift could not classify{' '}
                   <span className="font-mono text-label-medium">{config.unresolved[0]?.host}</span>. It has not been

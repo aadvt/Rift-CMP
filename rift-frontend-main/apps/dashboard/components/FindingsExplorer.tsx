@@ -5,7 +5,11 @@ import {
   Button, Card, CardBody, CardHeader, Chip, Confidence, DataTable, DefRow, Drawer, DrawerSection,
   EmptyState, Icon, Notice, RecommendationPair, RowPeek, Segmented, cn,
 } from '@rift/ui';
+import Link from 'next/link';
+import { toast } from 'sonner';
 import type { Finding, ConfidenceLevel } from '@/lib/api/types';
+import { setTechnologyCategory } from '@/app/actions';
+import { ExportFindingsButton } from '@/components/ExportFindingsButton';
 
 const col = createColumnHelper<Finding>();
 type Filter = 'all' | ConfidenceLevel;
@@ -19,7 +23,18 @@ const CONFIDENCE_RANK: Record<ConfidenceLevel, number> = { confirmed: 0, likely:
  * never loses their place in the list while triaging. Confidence is the
  * default sort because it is the axis that decides what needs attention.
  */
-export function FindingsExplorer({ findings }: { findings: Finding[] }) {
+export function FindingsExplorer({
+  findings,
+  siteId,
+  host,
+  scanId,
+}: {
+  findings: Finding[];
+  /** Needed so a finding can be acted on — every write is site-scoped. */
+  siteId: string;
+  host: string;
+  scanId: string;
+}) {
   const [filter, setFilter] = React.useState<Filter>('all');
   const [openId, setOpenId] = React.useState<string | null>(null);
 
@@ -151,19 +166,44 @@ export function FindingsExplorer({ findings }: { findings: Finding[] }) {
 
         <div className="flex flex-wrap items-center justify-between gap-3 px-7 py-5 text-label-medium text-md-on-surface-variant">
           <span>Showing {rows.length} of {findings.length} technologies</span>
-          <span>Evidence for every finding is kept with the scan that produced it.</span>
+          <span className="flex items-center gap-4">
+            <span>Evidence for every finding is kept with the scan that produced it.</span>
+            {/* The data export sits with the data. The header's "Save as PDF"
+                produces the readable report; this produces the rows somebody
+                wants to sort in a spreadsheet, and they are different needs. */}
+            <ExportFindingsButton findings={findings} host={host} scanId={scanId} />
+          </span>
         </div>
       </Card>
 
-      <FindingDrawer finding={selected} onClose={() => setOpenId(null)} total={findings.length} />
+      <FindingDrawer
+        finding={selected}
+        onClose={() => setOpenId(null)}
+        total={findings.length}
+        siteId={siteId}
+      />
     </>
   );
 }
 
-function FindingDrawer({ finding, onClose, total }: { finding: Finding | null; onClose: () => void; total: number }) {
+function FindingDrawer({
+  finding,
+  onClose,
+  total,
+  siteId,
+}: {
+  finding: Finding | null;
+  onClose: () => void;
+  total: number;
+  siteId: string;
+}) {
   // Keep the last finding while the sheet animates out, so content does not
   // vanish before the transition finishes.
   const [last, setLast] = React.useState<Finding | null>(finding);
+  // Before the `if (!f) return null` below: a hook after an early return runs
+  // conditionally, which React forbids and which breaks the moment the sheet
+  // has nothing to show.
+  const [leaving, startLeave] = React.useTransition();
   React.useEffect(() => { if (finding) setLast(finding); }, [finding]);
 
   const f = finding ?? last;
@@ -182,8 +222,43 @@ function FindingDrawer({ finding, onClose, total }: { finding: Finding | null; o
         <Chip tone="neutral">{f.category ?? 'Not classified'}</Chip>
       </>}
       footer={<>
-        <Button variant="filled">{unresolved ? 'Classify technology' : 'Change classification'}</Button>
-        <Button variant="text">{unresolved ? 'Leave unresolved' : 'View in configuration'}</Button>
+        {/* Classification is done on the privacy configuration screen, where
+            every technology is listed beside Rift's recommendation and the
+            categories the site actually has. Rebuilding that picker in a side
+            sheet would be a second place to change the same value, and the
+            two would drift. */}
+        <Link href={`/dashboard/sites/${siteId}/privacy`}>
+          <Button variant="filled">{unresolved ? 'Classify technology' : 'Change classification'}</Button>
+        </Link>
+
+        {unresolved ? (
+          // A real write, not a dismissal. "Unresolved" is a recorded decision
+          // in this product — it means nobody has judged it yet and Rift has
+          // not guessed — so saying it explicitly is worth a button.
+          <Button
+            variant="text"
+            disabled={leaving}
+            onClick={() =>
+              startLeave(async () => {
+                try {
+                  await setTechnologyCategory(siteId, f.findingId, null);
+                  toast('Left unresolved', {
+                    description: `${f.name} stays uncategorised and is not blocked.`,
+                  });
+                  onClose();
+                } catch {
+                  toast.error('Could not save that', { description: 'Nothing was changed.' });
+                }
+              })
+            }
+          >
+            {leaving ? 'Saving…' : 'Leave unresolved'}
+          </Button>
+        ) : (
+          <Link href={`/dashboard/sites/${siteId}/privacy`}>
+            <Button variant="text">View in configuration</Button>
+          </Link>
+        )}
       </>}
     >
       <DrawerSection title="What Rift observed">

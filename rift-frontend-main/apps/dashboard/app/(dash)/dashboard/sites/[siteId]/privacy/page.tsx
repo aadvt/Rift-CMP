@@ -1,7 +1,11 @@
 import Link from 'next/link';
+import type { Route } from 'next';
 import { BlurField, Button, Card, CardBody, CardHeader, Chip, Icon, Notice, RiftMark } from '@rift/ui';
 import { ScreenHeader, Screen } from '@/components/shell/ScreenHeader';
 import { getConfiguration, getSite } from '@/lib/api/endpoints';
+import { RegulationCard } from '@/components/privacy/RegulationCard';
+import { LeaveUnresolvedButton } from '@/components/privacy/LeaveUnresolvedButton';
+import { latestScanId } from '@/lib/current-site';
 
 export const metadata = { title: 'Privacy assessment' };
 
@@ -21,7 +25,11 @@ const CHAIN = [
 
 export default async function PrivacyPage({ params }: { params: Promise<{ siteId: string }> }) {
   const { siteId } = await params;
-  const [site, config] = await Promise.all([getSite(siteId), getConfiguration(siteId)]);
+  const [site, config, scanId] = await Promise.all([
+    getSite(siteId),
+    getConfiguration(siteId),
+    latestScanId(siteId),
+  ]);
 
   return (
     <>
@@ -29,7 +37,11 @@ export default async function PrivacyPage({ params }: { params: Promise<{ siteId
         title="Privacy assessment"
         crumb={[{ label: 'Sites', href: '/dashboard/sites' }, { label: site.host }, { label: 'Privacy' }]}
         actions={<>
-          <Button variant="tonal">Change visitor regions</Button>
+          {/* "Change visitor regions" stood here and could not work. Markets
+              are a deployment-wide assertion read from the environment — the
+              platform has no per-site field for them yet, as `marketQuery()`
+              in lib/api/endpoints.ts says. A control that cannot change the
+              thing it names is worse than its absence. */}
           <Link href={`/dashboard/sites/${siteId}/configuration`}>
             <Button variant="filled" iconAfter="arrowRight">Continue to configuration</Button>
           </Link>
@@ -57,64 +69,12 @@ export default async function PrivacyPage({ params }: { params: Promise<{ siteId
 
             <div className="flex flex-col gap-4">
               {config.regions.map((r, i) => (
-                <Card key={r.code} className="overflow-hidden rounded-2xl">
-                  <div className="flex flex-wrap items-start gap-4 p-7">
-                    <span className="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-md-secondary-container font-mono text-label-medium font-medium text-md-on-secondary-container">
-                      {r.shortCode}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span className="text-title-large font-medium text-md-on-surface">{r.name}</span>
-                        {r.confidence === 'high'
-                          ? <Chip tone="success" glyph="check">High confidence</Chip>
-                          : <Chip tone="warning">Medium confidence</Chip>}
-                        {r.visitorShare !== null ? (
-                          <span className="text-label-medium text-md-on-surface-variant">{r.visitorShare}% of your visitors</span>
-                        ) : null}
-                      </div>
-                      <div className="mt-2 text-body-medium text-md-on-surface-variant">{r.requirement}</div>
-                    </div>
-                    <Button variant="text" size="sm" iconAfter={i === 0 ? 'chevronDown' : 'chevronRight'}>
-                      {i === 0 ? 'Hide reasoning' : 'View reasoning'}
-                    </Button>
-                  </div>
-
-                  {i === 0 && r.reasoning ? (
-                    <div className="bg-md-surface-high p-7 motion-safe:animate-[md-fade_300ms_var(--md-ease)]">
-                      <div className="grid grid-cols-1 gap-7 md:grid-cols-2">
-                        <div>
-                          <div className="mb-3 text-label-small font-medium uppercase tracking-[0.08em] text-md-on-surface-variant">
-                            Requirement
-                          </div>
-                          <div className="text-body-medium font-medium text-md-on-surface">{r.behaviour}</div>
-                          <p className="mt-2 text-label-medium leading-relaxed text-md-on-surface-variant">
-                            Analytics, marketing and preferences technologies are held until the visitor has made a
-                            choice. Necessary technologies are not.
-                          </p>
-                        </div>
-                        <div>
-                          <div className="mb-3 text-label-small font-medium uppercase tracking-[0.08em] text-md-on-surface-variant">
-                            Why Rift selected this
-                          </div>
-                          <ul className="flex flex-col gap-2.5">
-                            {r.reasoning.factors.map((t) => (
-                              <li key={t} className="flex items-start gap-2.5">
-                                <Icon name="check" size={18} className="mt-0.5 shrink-0 text-md-primary" />
-                                <span className="text-label-medium leading-relaxed text-md-on-surface-variant">{t}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                      <div className="mt-6 flex flex-wrap items-center gap-7 border-t border-md-outline-variant/50 pt-5">
-                        <Meta label="Source" value={r.reasoning.source} />
-                        <Meta label="Knowledge base" value={r.reasoning.knowledgeBaseVersion} mono />
-                        <Meta label="Applied" value={new Date(r.reasoning.appliedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} />
-                        <Button variant="outlined" size="sm" iconAfter="arrowUpRight" className="ml-auto">View evidence</Button>
-                      </div>
-                    </div>
-                  ) : null}
-                </Card>
+                <RegulationCard
+                  key={r.code}
+                  region={r}
+                  defaultOpen={i === 0}
+                  evidenceHref={scanId ? (`/dashboard/scans/${scanId}` as Route) : null}
+                />
               ))}
             </div>
 
@@ -127,8 +87,16 @@ export default async function PrivacyPage({ params }: { params: Promise<{ siteId
                   />
                   <Notice tone="neutral" icon="question" title="Legal basis for one unclassified technology" className="mt-5"
                     actions={<>
-                      <Button size="sm" variant="tonal">Classify technology</Button>
-                      <Button size="sm" variant="text">Leave unresolved</Button>
+                      <Link href={`/dashboard/sites/${siteId}/configuration`}>
+                        <Button size="sm" variant="tonal">Classify technology</Button>
+                      </Link>
+                      {config.unresolved[0] ? (
+                        <LeaveUnresolvedButton
+                          siteId={siteId}
+                          technologyId={config.unresolved[0].findingId}
+                          name={config.unresolved[0].host}
+                        />
+                      ) : null}
                     </>}
                   >
                     Rift detected <span className="font-mono text-label-medium">{config.unresolved[0]?.host}</span> but
@@ -210,14 +178,5 @@ export default async function PrivacyPage({ params }: { params: Promise<{ siteId
         </div>
       </Screen>
     </>
-  );
-}
-
-function Meta({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div>
-      <div className="text-label-small text-md-on-surface-variant">{label}</div>
-      <div className={`mt-1 text-label-medium font-medium text-md-on-surface ${mono ? 'font-mono' : ''}`}>{value}</div>
-    </div>
   );
 }
