@@ -4,6 +4,7 @@ import { BlurField, Card, Icon, RiftMark, type IconName } from '@rift/ui';
 import { LandingScanForm } from '@/components/LandingScanForm';
 import { HeroIntro } from '@/components/landing/HeroIntro';
 import { RegimeStrip } from '@/components/landing/RegimeStrip';
+import { ShieldHero } from '@/components/landing/ShieldHero';
 import { Reveal } from '@/components/motion/Reveal';
 import { readSessionToken } from '@/lib/auth/session';
 
@@ -40,12 +41,28 @@ export default async function Home() {
     <main className="min-h-dvh overflow-x-hidden bg-md-surface">
       <SiteHeader />
 
+      {/* Two columns from `lg`: the thing to do on the left, the thing to look
+          at on the right. Centred, the hero left a wide empty margin either side
+          of a 720px column, and the shield now occupies it.
+
+          `overflow-hidden` moved off this element and onto a dedicated layer
+          behind the content. The shield's satellites sit on translateZ and swing
+          past the panel edge as it turns; clipping the whole panel would flatten
+          exactly the depth they are there to show. The blur field still needs
+          the clip, so it gets its own. */}
       <section className="px-5 pb-10 md:px-8">
-        <div className="relative mx-auto max-w-[1200px] overflow-hidden rounded-3xl bg-md-surface-container px-6 py-14 md:px-12 md:py-20">
-          <BlurField variant="hero" />
-          <div className="relative mx-auto max-w-[720px]">
-            <HeroIntro />
-            <LandingScanForm className="mt-9" />
+        <div className="relative mx-auto max-w-[1200px] rounded-3xl bg-md-surface-container px-6 py-14 md:px-12 md:py-16">
+          <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
+            <BlurField variant="hero" />
+          </div>
+
+          <div className="relative grid grid-cols-1 items-center gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-8">
+            <div className="max-w-[620px]">
+              <HeroIntro />
+              <LandingScanForm className="mt-9" />
+            </div>
+
+            <ShieldHero />
           </div>
         </div>
       </section>
