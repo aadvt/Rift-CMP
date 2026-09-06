@@ -1,0 +1,10 @@
+{
+  // Everything `tsconfig.json` checks, plus the two component tests it excludes
+  // so the api image can build without the dashboard's workspace.
+  //
+  // `next build` cannot be pointed at a different tsconfig, so the split runs the
+  // other way: the default config is the narrow one the bundler uses, and this is
+  // the complete one `npm run typecheck` uses. Nothing loses coverage.
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules"]
+}

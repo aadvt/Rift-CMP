@@ -37,5 +37,22 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  // `next build` type-checks everything `include` reaches, and these two files
+  // import dashboard components from `rift-frontend-main` — a *separate* npm
+  // workspace root whose `node_modules` exist on a developer machine and inside
+  // the dashboard image, but not inside the api image, which installs only the
+  // root workspace.
+  //
+  // The result was an api image that built locally and failed in Docker with
+  // "Cannot find module '@rift/ui'". It went unnoticed because `npx next build`
+  // resolves them fine here.
+  //
+  // They are still fully type-checked: `npm run typecheck` uses
+  // `tsconfig.typecheck.json`, which puts them back. This exclusion narrows what
+  // the *bundler* compiles, not what is verified.
+  "exclude": [
+    "node_modules",
+    "tests/intelligence-ui.test.tsx",
+    "tests/enforcement-ui.test.tsx"
+  ]
 }
