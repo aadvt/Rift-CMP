@@ -8,42 +8,68 @@ import { ScrollTrigger, shouldAnimate, withGsap } from '@/components/motion/gsap
  *
  * ## Why CSS 3D and not WebGL
  *
- * This is six flat planes at different depths. A WebGL renderer would put a
- * few hundred kilobytes in front of the first paint of a marketing page to
- * produce something the compositor already does — and it would bring its own
- * colours, where these are `md-*` custom properties and follow the theme.
+ * This is a stack of flat planes at different depths. A WebGL renderer would
+ * put a few hundred kilobytes in front of the first paint of a marketing page
+ * to produce what the compositor already does — and it would bring its own
+ * colours, where every surface here is an `md-*` custom property and follows
+ * the theme.
  *
- * `preserve-3d` with a real `translateZ` on each layer is what makes the
- * rotation read as depth rather than as a skew: the layers separate and
- * re-converge as the angle changes, which is parallax, and it is the only
- * reason to build this out of layers at all.
+ * ## Where the thickness comes from
  *
- * ## Why the rotation is tied to scroll
+ * `EXTRUSION` renders the same silhouette many times at descending `translateZ`
+ * with a fill that darkens as it recedes. Turn the whole assembly and those
+ * copies separate along the view axis, and the gap between them reads as a side
+ * wall — the object has a back. One plane with a drop shadow cannot do that: it
+ * stays a sticker however convincingly it is lit, because rotating it reveals
+ * nothing new.
  *
- * A shield that rotates on a loop is a logo animation — it says nothing and
- * after two seconds it is wallpaper. Bound to scroll position it becomes a
- * response to the reader: it turns because they moved, so it reads as an object
- * in the space rather than a video playing in the corner.
+ * That is also why the count is high and the step is small. Visible banding
+ * between copies looks like a mistake; enough of them and the eye reads a solid
+ * edge instead of a stack.
  *
- * This is the one thing on the page that genuinely needs ScrollTrigger.
- * Everything else is "has it come into view yet", which an observer answers;
- * this needs a continuous position within a range, which is what scrubbing is.
+ * ## Out of the panel
+ *
+ * It is positioned against the hero *section*, not inside the rounded panel, so
+ * it crosses that edge instead of sitting politely within it. Breaking the
+ * container is the whole point: an object that overlaps its frame is in front
+ * of the page, and one that respects the frame is a picture hanging on it.
+ *
+ * ## Anchored to the scroll
+ *
+ * The rotation and the descent are scrubbed against scroll position rather than
+ * played on a timer. A shield turning on a loop is a logo animation — wallpaper
+ * after two seconds. Bound to the scroll it moves because the reader moved,
+ * which makes it an object in the space they are moving through.
+ *
+ * It fades out over the second half of that travel. Below the hero the page is
+ * text on an unpainted surface, and a large opaque object drifting across it
+ * would be competing with the only thing on the page that matters.
  *
  * ## What happens when nothing animates
  *
  * The opening angle is set in CSS, not by the tween. A starved ticker, a
- * reduced-motion preference or a failed script all land in the same place: a
- * shield sitting at a pleasant three-quarter angle, not moving. Nothing is
- * hidden and nothing is broken — which is the property the rest of the motion
- * work in this app had to be rewritten twice to get.
+ * reduced-motion preference and a failed script all land in the same place: a
+ * shield at a three-quarter angle, not moving, fully visible. Nothing hidden.
  *
  * ## Small screens
  *
- * Below `lg` the hero is one column and the shield is decoration competing with
- * the only thing on the page that matters, so it is not rendered at all rather
- * than shrunk. `aria-hidden` throughout: it depicts nothing a screen reader
- * needs, and the heading beside it already says what the product does.
+ * Below `lg` it is not rendered at all rather than shrunk, and it is
+ * `aria-hidden` throughout — it depicts nothing a screen reader needs, and the
+ * heading beside it already says what the product does.
  */
+
+/** Depth of the body, in px, and how many slices build it. */
+const EXTRUSION = Array.from({ length: 14 }, (_, i) => ({
+  z: -3 * (i + 1),
+  // Recedes towards the darker end of the ramp, so the wall has a gradient
+  // down its depth rather than being a flat band of one colour.
+  opacity: 0.5 - i * 0.03,
+}));
+
+const SHIELD_PATH = 'M80 3 L152 30 V88 c0 42-29 74-72 89-43-15-72-47-72-89V30Z';
+/** The same silhouette inset, for the raised rim. */
+const SHIELD_RIM = 'M80 15 L141 38 V87 c0 35-24 62-61 75-37-13-61-40-61-75V38Z';
+
 export function ShieldHero({ className }: { className?: string }) {
   const ref = React.useRef<HTMLDivElement>(null);
 
@@ -53,66 +79,77 @@ export function ShieldHero({ className }: { className?: string }) {
 
     const gsap = withGsap();
     const ctx = gsap.context(() => {
-      // Idle drift, so it is alive before anybody scrolls. Deliberately slow
-      // and small — it should be noticed second, after the headline.
+      // ── Idle: alive before anybody scrolls, quiet enough to be noticed second ──
       gsap.to('[data-shield="body"]', {
-        y: -10,
-        duration: 3.6,
+        y: -14,
+        duration: 4.2,
         repeat: -1,
         yoyo: true,
         ease: 'sine.inOut',
       });
 
-      gsap.to('[data-shield="ring"]', {
+      gsap.to('[data-shield="ring-outer"]', {
         rotate: 360,
-        duration: 26,
+        duration: 34,
         repeat: -1,
         ease: 'none',
         transformOrigin: '50% 50%',
       });
 
+      gsap.to('[data-shield="ring-inner"]', {
+        rotate: -360,
+        duration: 22,
+        repeat: -1,
+        ease: 'none',
+        transformOrigin: '50% 50%',
+      });
+
+      // The sheen travels across the face on a long cycle, which is what sells
+      // the surface as something with a finish rather than a filled path.
+      gsap.fromTo(
+        '[data-shield="sheen"]',
+        { attr: { x: -190 } },
+        { attr: { x: 190 }, duration: 4.4, repeat: -1, repeatDelay: 2.6, ease: 'power1.inOut' },
+      );
+
       gsap.to('[data-shield="spark"]', {
-        opacity: 0.25,
-        duration: 1.6,
+        opacity: 0.2,
+        duration: 1.8,
         repeat: -1,
         yoyo: true,
         ease: 'sine.inOut',
-        stagger: { each: 0.4, from: 'random' },
+        stagger: { each: 0.3, from: 'random' },
       });
 
-      // ── The scroll-linked part ──
+      // ── Anchored to the scroll ──
       //
-      // One timeline scrubbed across the first screen and a half. `scrub: 1`
-      // rather than `true` adds a second of catch-up, so a flick of the wheel
-      // arrives as a turn rather than a snap.
-      gsap
-        .timeline({
-          scrollTrigger: {
-            trigger: el,
-            start: 'top top',
-            end: '+=1100',
-            scrub: 1,
-          },
-        })
-        .to(
-          '[data-shield="stage"]',
-          {
-            rotateY: 26,
-            rotateX: -12,
-            // Travels down with the reader, slower than the page, so it hangs
-            // back rather than scrolling away.
-            y: 130,
-            scale: 0.88,
-            ease: 'none',
-          },
-          0,
-        )
-        // The layers pull apart as it turns. At the opening angle they read as
-        // one object; by the end the depth between them is the point.
-        .to('[data-shield="lift"]', { z: 60, ease: 'none' }, 0)
-        .to('[data-shield="glow"]', { opacity: 0.28, scale: 1.25, ease: 'none' }, 0);
+      // `scrub: 1` gives a second of catch-up, so a flick of the wheel arrives
+      // as a turn rather than a snap.
+      const tl = gsap.timeline({
+        scrollTrigger: { trigger: el, start: 'top top', end: '+=1500', scrub: 1 },
+      });
+
+      tl.to(
+        '[data-shield="stage"]',
+        {
+          rotateY: 38,
+          rotateX: -18,
+          rotateZ: 6,
+          // Travels a long way down and slower than the page, so it descends
+          // past the panel edge rather than scrolling away with it.
+          y: 460,
+          scale: 0.72,
+          ease: 'none',
+        },
+        0,
+      )
+        .to('[data-shield="glow"]', { opacity: 0.3, scale: 1.35, ease: 'none' }, 0)
+        // Gone before it reaches anything anybody has to read.
+        .to('[data-shield="stage"]', { opacity: 0, ease: 'power2.in' }, 0.55);
     }, el);
 
+    // Fonts and images settle after mount and move every offset below them; a
+    // trigger measured against the old layout starts in the wrong place.
     const settle = setTimeout(() => ScrollTrigger.refresh(), 400);
 
     return () => {
@@ -125,114 +162,170 @@ export function ShieldHero({ className }: { className?: string }) {
     <div
       ref={ref}
       aria-hidden="true"
-      className={cn('pointer-events-none relative hidden select-none lg:block', className)}
-      style={{ perspective: '1200px' }}
+      className={cn('pointer-events-none absolute hidden select-none lg:block', className)}
+      style={{ perspective: '1400px' }}
     >
       <div
         data-shield="stage"
-        className="relative mx-auto aspect-square w-full max-w-[440px]"
+        className="relative aspect-square w-full"
         style={{
           transformStyle: 'preserve-3d',
           // The opening angle lives here rather than in the tween, so this is
           // what somebody sees if nothing ever animates.
-          transform: 'rotateX(8deg) rotateY(-20deg)',
+          transform: 'rotateX(10deg) rotateY(-22deg)',
         }}
       >
-        {/* Atmosphere. Sits furthest back and never rotates with the rest —
-            a blurred field with a visible edge would read as a flat card. */}
+        {/* Atmosphere, furthest back. */}
         <div
           data-shield="glow"
-          className="absolute left-1/2 top-1/2 size-[92%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-md-primary/25 blur-3xl"
+          className="absolute left-1/2 top-1/2 size-[88%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-md-primary/25 blur-3xl"
         />
 
-        {/* Back plate: the surface the shield is protecting. */}
+        {/* The surface being protected: a plate well behind the shield, so the
+            gap between them is visible the moment anything turns. */}
         <div
-          className="absolute inset-[14%] rounded-[28%] border border-md-outline-variant/60 bg-md-surface/40"
-          style={{ transform: 'translateZ(-70px)' }}
+          className="absolute inset-[16%] rounded-[30%] border border-md-outline-variant/50 bg-md-surface/30"
+          style={{ transform: 'translateZ(-150px)' }}
         />
 
         <svg
-          data-shield="ring"
+          data-shield="ring-outer"
           viewBox="0 0 200 200"
-          className="absolute inset-[6%] text-md-primary"
-          style={{ transform: 'translateZ(-28px)' }}
           fill="none"
+          className="absolute inset-0 text-md-primary"
+          style={{ transform: 'translateZ(-90px)' }}
         >
-          <circle
-            cx="100" cy="100" r="92"
-            stroke="currentColor" strokeOpacity="0.35" strokeWidth="1"
-            strokeDasharray="2 14" strokeLinecap="round"
-          />
-          <circle cx="100" cy="100" r="78" stroke="currentColor" strokeOpacity="0.14" strokeWidth="1" />
+          <circle cx="100" cy="100" r="96" stroke="currentColor" strokeOpacity="0.3" strokeWidth="1" strokeDasharray="2 16" strokeLinecap="round" />
+          {/* Tick marks, so the ring reads as an instrument rather than a halo. */}
+          {Array.from({ length: 24 }, (_, i) => (
+            <line
+              key={i}
+              x1="100" y1="6" x2="100" y2={i % 3 === 0 ? 16 : 11}
+              stroke="currentColor"
+              strokeOpacity={i % 3 === 0 ? 0.4 : 0.18}
+              strokeWidth="1.4"
+              strokeLinecap="round"
+              transform={`rotate(${i * 15} 100 100)`}
+            />
+          ))}
         </svg>
 
-        {/* The shield itself. */}
-        <div
-          data-shield="body"
-          className="absolute inset-[16%]"
-          style={{ transformStyle: 'preserve-3d' }}
+        <svg
+          data-shield="ring-inner"
+          viewBox="0 0 200 200"
+          fill="none"
+          className="absolute inset-[10%] text-md-primary"
+          style={{ transform: 'translateZ(-52px)' }}
         >
-          <svg viewBox="0 0 160 180" fill="none" className="size-full drop-shadow-[0_24px_48px_rgba(0,0,0,0.16)]">
+          <circle cx="100" cy="100" r="92" stroke="currentColor" strokeOpacity="0.42" strokeWidth="1.5" strokeDasharray="26 12 4 12" strokeLinecap="round" />
+        </svg>
+
+        {/* ── The body ── */}
+        <div data-shield="body" className="absolute inset-[15%]" style={{ transformStyle: 'preserve-3d' }}>
+          {/* The side wall. Each slice is the same outline a little further
+              back; turning the assembly opens them into a visible edge. */}
+          {EXTRUSION.map((layer) => (
+            <svg
+              key={layer.z}
+              viewBox="0 0 160 180"
+              fill="none"
+              className="absolute inset-0 size-full text-md-primary"
+              style={{ transform: `translateZ(${layer.z}px)` }}
+            >
+              <path d={SHIELD_PATH} fill="currentColor" fillOpacity={Math.max(layer.opacity, 0.06)} />
+            </svg>
+          ))}
+
+          {/* The face. */}
+          <svg
+            viewBox="0 0 160 180"
+            fill="none"
+            className="absolute inset-0 size-full drop-shadow-[0_30px_60px_rgba(0,0,0,0.22)]"
+          >
             <defs>
-              <linearGradient id="rift-shield-face" x1="20" y1="4" x2="150" y2="176" gradientUnits="userSpaceOnUse">
+              <linearGradient id="rift-shield-face" x1="18" y1="0" x2="150" y2="180" gradientUnits="userSpaceOnUse">
                 <stop offset="0%" stopColor="var(--md-primary-container)" />
-                <stop offset="55%" stopColor="var(--md-secondary-container)" />
+                <stop offset="52%" stopColor="var(--md-secondary-container)" />
                 <stop offset="100%" stopColor="var(--md-tertiary-container)" />
               </linearGradient>
-              {/* A single sheen band, angled across the face. It is what stops
-                  the panel reading as flat once the thing starts turning. */}
-              <linearGradient id="rift-shield-sheen" x1="0" y1="0" x2="160" y2="180" gradientUnits="userSpaceOnUse">
-                <stop offset="18%" stopColor="#fff" stopOpacity="0" />
-                <stop offset="42%" stopColor="#fff" stopOpacity="0.42" />
-                <stop offset="62%" stopColor="#fff" stopOpacity="0" />
+
+              {/* A chiselled face: the left half catches light, the right falls
+                  away. Two facets are enough to stop it reading as a decal. */}
+              <linearGradient id="rift-shield-facet" x1="80" y1="0" x2="80" y2="180" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#fff" stopOpacity="0.5" />
+                <stop offset="100%" stopColor="#fff" stopOpacity="0" />
               </linearGradient>
+
+              <linearGradient id="rift-shield-shade" x1="80" y1="180" x2="80" y2="20" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="var(--md-primary)" stopOpacity="0.28" />
+                <stop offset="100%" stopColor="var(--md-primary)" stopOpacity="0" />
+              </linearGradient>
+
+              <clipPath id="rift-shield-clip">
+                <path d={SHIELD_PATH} />
+              </clipPath>
             </defs>
 
-            <path
-              d="M80 3 L152 30 V88 c0 42-29 74-72 89-43-15-72-47-72-89V30Z"
-              fill="url(#rift-shield-face)"
-              stroke="var(--md-primary)"
-              strokeOpacity="0.32"
-              strokeWidth="1.5"
-            />
-            <path
-              d="M80 3 L152 30 V88 c0 42-29 74-72 89-43-15-72-47-72-89V30Z"
-              fill="url(#rift-shield-sheen)"
-            />
+            <path d={SHIELD_PATH} fill="url(#rift-shield-face)" />
+
+            <g clipPath="url(#rift-shield-clip)">
+              {/* Left facet. */}
+              <path d="M80 0 V180 L-10 180 V0 Z" fill="url(#rift-shield-facet)" opacity="0.55" />
+              {/* Weight at the base, so it sits rather than floats. */}
+              <rect x="0" y="0" width="160" height="180" fill="url(#rift-shield-shade)" />
+
+              {/* Engraved scanlines: the surface reads as machined, and they
+                  shear convincingly under rotation because they are clipped to
+                  the silhouette rather than drawn around it. */}
+              {Array.from({ length: 9 }, (_, i) => (
+                <line
+                  key={i}
+                  x1="-10" y1={26 + i * 17} x2="170" y2={12 + i * 17}
+                  stroke="var(--md-primary)"
+                  strokeOpacity="0.07"
+                  strokeWidth="1"
+                />
+              ))}
+
+              {/* The travelling sheen. */}
+              <rect data-shield="sheen" x="-190" y="-40" width="52" height="260" fill="#fff" opacity="0.3" transform="rotate(18 80 90)" />
+            </g>
+
+            {/* Outer edge and raised inner rim. The pair is what makes the face
+                look pressed rather than printed. */}
+            <path d={SHIELD_PATH} fill="none" stroke="var(--md-primary)" strokeOpacity="0.45" strokeWidth="2" />
+            <path d={SHIELD_RIM} fill="none" stroke="#fff" strokeOpacity="0.45" strokeWidth="1.5" />
+            <path d={SHIELD_RIM} fill="none" stroke="var(--md-primary)" strokeOpacity="0.18" strokeWidth="3" strokeDasharray="1 6" strokeLinecap="round" />
           </svg>
 
-          {/* The tick floats above the face, so rotation opens a real gap
+          {/* The tick, well forward of the face so rotation opens a real gap
               between them instead of sliding one texture over another.
 
-              `md-primary` rather than `md-on-secondary-container`: the ink role
-              is near-black, and against a pale lilac face it read as a borrowed
-              glyph sitting on the shield rather than as part of it. The primary
-              is the same hue as the gradient it lies on, several steps darker,
-              which is what makes the two look like one object. */}
+              `md-primary` rather than the on-container ink role: the ink is
+              near-black, and against a pale lilac face it read as a borrowed
+              glyph resting on the shield. The primary is the same hue as the
+              gradient underneath, several steps darker, which is what makes the
+              two look like one object. */}
           <svg
-            data-shield="lift"
             viewBox="0 0 160 180"
             fill="none"
             className="absolute inset-0 size-full text-md-primary"
-            style={{ transform: 'translateZ(34px)' }}
+            style={{ transform: 'translateZ(46px)' }}
           >
-            <path
-              d="M52 88 l20 21 40-45"
-              stroke="currentColor"
-              strokeWidth="11"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+            {/* Its own shadow, cast back onto the face. */}
+            <path d="M52 89 l20 21 40-45" stroke="var(--md-primary)" strokeOpacity="0.22" strokeWidth="13" strokeLinecap="round" strokeLinejoin="round" transform="translate(3 5)" />
+            <path d="M52 88 l20 21 40-45" stroke="currentColor" strokeWidth="11" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
 
-        {/* Satellites at mixed depths: the parallax between them is what the
+        {/* Satellites at mixed depths. The parallax between them is what the
             rotation is for. */}
         {[
-          { cls: 'left-[6%] top-[26%] size-3', z: 90 },
-          { cls: 'right-[9%] top-[16%] size-2', z: 130 },
-          { cls: 'right-[4%] bottom-[30%] size-2.5', z: 70 },
-          { cls: 'left-[14%] bottom-[16%] size-2', z: 110 },
+          { cls: 'left-[3%] top-[24%] size-3', z: 150 },
+          { cls: 'right-[6%] top-[12%] size-2', z: 200 },
+          { cls: 'right-[1%] bottom-[28%] size-2.5', z: 120 },
+          { cls: 'left-[11%] bottom-[12%] size-2', z: 180 },
+          { cls: 'left-[46%] top-[2%] size-1.5', z: 230 },
         ].map((dot) => (
           <span
             key={dot.cls}

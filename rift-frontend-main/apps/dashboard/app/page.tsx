@@ -41,30 +41,43 @@ export default async function Home() {
     <main className="min-h-dvh overflow-x-hidden bg-md-surface">
       <SiteHeader />
 
-      {/* Two columns from `lg`: the thing to do on the left, the thing to look
-          at on the right. Centred, the hero left a wide empty margin either side
-          of a 720px column, and the shield now occupies it.
+      {/* The shield is a sibling of the panel, not a child of it.
 
-          `overflow-hidden` moved off this element and onto a dedicated layer
-          behind the content. The shield's satellites sit on translateZ and swing
-          past the panel edge as it turns; clipping the whole panel would flatten
-          exactly the depth they are there to show. The blur field still needs
-          the clip, so it gets its own. */}
-      <section className="px-5 pb-10 md:px-8">
+          Placed inside, it would be clipped by the panel's rounded corner and
+          bounded by its padding — a picture hanging on the frame. Positioned
+          against the section instead, it crosses the panel's top and right
+          edges and, once the scroll carries it down, its bottom edge too. An
+          object that overlaps its container is in front of the page.
+
+          The grid still reserves the right-hand column at `lg`, so the text
+          never runs under it. The column is empty on purpose: the shield is
+          absolutely positioned and takes no space, and something has to hold
+          the space open for it.
+
+          `overflow-hidden` sits on its own layer behind the content rather than
+          on the panel, because the blur field needs clipping and the shield
+          must not have it. */}
+      <section className="relative px-5 pb-10 md:px-8">
         <div className="relative mx-auto max-w-[1200px] rounded-3xl bg-md-surface-container px-6 py-14 md:px-12 md:py-16">
           <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
             <BlurField variant="hero" />
           </div>
 
-          <div className="relative grid grid-cols-1 items-center gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-8">
+          <div className="relative grid grid-cols-1 items-center gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.9fr)] lg:gap-8">
             <div className="max-w-[620px]">
               <HeroIntro />
               <LandingScanForm className="mt-9" />
             </div>
 
-            <ShieldHero />
+            <div aria-hidden="true" className="hidden lg:block" />
           </div>
         </div>
+
+        {/* Deliberately hung past the panel on two edges. The offset is
+            measured from the centre so it tracks the 1200px panel rather than
+            the viewport, and the `max` floor stops it running off-screen on a
+            narrow desktop — where it bleeds a little, which is the point. */}
+        <ShieldHero className="right-[max(-1.5rem,calc(50%-39rem))] top-[-4.5rem] w-[clamp(32rem,42vw,42rem)]" />
       </section>
 
       <RegimeStrip />
