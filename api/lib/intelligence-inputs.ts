@@ -54,3 +54,12 @@ export async function gatherSiteEvidence(organisationId: string, siteId: string)
     decisionsWithProof,
   };
 }
+
+/**
+ * The evidence set, named.
+ *
+ * Exported so the simulator can take it as a *value* rather than fetching its
+ * own. That is what keeps the simulator free of any database handle: everything
+ * that reads happens here, and the engine downstream is a pure function.
+ */
+export type SiteEvidence = Awaited<ReturnType<typeof gatherSiteEvidence>>;

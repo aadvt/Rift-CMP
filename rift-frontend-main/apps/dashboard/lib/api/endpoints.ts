@@ -852,3 +852,30 @@ export async function getPolicyComparison(
   ).catch(() => null);
   return body?.comparison ?? null;
 }
+
+/** The consent dependency graph for one site. Derived, never stored. */
+export async function getConsentGraph(
+  siteId: string,
+  filters: Record<string, string> = {},
+): Promise<W.WireConsentGraph | null> {
+  if (USE_FIXTURES) return null;
+  const query = new URLSearchParams(filters).toString();
+  const body = await riftFetch<{ graph: W.WireConsentGraph }>(
+    `${V1}/sites/${siteId}/graph${query ? `?${query}` : ''}`,
+    { tags: [tag.config(siteId)], revalidate: 60 },
+  ).catch(() => null);
+  return body?.graph ?? null;
+}
+
+/** One node, its neighbours, its evidence, and what it can ask the simulator. */
+export async function getGraphNode(
+  siteId: string,
+  nodeId: string,
+): Promise<W.WireGraphNodeDetail | null> {
+  if (USE_FIXTURES) return null;
+  const body = await riftFetch<{ detail: W.WireGraphNodeDetail }>(
+    `${V1}/sites/${siteId}/graph/nodes/${encodeURIComponent(nodeId)}`,
+    { revalidate: 60 },
+  ).catch(() => null);
+  return body?.detail ?? null;
+}

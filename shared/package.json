@@ -22,7 +22,9 @@
     "./redaction": "./redaction.ts",
     "./enforcement": "./enforcement.ts",
     "./experiment": "./experiment.ts",
-    "./experiment-analytics": "./experiment-analytics.ts"
+    "./experiment-analytics": "./experiment-analytics.ts",
+    "./graph": "./graph.ts",
+    "./simulation": "./simulation.ts"
   },
   "types": "./index.ts",
   "dependencies": {

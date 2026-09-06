@@ -773,3 +773,92 @@ export interface WirePolicyComparison {
   }>;
   caveats: string[];
 }
+
+// ─── Phase D: graph and simulation ───────────────────────────────────────────
+
+export type WireProvenance = 'OBSERVED' | 'CONFIGURED' | 'ENFORCED' | 'INFERRED' | 'UNKNOWN';
+
+export interface WireEvidenceRef {
+  source: string;
+  ref: string | null;
+  detail: string;
+  observed_at?: string | null;
+}
+
+export interface WireGraphNode {
+  id: string;
+  kind: string;
+  label: string;
+  sublabel: string | null;
+  /** How firmly this is known. Never decoration — see the graph docs. */
+  provenance: WireProvenance;
+  severity: 'critical' | 'high' | 'medium' | 'low' | 'info' | null;
+  evidence: WireEvidenceRef[];
+  attributes: Record<string, string | number | boolean | null>;
+}
+
+export interface WireGraphEdge {
+  id: string;
+  from: string;
+  to: string;
+  kind: string;
+  label: string;
+  provenance: WireProvenance;
+  severity: 'critical' | 'high' | 'medium' | 'low' | 'info' | null;
+  evidence: WireEvidenceRef[];
+}
+
+export interface WireConsentGraph {
+  site_id: string;
+  generated_at: string;
+  scan_id: string | null;
+  policy_version: string | null;
+  nodes: WireGraphNode[];
+  edges: WireGraphEdge[];
+  /** Said out loud, because a capped graph reads as a complete one. */
+  truncated: { nodes: boolean; edges: boolean; reason: string | null };
+  totals: Record<string, number>;
+  caveats: string[];
+}
+
+export interface WireGraphNodeDetail {
+  node: WireGraphNode;
+  neighbours: Array<{ edge: WireGraphEdge; node: WireGraphNode; direction: 'out' | 'in' }>;
+  simulations: Array<{ operation: string; label: string; description: string }>;
+}
+
+export interface WireSimulation {
+  /** Always true on the wire, so no consumer can lose it. */
+  hypothetical: true;
+  scenario_name: string;
+  site_id: string;
+  base_policy_version: string | null;
+  base_scan_id: string | null;
+  generated_at: string;
+  changes: Array<Record<string, string | undefined>>;
+  inventory: { trackers: number; vendors: number; destinations: number; added: string[]; removed: string[] };
+  consent: {
+    purposes_affected: string[];
+    requirements: Array<{ vendor: string; from: string | null; to: string; reason: string }>;
+  };
+  jurisdiction: { before: string[]; after: string[]; added: string[]; removed: string[]; regimes: string[] };
+  enforcement: { current: string; simulated: string; rules_before: number; rules_after: number };
+  intelligence: {
+    shadow_before: number;
+    shadow_after: number;
+    drift_before: number;
+    drift_after: number;
+    new_shadow: Array<{ host: string; vendor: string | null; severity: string; reason: string }>;
+  };
+  quality: {
+    current_score: number;
+    current_band: string;
+    /** Hypothetical. Never to be rendered as a production score. */
+    simulated_score: number;
+    simulated_band: string;
+    components: Array<{ id: string; label: string; before: number; after: number }>;
+  };
+  findings: Array<{ severity: string; area: string; summary: string; because: string }>;
+  unsupported: Array<{ change: Record<string, string | undefined>; reason: string }>;
+  caveats: string[];
+}

@@ -28,6 +28,7 @@ const UNIT_TESTS = [
   "tests/redaction.test.ts",
   "tests/consent-firewall.test.ts",
   "tests/experiment-model.test.ts",
+  "tests/graph-simulation.test.ts",
   "tests/experiment-analytics.test.ts",
   "tests/experiment-sdk.test.ts",
   "tests/ai-assist.test.ts",
@@ -64,6 +65,7 @@ const BROWSER_TESTS = [
   "tests/crawler-browser.test.ts",
   "tests/consent-journey.browser.test.ts",
   "tests/experiment-journey.browser.test.ts",
+  "tests/graph-journey.browser.test.ts",
 ];
 
 export default defineConfig({
