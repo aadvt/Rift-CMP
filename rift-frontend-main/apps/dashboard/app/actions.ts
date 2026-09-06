@@ -4,10 +4,13 @@ import { revalidateTag } from 'next/cache';
 import {
   createSite, rescanSite, acceptConfiguration, overrideTechnology, restoreRecommendation,
   cancelScan as cancelScanUpstream,
+  setExperimentStatus as setExperimentStatusUpstream,
+  runSimulation,
 } from '@/lib/api/endpoints';
 import { SITE_COOKIE } from '@/lib/current-site';
 import { API_URL, riftFetch } from '@/lib/api/client';
 import { clearSessionToken, writeSessionToken } from '@/lib/auth/session';
+import type { ProposedChange, WireSimulation } from '@/lib/api/simulation';
 
 /** Server Actions are the only write path. Each one invalidates the tags the
  *  reads it affects were fetched under. */
@@ -55,6 +58,50 @@ export async function stopScan(scanId: string): Promise<{ ok: boolean; message?:
     const status = (error as { status?: number }).status;
     if (status === 409) return { ok: true, message: 'That scan had already finished.' };
     return { ok: false, message: 'Could not cancel the scan.' };
+  }
+}
+
+/**
+ * Starts, pauses, completes or archives an experiment.
+ *
+ * The platform owns the lifecycle table and refuses an illegal move with a
+ * sentence naming what is allowed from here. That message is returned rather
+ * than replaced: "cannot start a completed experiment" tells somebody what to
+ * do next, and "something went wrong" does not.
+ */
+export async function changeExperimentStatus(
+  experimentId: string,
+  status: 'DRAFT' | 'SCHEDULED' | 'RUNNING' | 'PAUSED' | 'COMPLETED' | 'ARCHIVED',
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  try {
+    await setExperimentStatusUpstream(experimentId, status);
+    revalidateTag('experiments');
+    return { ok: true };
+  } catch (error) {
+    const message = error instanceof Error && error.message ? error.message : null;
+    return { ok: false, message: message ?? 'Could not change the experiment.' };
+  }
+}
+
+/**
+ * Runs a hypothetical scenario.
+ *
+ * A Server Action rather than a client fetch so the session stays on the
+ * server, like every other call in this app. It revalidates nothing, because
+ * nothing changed — that is the entire point of the endpoint behind it, and
+ * invalidating a cache here would imply otherwise.
+ */
+export async function simulateScenario(
+  siteId: string,
+  scenarioName: string,
+  changes: ProposedChange[],
+): Promise<{ ok: true; simulation: WireSimulation } | { ok: false; message: string }> {
+  try {
+    const simulation = await runSimulation(siteId, scenarioName, changes);
+    return { ok: true, simulation };
+  } catch (error) {
+    const message = error instanceof Error && error.message ? error.message : null;
+    return { ok: false, message: message ?? 'The scenario could not be run.' };
   }
 }
 

@@ -2,6 +2,7 @@ import { Card, CardBody, CardHeader, Chip, Notice } from '@rift/ui';
 import { ScreenHeader, Screen } from '@/components/shell/ScreenHeader';
 import { ExperimentComparison } from '@/components/experiments/Comparison';
 import { getExperiment, getExperimentComparison } from '@/lib/api/endpoints';
+import { LifecycleControls } from '@/components/experiments/LifecycleControls';
 
 export const metadata = { title: 'Experiment' };
 export const dynamic = 'force-dynamic';
@@ -38,6 +39,11 @@ export default async function ExperimentPage({
             <Chip tone={experiment.serving ? 'success' : 'neutral'} dot>
               {experiment.serving ? 'Assigning visitors' : experiment.status}
             </Chip>
+          ) : undefined
+        }
+        actions={
+          experiment ? (
+            <LifecycleControls experimentId={experiment.experiment_id} status={experiment.status} />
           ) : undefined
         }
       />

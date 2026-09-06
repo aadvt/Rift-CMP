@@ -5,6 +5,7 @@ import * as fx from './fixtures';
 import * as adapt from './adapters';
 import { describePurpose } from './adapters';
 import type * as W from './backend';
+import type { ProposedChange, WireSimulation, WireSimulationResponse } from './simulation';
 import type {
   AnalyticsOverview, ChangeEntry, ConsentOverview, ConsentRecord, Finding, InstallSnippet,
   RiftConfiguration, Scan, ScanDiff, ScanSummary, Site, Verification,
@@ -829,13 +830,47 @@ export async function getEnforcement(
   }).catch(() => null);
 }
 
+/**
+ * Runs a scenario against a site. Changes nothing.
+ *
+ * `POST` because a scenario is a body, not because anything is created. The
+ * platform states it plainly: no scenario table, no draft policy row, no
+ * persisted result, no write of any kind on this path. Scenarios therefore
+ * cannot be saved or shared by link, which is the price of the guarantee that
+ * running one changed nothing.
+ *
+ * `LIVE` rather than a revalidate window. Two runs of the same scenario a
+ * minute apart must both execute — a cached simulation is a stale answer to a
+ * question somebody is actively reasoning about, and the second run is usually
+ * the one where they changed something.
+ *
+ * Errors are not swallowed here. Every other read in this module degrades to
+ * null so a screen can render without it; a simulation that silently returns
+ * nothing looks like a scenario with no effect, which is a specific and wrong
+ * answer rather than a missing one.
+ */
+export async function runSimulation(
+  siteId: string,
+  scenarioName: string,
+  changes: ProposedChange[],
+): Promise<WireSimulation> {
+  const body = await riftFetch<WireSimulationResponse>(`${V1}/sites/${siteId}/simulate`, {
+    method: 'POST',
+    body: { scenario_name: scenarioName, changes },
+    ...LIVE,
+  });
+  return body.simulation;
+}
+
 /** Consent-UX experiments for this organisation. */
 export async function listExperiments(siteId?: string): Promise<W.WireExperiment[] | null> {
   if (USE_FIXTURES) return null;
   const query = siteId ? `?site_id=${encodeURIComponent(siteId)}` : '';
   const body = await riftFetch<{ experiments: W.WireExperiment[] }>(
     `${V1}/experiments${query}`,
-    { revalidate: 30 },
+    // Tagged so a lifecycle change invalidates this rather than leaving the
+    // list showing DRAFT for up to thirty seconds after somebody started it.
+    { tags: ['experiments'], revalidate: 30 },
   ).catch(() => null);
   return body?.experiments ?? null;
 }
@@ -844,9 +879,34 @@ export async function getExperiment(experimentId: string): Promise<W.WireExperim
   if (USE_FIXTURES) return null;
   const body = await riftFetch<{ experiment: W.WireExperiment }>(
     `${V1}/experiments/${experimentId}`,
-    { revalidate: 30 },
+    { tags: ['experiments'], revalidate: 30 },
   ).catch(() => null);
   return body?.experiment ?? null;
+}
+
+/**
+ * Moves an experiment through its lifecycle.
+ *
+ * The platform validates the move against where the experiment actually is
+ * rather than where the caller believes it is, so a stale tab asking to start
+ * something already completed is refused with a sentence saying so. That
+ * message is worth surfacing verbatim — it is more useful than anything this
+ * layer could invent.
+ *
+ * Starting also re-runs the full configuration check on the platform side. An
+ * experiment can sit in draft while the site's approved policy changes
+ * underneath it, and the moment that matters is the moment it would begin
+ * showing a real visitor a different banner.
+ */
+export async function setExperimentStatus(
+  experimentId: string,
+  status: W.WireExperiment['status'],
+): Promise<W.WireExperiment> {
+  const body = await riftFetch<{ experiment: W.WireExperiment }>(
+    `${V1}/experiments/${experimentId}/status`,
+    { method: 'POST', body: { status }, ...LIVE },
+  );
+  return body.experiment;
 }
 
 /** How the arms compared, with what the comparison does not show. */
@@ -858,7 +918,7 @@ export async function getExperimentComparison(
     `${V1}/experiments/${experimentId}/analytics`,
     // Short: a running experiment's numbers move, and a stale "no difference"
     // is the reading most likely to be believed and least likely to be true.
-    { revalidate: 30 },
+    { tags: ['experiments'], revalidate: 30 },
   ).catch(() => null);
   return body?.comparison ?? null;
 }
