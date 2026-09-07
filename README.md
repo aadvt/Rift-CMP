@@ -1,557 +1,741 @@
 # Rift-CMP
+### Consent Management & Privacy Intelligence Platform
 
-Rift-CMP is the ingestion and consent-record side of a privacy-first analytics platform: a browser SDK, a Next.js API, shared event and consent contracts, and a PostgreSQL/Prisma data layer.
+> **Rift-CMP is a privacy platform that helps organizations discover what their websites collect and share, understand which privacy requirements may apply, manage visitor consent, enforce those choices, and continuously understand whether the website still matches its privacy policy.**
 
-It is multi-tenant: every website belongs to an **organisation**, and one tenant can never reach another tenant's data. See [docs/tenancy.md](docs/tenancy.md).
+![Rift-CMP](https://img.shields.io/badge/Rift--CMP-Privacy%20Infrastructure-111827?style=for-the-badge)
 
-It also owns the **consent domain** — principals, purposes, policies, notices and an append-only record of every decision. That domain is deliberately generic: it encodes structure and no legal rules, so a compliance engine can sit above it later rather than being baked into the schema. See [docs/consent.md](docs/consent.md).
+---
 
-Phase 3 adds a **secure data routing proof of concept**: Rift authorises a personal-data transfer against a recorded consent decision, relays the sealed payload, and cannot read it. The source seals the plaintext before it is sent; the target fiduciary holds the only decryption key; Rift holds ciphertext, routing metadata and public keys. It invents no cryptography and adds no dependency — X25519 ECDH, HKDF-SHA256 and AES-256-GCM, all from Node's built-in `node:crypto`. It has had **no cryptographic review** and is not production-secure. See [docs/secure-transfer.md](docs/secure-transfer.md).
+# Introduction
 
-Phase 4 connects those two halves into **one end-to-end flow**: a principal decides, a fiduciary asks whether an action is permitted, is granted a single-use authorisation, seals and submits the payload, and the whole story reads back as one timeline —
+Every modern website collects or shares some form of data.
 
-```text
-consent  ->  authorisation  ->  secure transfer  ->  audit
-```
+A visitor may encounter analytics tools, advertising technologies, chat widgets, payment services, embedded content, cookies, browser storage, and many other third-party technologies — often without knowing exactly what is happening behind the page they are viewing.
 
-A single side-effect-free orchestration layer answers "is this action currently authorised for this Data Principal, Fiduciary and purpose?". It is the only place the consent and routing domains meet: consent knows nothing about transfers, transfers know nothing about how consent is evaluated, and asking is deliberately separate from committing. A withdrawal stops future authorisations and never rewrites past ones. See [docs/lifecycle.md](docs/lifecycle.md).
+This creates a problem for both sides.
 
-Phase 5 adds an **aggregate analytics read API** and an **operator dashboard**. The dashboard is a pure consumer of the platform API — every page fetches over HTTP with the organisation secret, and no page imports `database` — so if a screen needs something the API cannot express, the API is what changes. It adds no table and no migration. The complete picture, including the MVP's security assumptions and an honest list of what it does not do, is in [docs/mvp.md](docs/mvp.md).
+For visitors, it can be difficult to understand **what data is being used, why it is being used, and who may receive it**.
 
-Phase 6A is a **security hardening pass over that MVP**, and it changed one contract on purpose. A site public key ships in page source, so it was never evidence that a person decided anything — yet it was the only credential `POST /api/v1/consent` asked for, which meant anyone could append a permanent record claiming a named principal had consented. Recording a decision now also requires a **consent session**, bound to a principal whose secret the caller holds. Alongside it: opt-in server-side consent enforcement for analytics ingestion (the API re-derives the decision from the log instead of trusting a browser's gate), rate limiting, origin validation, immutability guards on the authorisation and transfer tables, and revocable dashboard sessions that no longer carry the organisation secret in a cookie. [docs/security.md](docs/security.md) sets all of it out as *enforced*, *defence in depth*, or *still a limitation* — including what a consent session deliberately does not prove.
+For organizations, privacy is no longer just about displaying a consent banner. They need to understand their website's actual behavior, determine which rules may apply, configure appropriate consent choices, respect those choices technically, maintain records, and identify changes when the website evolves.
 
-Phase 7A turns that research into the **policy engine**. The 102 structured
-requirements Phase 6B and 6C produced were read by nothing; `policy/` now reads
-them and answers one question — *given this processing activity and this context,
-what requirements apply?* It is generic by construction: the single table that
-turns a requirement into a verdict is keyed on canonical topic and names no
-regime, and a test fails the build if one appears in it. It is also deliberately
-**not wired into any route**. The platform's existing gate is a fact about a
-recorded decision; the engine is a statement about what a regime requires, and
-joining them means refusing live traffic on the strength of a research artifact.
-That is a product decision and a later phase. See [docs/policy-engine.md](docs/policy-engine.md).
+**Rift-CMP was built to connect these pieces into one system.**
 
-Phase 7B adds **jurisdiction resolution** on top of that engine. It works out
-whose law is in play without collapsing the three claims the question usually
-conflates - an IP-derived country is not a residence, and neither is applicable
-law. Jurisdictions accumulate rather than competing, so a visitor can be in the
-EU and India at once; confidence is explicit and never removes a jurisdiction;
-and the region-to-jurisdiction mapping is versioned configuration, which is why
-`GB` is recognised and deliberately mapped to nothing. The resolver has no field
-for an IP address and rejects one loudly if passed: geolocation happens on the
-caller's side, before it. See [docs/jurisdiction-resolution.md](docs/jurisdiction-resolution.md).
-
-Phase 8B turns all of that into something a customer can actually use: a
-**consent banner and preference centre**, and one snippet they paste once. The
-runtime fetches its purposes and copy from `GET /api/v1/consent/config`, so
-adding a purpose is a dashboard action rather than a redeploy of somebody else's
-website - and the browser bundle carries no regime, citation or jurisdiction
-rule, which a test enforces by grepping the payload. Rift *proposes* a
-configuration from the scan and the policy engine, with the evidence behind every
-line, and a person declares the purposes: a guessed vendor-to-purpose mapping
-would be confident, unauditable and often wrong. See
-[docs/consent-experience.md](docs/consent-experience.md).
-
-Phase 9A adds the **consent autopilot**: a recommended policy generated from the
-scan, the markets an operator serves and the requirement matrix, with a reason,
-evidence, rule references and a confidence on every line. It is a recommendation
-engine and says so in its data rather than in a disclaimer - `conditional` and
-`unknown` are real values, an unresolved input yields `review` and never `allow`,
-and `block` means *we suggest you do not load this*, because Rift blocks nothing.
-Nothing activates without a human: approving publishes an immutable version, and
-a database trigger refuses to rewrite one. See
-[docs/consent-autopilot.md](docs/consent-autopilot.md).
-
-Phase 9B makes the platform **enforce** the approved policy rather than only
-record a decision. The runtime applies host rules to `fetch`, `XMLHttpRequest`,
-`sendBeacon`, `Image.src` and script insertion, with a test mode that reports
-tracker, purpose, user state, policy, decision and reason for every call it saw.
-It defaults to `observe`, because turning enforcement on is the most dangerous
-thing an operator can do to their own site. The boundary is stated rather than
-glossed: a browser cannot stop a `<script src>` already in the served HTML, and
-it cannot see a server-to-server transfer - which is why the API re-derives
-consent from the append-only log instead of trusting a client-side flag. See
-[docs/enforcement.md](docs/enforcement.md).
-
-Phase 10A makes a decision **provable** and works out which privacy controls a
-person should be offered. A consent record now carries the jurisdictions,
-mechanism, configuration version and vendors it was taken under, plus a receipt
-digest a principal can recompute - stated as a receipt rather than a signature,
-since it is neither signed nor chained. Available controls are derived per
-request from the policy engine, because the regimes genuinely differ: California
-has a sale opt-out, the LGPD explicitly does not, and India has grievance
-redressal with no GDPR analogue. Retention is what the operator writes, never a
-period the platform invents. See [docs/privacy-rights.md](docs/privacy-rights.md).
-
-## Repository layout
-
-| Path | Purpose |
-| --- | --- |
-| `docs/` | The MVP overview, architecture, event schema, consent model, secure transfer trust model, the end-to-end lifecycle, API contract, database model, and integration docs |
-| `sdk/` | Browser SDK that emits page/session/custom events, batches them before sending, and records consent decisions |
-| `api/` | Next.js App Router app: the three API planes under `app/api/`, the operator dashboard under `app/dashboard/`, its server-only session and API client in `lib/dashboard/`, and the test suite in `tests/` |
-| `shared/` | Shared TypeScript event, tenancy, consent, transfer, authorisation, audit, analytics, and API contract types |
-| `secure-transfer/` | The crypto boundary: `envelope.ts` (types, canonical AAD, digest, shape validation) is Rift-safe; `fiduciary.ts` (key generation, seal, open) belongs to the fiduciaries and is never imported by `api/` |
-| `policy/` | The policy engine and the jurisdiction resolver: the generic model, the topic disposition table, matrix compilation, the evaluator, and the versioned region-to-jurisdiction mapping. Reads the Phase 6B matrix; imports no route and no database |
-| `database/` | Prisma schema, generated client, migrations, credential/tenancy helpers, the consent and transfer service layers, the orchestration layer (`authorisation.ts`), the audit and analytics read models (`audit.ts`, `analytics.ts`), and seed data |
-| `crawler/` | The website scanner and the worker that performs queued scans |
-| `rift-frontend-main/` | The product UI — a separate Next.js workspace with its own lockfile that consumes `/api/v1` over HTTP like any other integrator. See [docs/frontend-integration.md](docs/frontend-integration.md) |
-
-## What this repo owns
-
-- Browser SDK emission for `page_view`, `session_start`, and `track(name, properties)`
-- Ingestion endpoint `POST /api/v1/events`, authenticated by a site public key
-- Site management endpoints under `/api/v1/organisation` and `/api/v1/sites`,
-  authenticated by an organisation secret key
-- The organisation/website ownership model and its enforcement
-- The consent domain: `POST|GET /api/v1/consent` on the browser plane, and
-  `/api/v1/consent/history`, `/api/v1/purposes`, `/api/v1/policies` and
-  `/api/v1/notices` on the management plane
-- A headless `analytics.consent` SDK client — identity, transport and caching, no UI
-- An append-only consent record whose immutability is enforced by a PostgreSQL
-  trigger, with current state derived rather than stored
-- Secure data routing: `GET|POST /api/v1/recipients` and
-  `GET|POST /api/v1/transfers` on the management plane, and
-  `GET /api/v1/transfers/{transferId}/envelope` on a third **delivery plane**
-  authenticated by a recipient delivery key (`rk_...`)
-- The orchestration layer that joins consent to routing —
-  `GET|POST /api/v1/authorisations` and `POST /api/v1/authorisations/decision`
-  (evaluate only, no side effect) on the management plane. **`POST /api/v1/transfers/authorisations`
-  moved to `POST /api/v1/authorisations` in Phase 4**: authorisation is its own
-  concern, not a sub-resource of transfers
-- The unified audit trail, `GET /api/v1/audit`: consent decisions, authorisations
-  and transfers interleaved into one timeline, cross-referenced but **not** joined
-  in the database
-- The aggregate analytics read API — `GET /api/v1/analytics/summary` and
-  `GET /api/v1/analytics/overview` — plus `GET /api/v1/consent/effective`, which
-  answers the browser plane's question with an organisation secret instead of a
-  site public key. Counts only, tenant-scoped by the credential, and **sessions
-  rather than unique visitors**
-- The operator dashboard at `/dashboard`: five server-rendered pages that read
-  the endpoints above over HTTP and nothing else
-- The crypto boundary in `secure-transfer/`, split so that Rift's inability to
-  decrypt is structural: the sealing and opening code is not in its dependency
-  graph, and a test fails the build if it ever is
-- Prisma model and PostgreSQL storage for `organisations`, `websites`, `sessions`,
-  `events`, the seven consent tables, and the three secure routing tables
-- The policy engine in `policy/`: a deterministic, side-effect-free evaluator
-  over the Phase 6B requirement matrix, answering what a set of regimes requires
-  of a processing activity. Cites every rule it relies on, resolves conflicts
-  conservatively, and never returns `ALLOW` from absence of evidence
-- Jurisdiction resolution in the same package: dated location *observations*
-  with an explicit source and confidence, resolved into an accumulating set of
-  jurisdictions under a versioned mapping. It never treats an observation as a
-  residence, never drops a jurisdiction for weak evidence, and refuses to accept
-  an IP address at all
-- Shared event, consent and transfer contracts to prevent SDK/API drift
-
-It does **not** own the compliance engine or any consent UI. Nor does it own
-either fiduciary in a transfer — in particular, the target's X25519 private key is
-generated and held on that side and never reaches this repo. Those belong to the
-other side of the platform; see [docs/integration-contract.md](docs/integration-contract.md).
-
-## Documentation
-
-Start with the first one; it is the entry point and links to the rest.
-
-- [The MVP](docs/mvp.md) — the whole product in one document: architecture, the
-  credential planes, the five domains, the security assumptions, the known
-  limitations, and what comes next
-- [Architecture](docs/architecture.md)
-- [Tenancy and Ownership Model](docs/tenancy.md)
-- [Consent Domain](docs/consent.md)
-- [Secure Data Routing](docs/secure-transfer.md)
-- [Lifecycle: Consent to Transfer to Audit](docs/lifecycle.md)
-- [Event Schema](docs/event-schema.md)
-- [API Spec](docs/api-spec.md)
-- [SDK API](docs/sdk-api.md) — the public interface a customer's developer calls
-- [Database Schema](docs/database-schema.md)
-- [Discovery](docs/discovery.md)
-- [Policy Engine](docs/policy-engine.md) - what a regime requires of an activity, and why it is not wired into a route
-- [Jurisdiction Resolution](docs/jurisdiction-resolution.md) - whose law is in play, and why an IP address never reaches it
-- [Consent Proof and Privacy Rights](docs/privacy-rights.md) - what a decision carries to be provable, and which controls apply where
-- [Enforcement](docs/enforcement.md) - acting on an approved policy, and the boundary of what a browser can stop
-- [Consent Autopilot](docs/consent-autopilot.md) - generating a recommended policy, and the human approval that publishes it
-- [Consent Experience](docs/consent-experience.md) - the banner, the preference centre, and the one snippet a customer pastes
-- [Website Scanner](docs/crawler.md) — the Playwright crawler used during onboarding
-- [Scan API](docs/scan-api.md)
-- [Security Model](docs/security.md) — what is enforced, what is defence in depth, what is not done
-- [Integration Contract](docs/integration-contract.md)
-
-## Local development
-
-This is the shortest path for a fresh clone to a working local event pipeline and
-a dashboard you can sign in to.
-
-### 1) Install dependencies
-
-From the repo root:
-
-```bash
-npm install
-```
-
-### 2) Set up `.env.local` in both app folders
-
-Use the pooled Neon connection string from your Neon project dashboard. The SDK and API both need the same `DATABASE_URL` value.
-
-Create `api/.env.local`:
-
-```bash
-DATABASE_URL="postgresql://<user>:<password>@<pool-host>.<region>.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
-```
-
-Create `database/.env.local`:
-
-```bash
-DATABASE_URL="postgresql://<user>:<password>@<pool-host>.<region>.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
-```
-
-Notes:
-- Use the pooled Neon connection string, not the direct connection URI if you plan to run local Prisma/dev work reliably.
-- The value is the same one used by Prisma and the Next.js app.
-- Keep the credentials in `.env.local`; do not commit them.
-
-Prisma reads `.env.local` via `database/prisma.config.ts`, so no manual export is
-needed - but run Prisma commands from `database/`.
-
-> **Note:** Neon's *pooled* endpoint can carry a `search_path` over between
-> sessions, which makes migrations occasionally target the wrong schema. If a
-> migration reports "no pending migrations" against a database that is clearly out
-> of date, pin the schema explicitly (`...&schema=public`) or use Neon's direct
-> (non-pooled) connection string for migration commands.
-
-### 3) Prepare the database
-
-From `database/`:
-
-```bash
-cd database
-npm run generate
-npx prisma migrate deploy
-```
-
-If you want to rebuild a clean local DB:
-
-```bash
-npx prisma migrate reset
-```
-
-### 4) Seed organisations and sites
-
-```bash
-cd database
-npm run seed
-```
-
-The seed provisions this ownership tree and prints it:
+Instead of treating consent as a small banner placed in front of a website, Rift-CMP treats it as a complete lifecycle:
 
 ```text
-Organisation Acme Analytics (acme)
- |-- site_demo          pk_demo_12345          active
- |-- site_acme_blog     pk_acme_blog_67890     active
- |-- site_inactive      pk_inactive_999        INACTIVE
-     purposes: analytics, marketing
-     notice  : notice-1 -> privacy-policy@1.0.0 (<uuid>)
-Organisation Globex Media (globex)
- |-- site_globex_shop   pk_globex_shop_24680   active
-     purposes: analytics, marketing
-     notice  : notice-1 -> privacy-policy@1.0.0 (<uuid>)
+                    WEBSITE
+                       │
+                       ▼
+              Discover & Understand
+                       │
+                       ▼
+              Regulatory Intelligence
+                       │
+                       ▼
+                Consent Policy
+                       │
+                       ▼
+             Visitor Consent Experience
+                       │
+                       ▼
+                 Enforcement
+                       │
+                       ▼
+                Consent Proof
+                       │
+                       ▼
+             Analytics & Monitoring
+                       │
+                       ▼
+             Detect Change & Improve
 ```
 
-`site_demo` / `pk_demo_12345` is the site the browser demo uses.
+---
 
-The seed also provisions consent reference data per organisation — the two
-purposes above, a `privacy-policy` at version `1.0.0`, and a notice disclosing
-both — so a decision can be recorded against a real purpose immediately. It is
-idempotent: re-seeding leaves existing rows alone, so it never duplicates
-reference data or invalidates recorded consent.
+# What is a Consent Management Platform?
 
-The seed also prints one **organisation secret key** (`sk_...`) per organisation,
-the first time each is created. That is the only time it is shown - only its
-SHA-256 digest is stored. Use it for the management API:
+A **Consent Management Platform (CMP)** is a system that helps a website manage a visitor's choices about the use of personal data.
 
-```bash
-curl -H "Authorization: Bearer sk_..." http://127.0.0.1:3000/api/v1/sites
+The simplest example is the familiar consent interface:
+
+```text
+┌─────────────────────────────────────────┐
+│  We use cookies and similar technologies│
+│  to improve your experience.             │
+│                                         │
+│  [ Reject All ] [ Manage Preferences ]  │
+│              [ Accept All ]             │
+└─────────────────────────────────────────┘
 ```
 
-Re-running the seed leaves existing organisations' secrets unchanged. Public keys
-are fixed and committed on purpose: they ship in browser code and are not secrets.
+A real CMP, however, has to do much more than display these buttons.
 
-### 5) Run it locally
+It needs to connect a visitor's decision to the purposes and technologies behind the website, remember the decision, allow it to be changed, and help ensure that technologies do not operate contrary to that choice.
 
-From the repo root, one command starts the whole product — the platform, the
-scan worker, and the dashboard:
+That is where Rift-CMP goes further.
 
-```bash
-npm run dev
+### Traditional CMP
+
+```text
+Visitor
+   ↓
+Consent Banner
+   ↓
+Consent Record
 ```
 
-Then open **http://localhost:3100/dashboard**.
+### Rift-CMP
 
-The worker is not optional: scans are queued by the API and performed by a
-separate process, so without it a scan sits at `queued` and the progress screen
-waits for something that never arrives. `npm run dev` starts it alongside the
-rest and restarts it if it drops.
-
-To run just one part:
-
-```bash
-npm run dev:api          # the platform on :3000 (builds the SDK bundle first)
-npm run dev:worker       # the scan worker
-npm run dev:dashboard    # the dashboard on :3100
-npm run dev:marketing    # the marketing site on :3200
+```text
+Website
+   ↓
+What is actually running?
+   ↓
+What vendors & data flows exist?
+   ↓
+Which requirements may apply?
+   ↓
+What consent configuration is needed?
+   ↓
+What did the visitor choose?
+   ↓
+Was the choice enforced?
+   ↓
+Can the decision be proven?
+   ↓
+Did the website change afterwards?
 ```
 
-Or from `api/` alone, if the bundle is already built:
+---
 
-```bash
-cd api
-npm run dev -- --hostname 127.0.0.1 --port 3000
+# Why Now?
+
+Privacy regulation is becoming increasingly important at the same time that websites are becoming more dependent on third-party technologies.
+
+India is an especially relevant example.
+
+The **Digital Personal Data Protection Act, 2023 (DPDP Act)** received Presidential assent on **11 August 2023**.
+
+On **13 November 2025**, the Government notified the **Digital Personal Data Protection Rules, 2025** and a commencement notification for the Act. The framework uses a **phased commencement**, with different provisions taking effect at different times rather than the entire Act becoming operational on a single date.
+
+The DPDP framework also introduces the concept of a **Consent Manager** — a platform through which a Data Principal can give, manage, review, and withdraw consent.
+
+This makes the timing important: organizations increasingly need systems that can turn privacy requirements into something that can actually be operated across a website.
+
+Rift-CMP is designed around that problem, while deliberately remaining **multi-regulation and jurisdiction-aware** rather than being a DPDP-only system.
+
+---
+
+# Why Rift-CMP?
+
+A website can change without its privacy configuration changing with it.
+
+A new analytics script can be added.
+
+A vendor can change.
+
+A third-party destination can appear.
+
+A previously blocked technology can start communicating.
+
+A new jurisdiction can become relevant.
+
+A traditional consent workflow may continue to display the same banner while the underlying website has already changed.
+
+Rift-CMP is designed to make these relationships visible.
+
+### The core idea
+
+> **Don't just ask visitors for consent. Understand what the website is doing, connect it to the rules that matter, enforce the resulting choices, and keep checking that reality still matches the policy.**
+
+---
+
+# Key Features
+
+## 1. Website Privacy Discovery
+
+Rift-CMP uses a real browser-based crawler to inspect websites and build a picture of their behavior.
+
+It can discover:
+
+- Pages and redirects
+- Scripts and third-party resources
+- Network activity
+- Cookies
+- Browser storage
+- Technologies and vendors
+- Destinations
+- Consent-related signals
+
+Instead of relying only on what a company says its website contains, Rift can observe what the website actually does during a scan.
+
+This discovery layer becomes the foundation for the rest of the platform.
+
+---
+
+## 2. Vendor & Tracker Intelligence
+
+Website activity is transformed into understandable privacy information.
+
+Rift can connect observed signals to:
+
+```text
+Technology
+     ↓
+Vendor
+     ↓
+Destination
+     ↓
+Purpose
+     ↓
+Data Category
+     ↓
+Jurisdiction / Policy
 ```
 
-`api`'s `predev` and `prebuild` steps run `scripts/copy-sdk.mjs`, which publishes
-`sdk/dist/index.global.js` to `api/public/js/rift-cmp.js` — the path the
-dashboard's install snippet points at. If the SDK has not been built, the script
-warns and exits cleanly, and that URL 404s until it has.
+When attribution is uncertain, Rift keeps that uncertainty visible instead of pretending the answer is known.
 
-The API routes are:
-- `GET http://127.0.0.1:3000/api/healthz`
-- `POST http://127.0.0.1:3000/api/v1/events`
-- `POST|GET http://127.0.0.1:3000/api/v1/consent` — `POST` also needs `X-Rift-Consent-Session`
-- `POST http://127.0.0.1:3000/api/v1/consent/session` (public key) — opens a consent session
-- `GET http://127.0.0.1:3000/api/v1/consent/history` (secret key)
-- `GET http://127.0.0.1:3000/api/v1/consent/effective` (secret key) — effective consent for one principal on one site
-- `GET http://127.0.0.1:3000/api/v1/organisation`, `GET|POST /api/v1/sites`, `GET|PATCH /api/v1/sites/{siteId}` (secret key)
-- `GET|POST http://127.0.0.1:3000/api/v1/purposes`, `/api/v1/policies`, `/api/v1/notices` (secret key)
-- `POST http://127.0.0.1:3000/api/v1/policies/{policyId}/versions` (secret key)
-- `GET|POST http://127.0.0.1:3000/api/v1/recipients` (secret key)
-- `GET|POST http://127.0.0.1:3000/api/v1/authorisations` (secret key) — was `/api/v1/transfers/authorisations` before Phase 4
-- `POST http://127.0.0.1:3000/api/v1/authorisations/decision` (secret key) — evaluate only, creates nothing
-- `GET|POST http://127.0.0.1:3000/api/v1/transfers` (secret key) — `GET` takes `site_id` and `limit` (1–500, default 200)
-- `POST http://127.0.0.1:3000/api/v1/discovery` (public key) — in-page discovery report
-- `GET http://127.0.0.1:3000/api/v1/discovery/inventory` (secret key) — what runs on a site, where it sends data, and what fired without consent
-- `GET http://127.0.0.1:3000/api/v1/audit` (secret key)
-- `GET http://127.0.0.1:3000/api/v1/analytics/summary` (secret key) — aggregate SDK activity
-- `GET http://127.0.0.1:3000/api/v1/analytics/overview` (secret key) — counts across every domain
-- `GET http://127.0.0.1:3000/api/v1/transfers/pending` (**delivery key**, `rk_...`)
-- `GET http://127.0.0.1:3000/api/v1/transfers/{transferId}/envelope` (**delivery key**, `rk_...`)
+This is important because privacy decisions should be based on evidence rather than assumptions.
 
-Both analytics endpoints take the same optional filters: `site_id`, `from` and
-`to`, defaulting to the last 30 days.
+---
 
-The API validates the request with `Authorization: Bearer <public_key>` and rejects bad keys with `401`. The management routes above require the organisation secret key (`sk_...`) instead, and the delivery routes require a recipient delivery key (`rk_...`); presenting any of the three credentials on another plane is a `401`, decided on the key prefix before any database lookup.
+## 3. Regulatory & Jurisdiction Intelligence
 
-### 6) Open the dashboard
+Different websites can be subject to different privacy requirements.
 
-`http://127.0.0.1:3000/dashboard` — the app's root redirects here, and here
-redirects to `/signin` when there is no session.
+Rift uses a structured, versioned policy system to represent regulatory requirements across multiple frameworks, including:
 
-Sign in with an **organisation secret key** (`sk_...`), the one `npm run seed`
-printed in step 4. It is validated against `GET /api/v1/organisation` and then
-exchanged for a revocable session: the cookie (`rift_dashboard_session`,
-`httpOnly`, `sameSite: strict`, 60-minute idle timeout inside an eight-hour
-lifetime) holds an opaque token, and the secret is sealed at rest in
-`dashboard_sessions` under a key derived from it. Neither the cookie nor the
-database is enough on its own, signing out ends the session immediately, and the
-secret never reaches page scripts.
+- GDPR
+- EU ePrivacy
+- India DPDP Act
+- India DPDP Rules
+- California CCPA/CPRA
+- Brazil LGPD
+- Selected US-state privacy material
 
-This is still an **MVP compromise**: there are no user accounts and no roles, so
-one shared organisation secret stands behind every session, and anything holding
-a live one speaks for the whole organisation. See
-[docs/security.md](docs/security.md) and the known limitations in
-[docs/mvp.md](docs/mvp.md).
+The jurisdiction layer does not simply assume:
 
-| Page | What it shows |
-| --- | --- |
-| **Overview** | Counts for sites, consent decisions, authorisations, transfers and SDK activity, then the 15 most recent audit entries as one timeline |
-| **Consent** | The decision log — who agreed to what, under which notice, when — filterable by site, principal and purpose, plus the decisions currently in force for a named principal on a named site |
-| **Transfers** | Authorisations and the sealed transfers that spent them, each naming the consent record it relied on. Sizes and digests only: the payload is never shown, because Rift cannot read it |
-| **Analytics** | Totals, top pages, device/browser/OS breakdowns and per-site activity for a date range. **Sessions, not unique visitors** — the page says so |
-| **Integration** | Site ids and public keys, a copy-ready install snippet built from this deployment's origin, an API reachability check, and the purposes, notices and recipients already declared |
+> **IP address → country → one law**
 
-Every page reads through `api/lib/dashboard/api.ts`, which makes real HTTP calls
-to the API above. No page imports `database`. The sign-in guard in the layout is
-convenience, not security — the API authenticates every request independently.
+Instead, it can consider multiple applicable jurisdictions and provide confidence and reasoning for the result.
 
-### 7) Open the SDK demo page
+The policy engine remains deterministic and versioned, while AI can assist with explanation and ambiguity.
 
-Serve the static page from the repo root:
+---
 
-```bash
-cd ..
-python -m http.server 8080
+## 4. Consent Autopilot
+
+Configuring consent manually can become difficult when a website contains dozens of technologies and multiple privacy requirements.
+
+Rift's **Consent Autopilot** connects website discovery with regulatory intelligence to recommend a practical consent configuration.
+
+```text
+Website Scan
+     +
+Regulatory Requirements
+     ↓
+Recommended Configuration
+     ↓
+Evidence + Confidence
+     ↓
+Human Review
+     ↓
+Approved Policy
 ```
 
-Then open:
+The goal is not to let AI decide what is legally correct.
 
-`http://127.0.0.1:8080/sdk/examples/demo.html`
+The goal is to reduce repetitive configuration work while keeping the final policy under human control.
 
-The demo script initializes the SDK with:
+---
 
-```js
-analyticsClient.init("site_demo", "pk_demo_12345", { apiUrl: "http://127.0.0.1:3000" });
+## 5. One-Snippet Consent Experience
+
+Once a policy is approved, a company can integrate Rift through a single installation snippet.
+
+The visitor receives a consent experience supporting:
+
+- Accept all
+- Reject all
+- Manage preferences
+- Purpose-level choices
+- Consent withdrawal
+- Accessible interaction
+
+The browser receives the information required to operate the consent experience, while internal regulatory reasoning and policy intelligence remain on the platform.
+
+This makes the integration simple for the website while keeping the privacy system centralized.
+
+---
+
+## 6. Consent Enforcement
+
+Collecting a choice is only useful if the choice is respected.
+
+Rift's browser SDK can enforce consent decisions across common browser request and resource mechanisms, including dynamically created resources.
+
+Rift-controlled server-side boundaries can provide additional protection with decisions such as:
+
+```text
+ALLOW
+BLOCK
+REDACT
+REQUIRE CONSENT
+REVIEW
 ```
 
-When the page loads, it sends its automatic `page_view` and `session_start` events. Clicking the demo button sends a custom event through the same batched pipeline.
+This creates the connection between:
 
-### 8) If you change the SDK bundle
-
-After making SDK changes, rebuild the browser bundle:
-
-```bash
-cd sdk
-npm run build
+```text
+What the visitor chose
+          ↓
+What the website is allowed to do
 ```
 
-Then restart the API, or run `npm run dev` from the repo root, so the copy step
-republishes it to `api/public/js/rift-cmp.js`.
+rather than treating the consent record as a standalone database entry.
 
-### 8b) Install the scanner's browser
+---
 
-The Playwright crawler needs a Chromium binary, and `npm install` does **not**
-fetch one. Without it every scan fails with `browser_launch_failed` and
-`npm run test:browser` cannot run at all:
+## 7. Shadow Trackers & Privacy Drift
 
-```bash
-npx playwright install chromium
+One of Rift-CMP's key ideas is that **policy and reality can diverge**.
+
+### Shadow Tracker Detection
+
+Rift can surface activity that does not have an appropriate configuration, such as:
+
+- Unconfigured technologies
+- Missing purpose mappings
+- Consent-required behavior observed without consent
+- Blocked behavior that is still observed
+- Unclassified behavior
+
+### Drift Detection
+
+Rift can also identify changes such as:
+
+```text
+Tracker Added
+Tracker Removed
+Tracker Changed
+Vendor Added
+Blocked Tracker Still Active
+Consent Required but Unconfigured
+Policy Ahead of Website
+Website Ahead of Policy
 ```
 
-This is a one-off, about 115 MB. It is a separate step because a browser binary
-is a large download that most work in this repo never needs — the API, the SDK,
-the policy engine and the 407 unit tests all run without it.
+This turns privacy monitoring into an ongoing process rather than a one-time website audit.
 
-### 9) Running the checks
+---
 
-From the repo root:
+## 8. Consent Proof
 
-```bash
-npm run test:unit    # vitest: 570 tests, no database, a few seconds
-npm run test:browser # vitest: 20 tests driving a real Chromium; needs the
-                     # browser install in step 8b
-npm test             # vitest: unit plus integration; the integration half
-                     # needs Postgres
-npm run typecheck    # tsc --noEmit across the api workspace (run a build first
-                     # after adding a route or page - see the note below)
-npm run lint        # eslint
-npm run build       # builds the SDK bundle, then next build
+Consent decisions can become important records.
+
+Rift provides cryptographically verifiable consent proofs using:
+
+- SHA-256 integrity
+- Ed25519 signatures
+- Sequence numbers
+- Previous-proof hash chaining
+- Versioned proofs
+- Key rotation and verification
+
+The purpose is to make it possible to verify the integrity and history of a recorded consent decision.
+
+In simple terms:
+
+> **Rift can provide evidence of what was recorded, under which policy context, and whether the record has been altered.**
+
+This proves cryptographic facts about the record — it does not by itself prove legal compliance.
+
+---
+
+## 9. Consent Analytics & Experiments
+
+Rift provides analytics specifically for understanding consent behavior.
+
+Organizations can analyze consent by:
+
+- Purpose
+- Jurisdiction
+- Policy version
+- Mechanism
+- Vendor
+- Site
+
+Rift also supports **consent A/B testing**.
+
+Presentation variants can change elements such as:
+
+- Title
+- Description
+- Accept All text
+- Reject All text
+- Manage text
+- Save text
+
+The underlying purposes, jurisdictions, policy, and enforcement rules remain unchanged.
+
+This allows organizations to improve the consent experience without changing the privacy controls themselves.
+
+---
+
+## 10. Consent Quality
+
+Rift provides a **Consent Quality Score** to give operators a high-level view of privacy configuration health.
+
+It considers signals including:
+
+- Consent coverage
+- Policy completeness
+- Enforcement coverage
+- Tracker resolution
+- Shadow trackers
+- Scanner freshness
+- Drift risk
+- Jurisdiction coverage
+- Proof completeness
+
+The score is intended as an operational health indicator, not a legal certification or compliance guarantee.
+
+---
+
+## 11. Privacy Graph & Data Flow
+
+Privacy information can become difficult to understand when it is spread across scanners, policies, consent records, and enforcement logs.
+
+Rift brings these relationships together into a derived privacy graph.
+
+```text
+                     Purpose
+                    /       \
+                   ↓         ↓
+Site → Page → Tracker → Vendor → Destination
+          │        │         │
+          ↓        ↓         ↓
+       Policy   Enforcement  Data Category
+          │
+          ↓
+     Jurisdiction
 ```
 
-`npm run typecheck` reads `.next/types`, which Next generates from the route and
-page files. Those types are build output, so on a fresh clone - or after adding a
-route or a page - typecheck fails with `does not satisfy the constraint
-'AppRouteHandlerRoutes'` until `npm run build` has regenerated them. The code is
-fine; the generated types are simply not there yet. Build first, then typecheck.
+The graph can also connect findings, consent decisions, policy versions, and experiments.
 
-The suite is split into two vitest projects, configured in `api/vitest.config.ts`:
+This provides a visual way to answer:
 
-| Project | Files | Tests | Needs a database |
-| --- | --- | --- | --- |
-| `unit` | `keys.test.ts`, `secure-transfer-crypto.test.ts`, `dashboard-components.test.tsx`, `discovery-classification.test.ts`, `rate-limit.test.ts`, `origin-validation.test.ts`, `sdk-limits.test.ts`, `policy-rules.test.ts`, `policy-engine.test.ts`, `policy-boundary.test.ts`, `jurisdiction-resolution.test.ts`, `crawler-ssrf.test.ts`, `crawler-url.test.ts`, `crawler-detectors.test.ts`, `crawler-diff.test.ts`, `consent-experience.test.ts`, `autopilot.test.ts`, `enforcement.test.ts`, `rights-availability.test.ts` | 570 | no |
-| `browser` | `crawler-browser.test.ts` | 20 | no, but needs Chromium |
-| `integration` | everything else under `api/tests/` | 324 | yes |
+> **Where can data move, why can it move, and what privacy controls are associated with that flow?**
 
-The split exists because crypto, key-format and component tests have no business
-requiring Postgres. Before it, a database outage failed even the formatting
-tests, which was both slow and misleading. `npm run test:unit` is the fast loop;
-`npm run test:integration` (from `api/`) runs only the other half.
+---
 
-Integration tests run against a dedicated `rift_cmp_test` schema in the same
-database, so they never touch development data. They apply migrations themselves
-before running, which doubles as migration validation, and run single-file,
-single-fork: every file shares one schema and truncates between tests, so two
-files at once would let one file's `resetDatabase()` delete rows another is
-asserting on.
+## 12. Privacy Impact Simulator
 
-Fifty of those tests cover secure routing, across three files:
-`secure-transfer-crypto.test.ts` (the construction and the attacks it must
-reject — the only one of the three in the `unit` project, since cryptography
-needs no database), `transfer-flow.test.ts` (end to end, plus the consent gate),
-and `transfer-boundary.test.ts` (attempts to falsify the claim from Rift's own
-position — dumping the whole database looking for the payload, trying every
-stored string as a decryption key, and scanning the source tree for an import of
-the fiduciary module).
+Rift includes a simulator for exploring changes before applying them to production.
 
-A further 21 are in `lifecycle.test.ts`, which walks the product flow through the
-HTTP surface rather than the service functions underneath it: scenarios A–G (no
-consent, granted, withdrawn, wrong purpose, wrong fiduciary, cross-tenant, and
-the secure payload boundary), plus the failure modes — replay, a duplicate
-request, a failed transfer leaving its authorisation reusable, and two concurrent
-submissions resolving to exactly one transfer.
+Examples:
 
-`analytics-api.test.ts` covers the two analytics endpoints — the arithmetic, the
-date range, and the isolation, which matters more here than anywhere else because
-these are the only endpoints that aggregate across a whole tenant.
-
-Six files cover Phase 6A, and five of them are written from the attacker's side:
-`consent-authenticity.test.ts` (forged, absent, replayed, cross-site and
-cross-tenant sessions, and the trust-on-first-use path),
-`ingest-consent-enforcement.test.ts` (forged, absent, revoked and valid consent
-at ingestion, plus proof that no principal identifier lands on an analytics row),
-`browser-plane-guard.test.ts` (origin and rate limiting as the routes apply
-them), `audit-immutability.test.ts` (which reaches past the API and issues the
-`UPDATE`s and `DELETE`s through Prisma), `dashboard-session.test.ts`, and the two
-unit files `rate-limit.test.ts` and `origin-validation.test.ts` — both of which
-also assert the limitations, so a defence cannot quietly be described as more
-than it is.
-
-`mvp-acceptance.test.ts` is a single test with twelve steps: register a site,
-instrument it with the real SDK, record consent, authorise, seal, transfer,
-collect, read every dashboard endpoint, withdraw, be refused, and confirm the
-history survived. It uses the real SDK, the real route handlers and the real
-cryptography. If it passes, the product works end to end.
-
-Expect roughly 20–25 minutes for the integration project against a remote Neon
-instance **on a low-latency link**, and considerably longer on a slow one: the
-suite is almost entirely network round trips, so its wall time is a direct
-multiple of the round-trip time. At ~370ms — a remote Neon region — a full run
-takes over two hours and `mvp-acceptance` exceeds the 60-second `testTimeout`
-in `api/vitest.config.ts` despite passing in about 83 seconds. A timed-out test
-also leaves state behind, and because every file shares one schema and truncates
-between tests, the next file's fixtures then fail with unique-constraint and
-foreign-key errors that look like real defects but are not. If you see a cluster
-of those, check the round-trip time before believing them. Almost all of that is network round trips, not computation — the tests
-exercise real foreign keys, cascades and the append-only trigger, which a mocked
-database could not verify. The `unit` project finishes in seconds, which is the
-whole reason it was split out.
-
-Run a single file while iterating:
-
-```bash
-cd api && npx vitest run tests/consent-decisions.test.ts
+```text
+What happens if I add a tracker?
+What happens if I remove a vendor?
+What happens if another jurisdiction applies?
+What happens if enforcement changes?
 ```
 
-SDK checks live in `sdk/`:
+The simulator re-evaluates the resulting privacy state and can show potential changes to consent requirements, enforcement, shadow trackers, drift, and consent quality.
 
-```bash
-cd sdk && npm run typecheck && npm run build
+Simulations are hypothetical and do not modify production data.
+
+---
+
+## 13. Privacy Rights & Audit
+
+Rift also provides workflows for recording privacy-rights requests such as:
+
+- Access
+- Correction
+- Deletion
+- Export
+- Objection
+- Restriction
+- Withdrawal
+- Opt-out requests
+- Complaints and appeals
+
+A unified audit view brings important platform activity together across consent, policies, scans, enforcement, rights, and experiments.
+
+---
+
+# End-to-End Workflow
+
+```text
+                    ORGANIZATION
+                         │
+                         ▼
+                 Add Website to Rift
+                         │
+                         ▼
+                  Website Discovery
+                         │
+          ┌──────────────┼──────────────┐
+          ▼              ▼              ▼
+       Trackers        Vendors       Data Flows
+          │              │              │
+          └──────────────┼──────────────┘
+                         ▼
+               Regulatory Intelligence
+                         │
+                         ▼
+                 Consent Autopilot
+                         │
+                         ▼
+                   Human Approval
+                         │
+                         ▼
+                   Active Policy
+                         │
+                         ▼
+              One-Snippet Integration
+                         │
+                         ▼
+                  Visitor Consent
+                         │
+                         ▼
+                    Enforcement
+                         │
+              ┌──────────┴──────────┐
+              ▼                     ▼
+         Consent Proof         Analytics
+              │                     │
+              └──────────┬──────────┘
+                         ▼
+               Monitoring & Drift
+                         │
+                         ▼
+                  Continuous Improvement
 ```
 
-### 10) Vercel note
+---
 
-If you eventually deploy `api/` to Vercel, set the same `DATABASE_URL` in the Vercel project environment variables. Use the Neon pooled connection string there as well; do not create a deployment config in this repo unless it is explicitly requested.
+# Platform Components
 
-## Shared contract to keep in sync
+### Organization & Website Management
 
-Keep the following aligned when making changes:
+Organizations can manage websites, policies, configuration, installation, and verification from a centralized platform.
 
-- [docs/event-schema.md](docs/event-schema.md)
-- [docs/api-spec.md](docs/api-spec.md)
-- [docs/sdk-api.md](docs/sdk-api.md)
-- [docs/tenancy.md](docs/tenancy.md)
-- [docs/consent.md](docs/consent.md)
-- [docs/crawler.md](docs/crawler.md), [docs/scan-api.md](docs/scan-api.md)
-- [docs/secure-transfer.md](docs/secure-transfer.md)
-- [docs/lifecycle.md](docs/lifecycle.md)
-- [docs/mvp.md](docs/mvp.md)
-- [shared/event.ts](shared/event.ts), [shared/tenancy.ts](shared/tenancy.ts), [shared/consent.ts](shared/consent.ts), [shared/transfer.ts](shared/transfer.ts), [shared/authorisation.ts](shared/authorisation.ts), [shared/audit.ts](shared/audit.ts) and [shared/analytics.ts](shared/analytics.ts)
-- [secure-transfer/envelope.ts](secure-transfer/envelope.ts) — the AAD definition in particular, since both fiduciaries must rebuild it byte-identically
-- [database/prisma/schema.prisma](database/prisma/schema.prisma)
-- [database/consent.ts](database/consent.ts), [database/transfers.ts](database/transfers.ts), [database/authorisation.ts](database/authorisation.ts), [database/audit.ts](database/audit.ts) and [database/analytics.ts](database/analytics.ts)
-- [api/app/api/v1/events/route.ts](api/app/api/v1/events/route.ts)
-- [api/app/api/v1/consent/route.ts](api/app/api/v1/consent/route.ts)
-- [api/lib/auth.ts](api/lib/auth.ts)
-- [docs/policy-engine.md](docs/policy-engine.md), [policy/disposition.ts](policy/disposition.ts) and [policy/model.ts](policy/model.ts) - the engine reads `docs/regulations/generated/`, so a matrix rebuild is a change to its input
-- [docs/jurisdiction-resolution.md](docs/jurisdiction-resolution.md) and [policy/jurisdiction-rules.ts](policy/jurisdiction-rules.ts) - the region mapping is versioned configuration; changing it changes which law a visitor is read under
+### Consent Layer
 
-This project intentionally keeps the API focused on ingestion, the consent record and authorised data movement. The analytics/dashboard side still reads the database directly for its own reporting and builds the compliance engine on top of the consent vocabulary; `/api/v1/analytics/*` is a narrow, tenant-scoped alternative for aggregate activity, not a replacement for that access.
+Handles consent configuration, visitor decisions, preference management, withdrawal, policy versions, and consent history.
+
+### Discovery Layer
+
+Uses browser-based scanning to understand website technologies, vendors, destinations, cookies, storage, and observed behavior.
+
+### Intelligence Layer
+
+Connects discovered behavior with purposes, data categories, jurisdictions, policy requirements, shadow findings, drift, and quality signals.
+
+### Enforcement Layer
+
+Applies consent decisions to browser activity and Rift-controlled outbound server-side flows.
+
+### Evidence Layer
+
+Maintains consent proofs, audit records, scan history, and evidence supporting privacy decisions.
+
+### Operator Dashboard
+
+Provides dedicated views for:
+
+- Overview
+- Websites
+- Consent
+- Policies
+- Scans
+- Intelligence
+- Firewall
+- Analytics
+- Data Flow
+- Privacy Graph
+- Simulation
+- Rights
+- Audit
+- Experiments
+- Installation & Verification
+
+---
+
+# Architecture Overview
+
+```text
+                         ┌─────────────────────┐
+                         │   Customer Website  │
+                         └──────────┬──────────┘
+                                    │
+                                    ▼
+                         ┌─────────────────────┐
+                         │      Rift SDK       │
+                         │ Consent / Analytics │
+                         │    Enforcement     │
+                         └──────────┬──────────┘
+                                    │
+                                    ▼
+                         ┌─────────────────────┐
+                         │      Rift API       │
+                         └──────────┬──────────┘
+                                    │
+          ┌─────────────────────────┼─────────────────────────┐
+          ▼                         ▼                         ▼
+ ┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
+ │ Website Scanner │       │ Policy Engine   │       │ Intelligence    │
+ │   & Discovery   │       │ & Jurisdictions │       │ Graph / Drift   │
+ └────────┬────────┘       └────────┬────────┘       └────────┬────────┘
+          │                         │                         │
+          └─────────────────────────┼─────────────────────────┘
+                                    ▼
+                         ┌─────────────────────┐
+                         │    PostgreSQL DB    │
+                         └──────────┬──────────┘
+                                    │
+                                    ▼
+                         ┌─────────────────────┐
+                         │ Operator Dashboard  │
+                         └─────────────────────┘
+```
+
+---
+
+# Project Structure
+
+```text
+Rift-CMP/
+├── api/                    # Platform API and server logic
+├── sdk/                    # Browser consent & enforcement SDK
+├── crawler/                # Website discovery and scanning
+├── policy/                 # Regulation & jurisdiction engine
+├── database/               # Database models and persistence
+├── shared/                 # Shared contracts and domain models
+├── secure-transfer/        # Secure transfer proof of concept
+├── rift-frontend-main/     # Dashboard and web interface
+└── docs/
+    └── regulations/        # Structured regulatory research
+```
+
+---
+
+# Technology Stack
+
+| Category | Technologies |
+|---|---|
+| Web Platform | TypeScript, Next.js, React |
+| Browser SDK | TypeScript |
+| Website Scanning | Playwright, Chromium |
+| Database | PostgreSQL, Prisma |
+| Policy Engine | Custom deterministic policy engine |
+| AI Assistance | OpenAI / Anthropic |
+| Validation | Zod, shared contracts |
+| Testing | Vitest, browser-based tests |
+
+---
+
+# API
+
+The platform exposes APIs for the major privacy workflows.
+
+| Area | Purpose |
+|---|---|
+| Sites | Organization and website management |
+| Scans | Website discovery and scan history |
+| Consent | Decisions, configuration, history and proof |
+| Policies | Purposes, notices and policy versions |
+| Intelligence | Drift, shadow trackers and quality |
+| Analytics | Website and consent analytics |
+| Firewall | Outbound privacy enforcement |
+| Experiments | Consent presentation testing |
+| Rights | Privacy-rights request management |
+| Graph | Privacy relationships and data flows |
+| Simulation | Hypothetical privacy-impact analysis |
+| Audit | Cross-domain activity history |
+
+---
+
+# Security & Design Principles
+
+### Evidence over assumptions
+
+Rift distinguishes between what was **observed**, what was **configured**, what was **inferred**, and what is **unknown**.
+
+### Unknown is not permission
+
+Missing information is not silently converted into an allow decision.
+
+### Rules before AI
+
+AI is used for assistance, explanation, classification, and prioritization. It does not replace the deterministic policy engine or independently approve privacy policy.
+
+### Human approval
+
+Automated recommendations remain recommendations until an operator approves them.
+
+### Minimal exposure
+
+The platform is designed to avoid unnecessarily storing sensitive values during discovery, enforcement, and operational workflows.
+
+---
+
+# Current Scope & Limitations
+
+Rift-CMP is an engineering implementation of an end-to-end privacy platform. It intentionally has clear boundaries.
+
+- Website discovery observes behavior exercised during a browser crawl; it cannot guarantee discovery of every possible behavior.
+- Browser enforcement covers supported browser mechanisms but cannot guarantee control over every client-side bypass.
+- Server-side firewall controls apply to traffic routed through Rift-controlled boundaries.
+- Privacy-rights workflows record and manage requests but do not independently perform actions in external systems Rift cannot access.
+- Secure Transfer is currently a proof of concept and has not received external cryptographic review.
+- AI assistance is advisory and cannot determine legal compliance.
+- Regulatory research is an engineering reference, not legal advice.
+- DPDP Act and Rules provisions have phased commencement dates; the presence of a requirement in Rift's research model should not be interpreted as saying every provision is currently enforceable.
+
+---
+
+# Project Vision
+
+Most consent systems begin with a question:
+
+> **“What should the visitor click?”**
+
+Rift-CMP starts with a much larger question:
+
+> **“What is happening to data across this website, what privacy controls should apply, did those controls work, and can we prove what happened?”**
+
+The vision is to make privacy management operate more like modern infrastructure:
+
+```text
+DISCOVER
+   ↓
+UNDERSTAND
+   ↓
+CONFIGURE
+   ↓
+ENFORCE
+   ↓
+PROVE
+   ↓
+MONITOR
+   ↓
+IMPROVE
+```
+
+Rift-CMP aims to move consent from a static banner into a **living privacy control layer for the website**.
+
+---
+
+# References
+
+- [Digital Personal Data Protection Act, 2023 — MeitY](https://www.meity.gov.in/static/uploads/2024/02/Digital-Personal-Data-Protection-Act-2023.pdf)
+- [Digital Personal Data Protection Rules, 2025 — MeitY](https://www.meity.gov.in/static/uploads/2025/11/53450e6e5dc0bfa85ebd78686cadad39.pdf)
+- [Digital Personal Data Protection Rules, 2025 — MeitY](https://www.meity.gov.in/documents/act-and-policies/digital-personal-data-protection-rules-2025-gDOxUjMtQWa?pageTitle=Digital-Personal-Data-Protection-Rules-2025)
+- [Explanatory Note on the DPDP Rules, 2025 — MeitY](https://www.meity.gov.in/writereaddata/files/Explanatory-Note-DPDP-Rules-2025.pdf)
+
+> **Disclaimer:** Rift-CMP is a software and engineering project. Its regulatory models, recommendations, scores, and automated analysis are not legal advice, legal determinations, or certification of compliance.
