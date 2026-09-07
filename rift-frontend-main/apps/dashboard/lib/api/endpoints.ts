@@ -7,6 +7,7 @@ import { describePurpose } from './adapters';
 import type * as W from './backend';
 import type { ProposedChange, WireSimulation, WireSimulationResponse } from './simulation';
 import type {
+  DiscoveryInventory, DataFlowMap,
   AnalyticsOverview, ChangeEntry, ConsentOverview, ConsentRecord, Finding, InstallSnippet,
   RiftConfiguration, Scan, ScanDiff, ScanSummary, Site, Verification,
 } from './types';
@@ -1056,4 +1057,53 @@ export async function getGraphNode(
     { revalidate: 60 },
   ).catch(() => null);
   return body?.detail ?? null;
+}
+
+/* ── Phase 11A ─────────────────────────────────────────────────────────────
+   Three reads the platform has always served and no screen has ever made. */
+
+/**
+ * What actually ran on the site's pages, observed in the browser by the SDK.
+ *
+ * This is not the scanner. A crawl visits a URL once, logged out, and sees what
+ * loads for a robot; the SDK is on the page while real people use it, so it
+ * catches lazy-loaded tags, logged-in states, and whether a request genuinely
+ * left the browser. That last part is what makes a violation evidence rather
+ * than an inventory.
+ */
+export async function getDiscoveryInventory(siteId: string): Promise<DiscoveryInventory> {
+  if (USE_FIXTURES) return fx.DISCOVERY;
+
+  const wire = await riftFetch<W.WireDiscoveryInventory>(
+    `${V1}/discovery/inventory?site_id=${encodeURIComponent(siteId)}`,
+    { tags: [tag.site(siteId)], ...LIVE },
+  );
+  return adapt.toDiscoveryInventory(wire);
+}
+
+/**
+ * Where a site's data goes, from both ends.
+ *
+ * The browser half comes from discovery: third-party destinations with the
+ * country each is understood to terminate in. The server half comes from the
+ * transfer ledger: payloads released to a registered recipient under an
+ * authorisation that named a specific consent record.
+ *
+ * Recipients are fetched to put a name against a code; a failure there costs a
+ * label, not the screen, so it degrades to the code rather than throwing.
+ */
+export async function getDataFlowMap(siteId: string): Promise<DataFlowMap> {
+  if (USE_FIXTURES) return fx.DATA_FLOW;
+
+  const [inventory, transfers, recipients] = await Promise.all([
+    getDiscoveryInventory(siteId),
+    riftFetch<{ transfers: W.WireTransferRecord[] }>(
+      `${V1}/transfers?site_id=${encodeURIComponent(siteId)}&limit=200`,
+      { tags: [tag.site(siteId)], ...LIVE },
+    ).then((r) => r.transfers ?? []).catch(() => [] as W.WireTransferRecord[]),
+    riftFetch<{ recipients: W.WireRecipient[] }>(`${V1}/recipients`, { tags: [tag.sites], ...LIVE })
+      .then((r) => r.recipients ?? []).catch(() => [] as W.WireRecipient[]),
+  ]);
+
+  return adapt.toDataFlowMap(siteId, inventory, transfers, recipients);
 }

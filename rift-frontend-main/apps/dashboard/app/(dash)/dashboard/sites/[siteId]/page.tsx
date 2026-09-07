@@ -61,7 +61,9 @@ export default async function SiteOverviewPage({ params }: { params: Promise<{ s
             ['Analytics', '/dashboard/analytics', false],
             ['Changes', `/dashboard/sites/${siteId}/changes`, false],
             ['Intelligence', `/dashboard/sites/${siteId}/intelligence`, false],
-            ['Data flow', `/dashboard/sites/${siteId}/graph`, false],
+            ['Consent graph', `/dashboard/sites/${siteId}/graph`, false],
+            ['Runtime discovery', `/dashboard/sites/${siteId}/discovery`, false],
+            ['Data flow', `/dashboard/sites/${siteId}/data-flow`, false],
             ['Simulate', `/dashboard/sites/${siteId}/simulate`, false],
           ] as const).map(([label, href, active]) => (
             <Link

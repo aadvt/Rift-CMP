@@ -862,3 +862,94 @@ export interface WireSimulation {
   unsupported: Array<{ change: Record<string, string | undefined>; reason: string }>;
   caveats: string[];
 }
+
+// ─── Phase 11A ───────────────────────────────────────────────────────────────
+//
+// `shared/discovery.ts` and `shared/transfer.ts`, restated in wire form like
+// everything else here. The consent-analytics wire types were already declared
+// above — they had simply never been read by a screen.
+
+
+
+
+
+/** `shared/discovery.ts` — a destination after server-side classification. */
+export interface WireClassifiedComponent {
+  host: string;
+  kind: string;
+  initiator: string | null;
+  sample_path: string | null;
+  third_party: boolean;
+  request_count: number;
+  first_seen: string;
+  last_seen: string;
+  page_url: string;
+  vendor: string | null;
+  category: string | null;
+  /** ISO 3166-1 alpha-2, or null when unknown. */
+  destination_country: string | null;
+  crosses_border: boolean;
+}
+
+export interface WireDiscoveredStorageItem {
+  kind: 'cookie' | 'local_storage' | 'session_storage';
+  name: string;
+  writer: string | null;
+  first_seen: string;
+}
+
+/**
+ * A destination contacted while consent for its purpose was not granted.
+ *
+ * The claim the whole discovery feature exists to support. Recorded as its own
+ * row because the consent state at the moment of the request is not
+ * reconstructable after the fact.
+ */
+export interface WireDiscoveredViolation {
+  host: string;
+  purpose_code: string;
+  consent_status: string;
+  observed_at: string;
+}
+
+export interface WireDiscoveryInventory {
+  site_id: string;
+  generated_at: string;
+  totals: {
+    destinations: number;
+    third_party: number;
+    unclassified: number;
+    cross_border: number;
+    storage_items: number;
+    open_violations: number;
+  };
+  components: WireClassifiedComponent[];
+  storage: WireDiscoveredStorageItem[];
+  violations: WireDiscoveredViolation[];
+}
+
+/** `shared/transfer.ts` — routing metadata for a completed transfer. No payload. */
+export interface WireTransferRecord {
+  transfer_id: string;
+  authorisation_id: string;
+  site_id: string;
+  purpose_code: string;
+  recipient_code: string;
+  principal_external_id: string;
+  consent_record_id: string;
+  status: 'RECORDED' | 'DELIVERED' | 'FAILED';
+  ciphertext_sha256: string;
+  payload_bytes: number;
+  recorded_at: string;
+  delivered_at: string | null;
+}
+
+export interface WireRecipient {
+  recipient_id: string;
+  code: string;
+  name: string;
+  public_key: string;
+  algorithm: string;
+  is_active: boolean;
+  created_at: string;
+}

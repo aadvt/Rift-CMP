@@ -312,3 +312,96 @@ export interface ChangeEntry {
   occurredAt: string;
   handling: 'automatic' | 'needs_review';
 }
+
+/* ── Discovery (Phase 11A) ─────────────────────────────────────────────────
+   What is running on the pages, where it sends data, and whether any of it
+   fired when consent said it should not. */
+
+export interface DiscoveredComponent {
+  host: string;
+  vendor: string | null;
+  category: string | null;
+  kind: string;
+  initiator: string | null;
+  thirdParty: boolean;
+  requestCount: number;
+  pageUrl: string;
+  firstSeen: string;
+  lastSeen: string;
+  destinationCountry: string | null;
+  crossesBorder: boolean;
+  /** True when the catalogue does not know this host. Not a violation. */
+  unclassified: boolean;
+}
+
+export interface ConsentViolation {
+  host: string;
+  purposeCode: string;
+  /** DENIED or WITHDRAWN — the effective status when the request was observed. */
+  consentStatus: string;
+  observedAt: string;
+}
+
+export interface StorageItem {
+  kind: 'cookie' | 'local_storage' | 'session_storage';
+  name: string;
+  writer: string | null;
+  firstSeen: string;
+}
+
+export interface DiscoveryInventory {
+  siteId: string;
+  generatedAt: string;
+  totals: {
+    destinations: number;
+    thirdParty: number;
+    unclassified: number;
+    crossBorder: number;
+    storageItems: number;
+    openViolations: number;
+  };
+  components: DiscoveredComponent[];
+  storage: StorageItem[];
+  violations: ConsentViolation[];
+}
+
+/* ── Data flow (Phase 11A) ─────────────────────────────────────────────────
+   Two halves that answer the same question from opposite ends: what leaves the
+   browser (observed by the SDK) and what leaves the server under an
+   authorisation (recorded by the transfer ledger). */
+
+export interface DataFlowDestination {
+  host: string;
+  vendor: string | null;
+  category: string | null;
+  country: string | null;
+  crossesBorder: boolean;
+  requestCount: number;
+}
+
+export interface ServerTransfer {
+  transferId: string;
+  purposeCode: string;
+  recipientCode: string;
+  recipientName: string | null;
+  status: 'RECORDED' | 'DELIVERED' | 'FAILED';
+  payloadBytes: number;
+  recordedAt: string;
+  deliveredAt: string | null;
+  /** The consent decision this transfer was authorised against. */
+  consentRecordId: string;
+}
+
+export interface DataFlowMap {
+  siteId: string;
+  /** Grouped by destination country; `null` key means the country is unknown. */
+  byCountry: Array<{
+    country: string | null;
+    crossesBorder: boolean;
+    destinations: DataFlowDestination[];
+    requestCount: number;
+  }>;
+  browserDestinations: DataFlowDestination[];
+  serverTransfers: ServerTransfer[];
+  totals: { destinations: number; countries: number; crossBorder: number; transfers: number };
+}

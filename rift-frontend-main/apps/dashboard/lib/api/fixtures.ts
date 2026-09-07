@@ -1,4 +1,5 @@
 import type {
+  DiscoveryInventory, DataFlowMap,
   AnalyticsOverview, ChangeEntry, ConsentOverview, ConsentRecord, Finding,
   InstallSnippet, RiftConfiguration, Scan, ScanDiff, ScanSummary, Site, Verification,
 } from './types';
@@ -358,3 +359,93 @@ export const ANALYTICS: AnalyticsOverview = {
     { device: 'Tablet', share: 6 },
   ],
 };
+
+/* ── Phase 11A ─────────────────────────────────────────────────────────────
+   Development data for the three screens added in this phase. Shaped to the
+   product types, so these double as the literals the adapter tests run on. */
+
+export const DISCOVERY: DiscoveryInventory = {
+  siteId: 'site_9fb2c41a',
+  generatedAt: '2026-09-06T09:41:00Z',
+  totals: {
+    destinations: 14, thirdParty: 11, unclassified: 3,
+    crossBorder: 9, storageItems: 12, openViolations: 2,
+  },
+  components: [
+    { host: 'www.googletagmanager.com', vendor: 'Google Analytics 4', category: 'analytics', kind: 'script', initiator: null, thirdParty: true, requestCount: 412, pageUrl: '/', firstSeen: '2026-08-21T09:11:00Z', lastSeen: '2026-09-06T09:38:00Z', destinationCountry: 'US', crossesBorder: true, unclassified: false },
+    { host: 'connect.facebook.net', vendor: 'Meta Pixel', category: 'marketing', kind: 'script', initiator: 'www.googletagmanager.com/gtm.js', thirdParty: true, requestCount: 288, pageUrl: '/', firstSeen: '2026-08-21T09:11:00Z', lastSeen: '2026-09-06T09:38:00Z', destinationCountry: 'US', crossesBorder: true, unclassified: false },
+    { host: 'static.hotjar.com', vendor: 'Hotjar', category: 'analytics', kind: 'script', initiator: null, thirdParty: true, requestCount: 196, pageUrl: '/collections/autumn', firstSeen: '2026-08-28T09:12:00Z', lastSeen: '2026-09-06T09:36:00Z', destinationCountry: 'MT', crossesBorder: true, unclassified: false },
+    { host: 'js.stripe.com', vendor: 'Stripe', category: 'necessary', kind: 'script', initiator: null, thirdParty: true, requestCount: 154, pageUrl: '/checkout', firstSeen: '2026-08-21T09:11:00Z', lastSeen: '2026-09-06T09:39:00Z', destinationCountry: 'US', crossesBorder: true, unclassified: false },
+    { host: 'analytics.tiktok.com', vendor: 'TikTok Pixel', category: 'marketing', kind: 'beacon', initiator: 'www.googletagmanager.com/gtm.js', thirdParty: true, requestCount: 121, pageUrl: '/', firstSeen: '2026-09-04T09:14:00Z', lastSeen: '2026-09-06T09:38:00Z', destinationCountry: 'SG', crossesBorder: true, unclassified: false },
+    { host: 'widget.intercom.io', vendor: 'Intercom', category: 'preferences', kind: 'script', initiator: null, thirdParty: true, requestCount: 98, pageUrl: '/', firstSeen: '2026-08-21T09:11:00Z', lastSeen: '2026-09-06T09:37:00Z', destinationCountry: 'US', crossesBorder: true, unclassified: false },
+    { host: 'cdn.northwind-retail.com', vendor: 'Northwind CDN', category: 'necessary', kind: 'image', initiator: null, thirdParty: false, requestCount: 1840, pageUrl: '/', firstSeen: '2026-08-14T09:15:00Z', lastSeen: '2026-09-06T09:40:00Z', destinationCountry: 'IN', crossesBorder: false, unclassified: false },
+    { host: 'checkout.razorpay.com', vendor: 'Razorpay', category: 'necessary', kind: 'script', initiator: null, thirdParty: true, requestCount: 87, pageUrl: '/checkout', firstSeen: '2026-08-14T09:15:00Z', lastSeen: '2026-09-06T09:39:00Z', destinationCountry: 'IN', crossesBorder: false, unclassified: false },
+    { host: 'tracker.example.net', vendor: null, category: null, kind: 'beacon', initiator: null, thirdParty: true, requestCount: 63, pageUrl: '/journal/how-we-make-it', firstSeen: '2026-09-04T09:14:00Z', lastSeen: '2026-09-06T09:31:00Z', destinationCountry: null, crossesBorder: false, unclassified: true },
+    { host: 'rec.pxlgrid.net', vendor: null, category: null, kind: 'xhr', initiator: null, thirdParty: true, requestCount: 41, pageUrl: '/products/field-jacket', firstSeen: '2026-09-02T09:10:00Z', lastSeen: '2026-09-06T09:22:00Z', destinationCountry: null, crossesBorder: false, unclassified: true },
+    { host: 'metrics.vendor-cdn.io', vendor: null, category: null, kind: 'beacon', initiator: null, thirdParty: true, requestCount: 28, pageUrl: '/', firstSeen: '2026-09-02T09:10:00Z', lastSeen: '2026-09-06T09:18:00Z', destinationCountry: 'DE', crossesBorder: true, unclassified: true },
+  ],
+  storage: [
+    { kind: 'cookie', name: '_ga', writer: 'www.googletagmanager.com', firstSeen: '2026-08-21T09:11:00Z' },
+    { kind: 'cookie', name: '_fbp', writer: 'connect.facebook.net', firstSeen: '2026-08-21T09:11:00Z' },
+    { kind: 'cookie', name: '_ttp', writer: 'analytics.tiktok.com', firstSeen: '2026-09-04T09:14:00Z' },
+    { kind: 'local_storage', name: 'hj_session', writer: 'static.hotjar.com', firstSeen: '2026-08-28T09:12:00Z' },
+    { kind: 'cookie', name: 'tx_id', writer: null, firstSeen: '2026-09-04T09:14:00Z' },
+    { kind: 'session_storage', name: 'intercom-state', writer: 'widget.intercom.io', firstSeen: '2026-08-21T09:11:00Z' },
+  ],
+  // The claim the feature exists to support: a destination contacted while
+  // consent for its purpose was not granted.
+  violations: [
+    { host: 'analytics.tiktok.com', purposeCode: 'marketing', consentStatus: 'DENIED', observedAt: '2026-09-06T08:52:00Z' },
+    { host: 'connect.facebook.net', purposeCode: 'marketing', consentStatus: 'WITHDRAWN', observedAt: '2026-09-05T17:04:00Z' },
+  ],
+};
+
+export const DATA_FLOW: DataFlowMap = {
+  siteId: 'site_9fb2c41a',
+  byCountry: [
+    {
+      country: 'US', crossesBorder: true, requestCount: 952,
+      destinations: [
+        { host: 'www.googletagmanager.com', vendor: 'Google Analytics 4', category: 'analytics', country: 'US', crossesBorder: true, requestCount: 412 },
+        { host: 'connect.facebook.net', vendor: 'Meta Pixel', category: 'marketing', country: 'US', crossesBorder: true, requestCount: 288 },
+        { host: 'js.stripe.com', vendor: 'Stripe', category: 'necessary', country: 'US', crossesBorder: true, requestCount: 154 },
+        { host: 'widget.intercom.io', vendor: 'Intercom', category: 'preferences', country: 'US', crossesBorder: true, requestCount: 98 },
+      ],
+    },
+    {
+      country: 'MT', crossesBorder: true, requestCount: 196,
+      destinations: [{ host: 'static.hotjar.com', vendor: 'Hotjar', category: 'analytics', country: 'MT', crossesBorder: true, requestCount: 196 }],
+    },
+    {
+      country: 'SG', crossesBorder: true, requestCount: 121,
+      destinations: [{ host: 'analytics.tiktok.com', vendor: 'TikTok Pixel', category: 'marketing', country: 'SG', crossesBorder: true, requestCount: 121 }],
+    },
+    {
+      country: 'IN', crossesBorder: false, requestCount: 87,
+      destinations: [{ host: 'checkout.razorpay.com', vendor: 'Razorpay', category: 'necessary', country: 'IN', crossesBorder: false, requestCount: 87 }],
+    },
+    {
+      country: 'DE', crossesBorder: true, requestCount: 28,
+      destinations: [{ host: 'metrics.vendor-cdn.io', vendor: null, category: null, country: 'DE', crossesBorder: true, requestCount: 28 }],
+    },
+    {
+      country: null, crossesBorder: false, requestCount: 104,
+      destinations: [
+        { host: 'tracker.example.net', vendor: null, category: null, country: null, crossesBorder: false, requestCount: 63 },
+        { host: 'rec.pxlgrid.net', vendor: null, category: null, country: null, crossesBorder: false, requestCount: 41 },
+      ],
+    },
+  ],
+  browserDestinations: [],
+  serverTransfers: [
+    { transferId: 'tr_9c41a2', purposeCode: 'analytics', recipientCode: 'warehouse-eu', recipientName: 'Northwind Warehouse (EU)', status: 'DELIVERED', payloadBytes: 18422, recordedAt: '2026-09-06T04:00:00Z', deliveredAt: '2026-09-06T04:00:12Z', consentRecordId: 'cr_7f21a9' },
+    { transferId: 'tr_9c4188', purposeCode: 'marketing', recipientCode: 'ads-partner', recipientName: 'Meridian Ads', status: 'DELIVERED', payloadBytes: 6140, recordedAt: '2026-09-05T04:00:00Z', deliveredAt: '2026-09-05T04:00:08Z', consentRecordId: 'cr_7f2198' },
+    { transferId: 'tr_9c4171', purposeCode: 'analytics', recipientCode: 'warehouse-eu', recipientName: 'Northwind Warehouse (EU)', status: 'RECORDED', payloadBytes: 17980, recordedAt: '2026-09-04T04:00:00Z', deliveredAt: null, consentRecordId: 'cr_7f2187' },
+  ],
+  totals: { destinations: 11, countries: 5, crossBorder: 9, transfers: 3 },
+};
+
+// Kept in sync with `byCountry` so the two halves of the screen cannot disagree.
+DATA_FLOW.browserDestinations = DATA_FLOW.byCountry
+  .flatMap((g) => g.destinations)
+  .sort((a, b) => b.requestCount - a.requestCount);
