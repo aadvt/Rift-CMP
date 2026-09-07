@@ -1,6 +1,7 @@
 import 'server-only';
 import type * as W from './backend';
 import type {
+  PolicyRecord, PolicyVersion, NoticeRecord, VisitorConsentState, EffectivePurpose, OrganisationOverview,
   AuditEntry,
   DiscoveryInventory, DataFlowMap, DataFlowDestination,
   AnalyticsOverview, ChangeEntry, ConfidenceLevel, ConsentCategory, ConsentOverview,
@@ -1631,5 +1632,75 @@ export function toAuditEntry(w: W.WireAuditEntry): AuditEntry {
     consentRecordId: w.consent_record_id,
     authorisationId: w.authorisation_id,
     transferId: w.transfer_id,
+  };
+}
+
+/* ── Phase 11C ───────────────────────────────────────────────────────────── */
+
+export function toPolicyRecord(w: W.WirePolicySummary): PolicyRecord {
+  return {
+    policyId: w.policy_id,
+    code: w.code,
+    name: w.name,
+    createdAt: w.created_at,
+    // The platform returns versions oldest-first because that is publication
+    // order. A reader wants the current one at the top.
+    versions: [...w.versions]
+      .map((v) => ({
+        versionId: v.policy_version_id,
+        policyId: v.policy_id,
+        policyCode: v.policy_code,
+        version: v.version,
+        documentUrl: v.document_url,
+        contentHash: v.content_hash,
+        publishedAt: v.published_at,
+      }))
+      .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)),
+  };
+}
+
+export function toNoticeRecord(w: W.WireNoticeSummary): NoticeRecord {
+  return {
+    noticeId: w.notice_id,
+    version: w.version,
+    locale: w.locale,
+    policyVersionId: w.policy_version_id,
+    publishedAt: w.published_at,
+    purposeCodes: w.purpose_codes,
+  };
+}
+
+export function toVisitorConsentState(w: W.WireConsentState): VisitorConsentState {
+  return {
+    siteId: w.site_id,
+    principal: w.principal_external_id,
+    purposes: w.purposes.map((p) => ({
+      purposeCode: p.purpose_code,
+      status: p.status,
+      decidedAt: p.decided_at,
+      consentRecordId: p.consent_record_id,
+      noticeId: p.notice_id,
+      policyVersionId: p.policy_version_id,
+    })),
+  };
+}
+
+export function toOrganisationOverview(w: W.WirePlatformOverview): OrganisationOverview {
+  return {
+    sites: w.sites,
+    consent: {
+      decisions: w.consent.total_decisions,
+      granted: w.consent.granted,
+      denied: w.consent.denied,
+      withdrawn: w.consent.withdrawn,
+      principals: w.consent.principals,
+    },
+    authorisations: w.authorisations,
+    transfers: w.transfers,
+    activity: {
+      sessions: w.activity.sessions,
+      pageViews: w.activity.page_views,
+      events: w.activity.total_events,
+    },
   };
 }

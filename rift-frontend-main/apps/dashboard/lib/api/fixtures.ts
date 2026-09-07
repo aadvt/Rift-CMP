@@ -1,5 +1,6 @@
 import type * as W from './backend';
 import type {
+  PolicyRecord, NoticeRecord, OrganisationOverview, VisitorConsentState,
   AuditEntry,
   DiscoveryInventory, DataFlowMap,
   AnalyticsOverview, ChangeEntry, ConsentOverview, ConsentRecord, Finding,
@@ -639,5 +640,75 @@ export function authorisationDecision(
     ...shared, permitted: true, reason: null,
     message: `Consent for "${purpose}" is currently GRANTED.`,
     consent_record_id: 'cr_7f21a9', consent_status: 'GRANTED', decided_at: '2026-09-05T11:42:00Z',
+  };
+}
+
+/* ── Phase 11C fixtures ──────────────────────────────────────────────────── */
+
+export const POLICIES: PolicyRecord[] = [
+  {
+    policyId: 'pol_northwind_privacy', code: 'privacy-notice', name: 'Privacy notice',
+    createdAt: '2026-07-30T08:11:00Z',
+    versions: [
+      { versionId: 'pv_2026.09.04-3', policyId: 'pol_northwind_privacy', policyCode: 'privacy-notice', version: '2026.09.04-3', documentUrl: 'https://northwind-retail.com/privacy', contentHash: 'sha256:9c41a2f8…', publishedAt: '2026-09-04T09:17:00Z' },
+      { versionId: 'pv_2026.08.28-2', policyId: 'pol_northwind_privacy', policyCode: 'privacy-notice', version: '2026.08.28-2', documentUrl: 'https://northwind-retail.com/privacy', contentHash: 'sha256:41b7de02…', publishedAt: '2026-08-28T09:12:00Z' },
+      { versionId: 'pv_2026.08.14-1', policyId: 'pol_northwind_privacy', policyCode: 'privacy-notice', version: '2026.08.14-1', documentUrl: 'https://northwind-retail.com/privacy', contentHash: 'sha256:0fa9c317…', publishedAt: '2026-08-14T09:15:00Z' },
+    ],
+  },
+  {
+    policyId: 'pol_northwind_cookies', code: 'cookie-notice', name: 'Cookie notice',
+    createdAt: '2026-08-14T09:15:00Z',
+    versions: [
+      { versionId: 'pv_cookies_2026.09.01', policyId: 'pol_northwind_cookies', policyCode: 'cookie-notice', version: '2026.09.01', documentUrl: 'https://northwind-retail.com/cookies', contentHash: 'sha256:7e2a1b90…', publishedAt: '2026-09-01T09:11:00Z' },
+    ],
+  },
+];
+
+export const NOTICES: NoticeRecord[] = [
+  { noticeId: 'ntc_04a1', version: '2026.09.04-3', locale: 'en-GB', policyVersionId: 'pv_2026.09.04-3', publishedAt: '2026-09-04T09:17:00Z', purposeCodes: ['necessary', 'analytics', 'marketing', 'preferences'] },
+  { noticeId: 'ntc_04a2', version: '2026.09.04-3', locale: 'hi-IN', policyVersionId: 'pv_2026.09.04-3', publishedAt: '2026-09-04T09:17:00Z', purposeCodes: ['necessary', 'analytics', 'marketing', 'preferences'] },
+  { noticeId: 'ntc_0388', version: '2026.08.28-2', locale: 'en-GB', policyVersionId: 'pv_2026.08.28-2', publishedAt: '2026-08-28T09:12:00Z', purposeCodes: ['necessary', 'analytics', 'marketing'] },
+];
+
+export const ORG_OVERVIEW: OrganisationOverview = {
+  sites: { total: 5, active: 4 },
+  consent: { decisions: 12482, granted: 7240, denied: 3370, withdrawn: 214, principals: 9612 },
+  authorisations: { total: 412, authorised: 68, consumed: 331, expired: 13 },
+  transfers: { total: 331, recorded: 12, delivered: 318, failed: 1 },
+  activity: { sessions: 31204, pageViews: 87412, events: 214880 },
+};
+
+/* Three visitors that between them cover the states a lookup actually returns:
+   a mixed decision, a full refusal, and somebody with no record at all. */
+export function visitorConsent(principal: string): VisitorConsentState | null {
+  if (principal === 'anon_2d84f011') {
+    return {
+      siteId: 'site_9fb2c41a', principal,
+      purposes: [
+        { purposeCode: 'necessary', status: 'GRANTED', decidedAt: '2026-09-05T11:39:00Z', consentRecordId: 'cr_7f2185', noticeId: 'ntc_04a1', policyVersionId: 'pv_2026.09.04-3' },
+        { purposeCode: 'analytics', status: 'DENIED', decidedAt: '2026-09-05T11:39:00Z', consentRecordId: 'cr_7f2186', noticeId: 'ntc_04a1', policyVersionId: 'pv_2026.09.04-3' },
+        { purposeCode: 'marketing', status: 'DENIED', decidedAt: '2026-09-05T11:39:00Z', consentRecordId: 'cr_7f2187', noticeId: 'ntc_04a1', policyVersionId: 'pv_2026.09.04-3' },
+        { purposeCode: 'preferences', status: 'DENIED', decidedAt: '2026-09-05T11:39:00Z', consentRecordId: 'cr_7f2188', noticeId: 'ntc_04a1', policyVersionId: 'pv_2026.09.04-3' },
+      ],
+    };
+  }
+  if (principal === 'anon_9e70bb52') {
+    return {
+      siteId: 'site_9fb2c41a', principal,
+      purposes: [
+        { purposeCode: 'necessary', status: 'GRANTED', decidedAt: '2026-09-05T11:30:00Z', consentRecordId: 'cr_7f2160', noticeId: 'ntc_04a1', policyVersionId: 'pv_2026.09.04-3' },
+        { purposeCode: 'analytics', status: 'WITHDRAWN', decidedAt: '2026-09-05T11:36:00Z', consentRecordId: 'cr_7f2166', noticeId: 'ntc_04a1', policyVersionId: 'pv_2026.09.04-2' },
+      ],
+    };
+  }
+  if (!principal || principal === 'unknown') return null;
+  return {
+    siteId: 'site_9fb2c41a', principal,
+    purposes: [
+      { purposeCode: 'necessary', status: 'GRANTED', decidedAt: '2026-09-05T11:42:00Z', consentRecordId: 'cr_7f21a7', noticeId: 'ntc_04a1', policyVersionId: 'pv_2026.09.04-3' },
+      { purposeCode: 'analytics', status: 'GRANTED', decidedAt: '2026-09-05T11:42:00Z', consentRecordId: 'cr_7f21a9', noticeId: 'ntc_04a1', policyVersionId: 'pv_2026.09.04-3' },
+      { purposeCode: 'marketing', status: 'DENIED', decidedAt: '2026-09-05T11:42:00Z', consentRecordId: 'cr_7f21aa', noticeId: 'ntc_04a1', policyVersionId: 'pv_2026.09.04-3' },
+      { purposeCode: 'preferences', status: 'GRANTED', decidedAt: '2026-09-05T11:42:00Z', consentRecordId: 'cr_7f21ab', noticeId: 'ntc_04a1', policyVersionId: 'pv_2026.09.04-3' },
+    ],
   };
 }

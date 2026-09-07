@@ -427,3 +427,57 @@ export interface AuditEntry {
   authorisationId: string | null;
   transferId: string | null;
 }
+
+/* ── Policies, notices, visitor state, org overview (Phase 11C) ──────────── */
+
+export interface PolicyVersion {
+  versionId: string;
+  policyId: string;
+  policyCode: string;
+  version: string;
+  documentUrl: string | null;
+  contentHash: string | null;
+  publishedAt: string;
+}
+
+export interface PolicyRecord {
+  policyId: string;
+  code: string;
+  name: string;
+  createdAt: string;
+  /** Newest first. Versions are immutable once published. */
+  versions: PolicyVersion[];
+}
+
+export interface NoticeRecord {
+  noticeId: string;
+  version: string;
+  locale: string;
+  policyVersionId: string;
+  publishedAt: string;
+  purposeCodes: string[];
+}
+
+/** One purpose, as this visitor last left it. */
+export interface EffectivePurpose {
+  purposeCode: string;
+  status: string;
+  decidedAt: string;
+  consentRecordId: string;
+  noticeId: string | null;
+  policyVersionId: string | null;
+}
+
+export interface VisitorConsentState {
+  siteId: string;
+  principal: string;
+  purposes: EffectivePurpose[];
+}
+
+export interface OrganisationOverview {
+  sites: { total: number; active: number };
+  consent: { decisions: number; granted: number; denied: number; withdrawn: number; principals: number };
+  authorisations: { total: number; authorised: number; consumed: number; expired: number };
+  transfers: { total: number; recorded: number; delivered: number; failed: number };
+  activity: { sessions: number; pageViews: number; events: number };
+}

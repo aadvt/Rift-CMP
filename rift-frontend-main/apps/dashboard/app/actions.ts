@@ -11,12 +11,14 @@ import {
   evaluateFirewall,
   getConsentProof,
   checkAuthorisation,
+  getVisitorConsent,
 } from '@/lib/api/endpoints';
 import { SITE_COOKIE } from '@/lib/current-site';
 import { API_URL, riftFetch } from '@/lib/api/client';
 import { clearSessionToken, writeSessionToken } from '@/lib/auth/session';
 import type { ProposedChange, WireSimulation } from '@/lib/api/simulation';
 import type { ProofVerification } from '@/lib/api/endpoints';
+import type { VisitorConsentState } from '@/lib/api/types';
 import type { WireAuthorisationDecision, WireConsentProof, WireFirewallEvaluation } from '@/lib/api/backend';
 
 /** Server Actions are the only write path. Each one invalidates the tags the
@@ -377,4 +379,18 @@ export async function askAuthorisation(input: {
         : 'The authorisation could not be evaluated. Check the visitor identifier and try again.',
     };
   }
+}
+
+/**
+ * Looks up one visitor's current consent.
+ *
+ * A read behind a Server Action because it is wanted for one identifier an
+ * operator types, not for a page load — and the organisation credential has to
+ * stay on the server either way.
+ */
+export async function lookUpVisitor(
+  siteId: string,
+  principalExternalId: string,
+): Promise<{ state: VisitorConsentState | null }> {
+  return { state: await getVisitorConsent(siteId, principalExternalId) };
 }

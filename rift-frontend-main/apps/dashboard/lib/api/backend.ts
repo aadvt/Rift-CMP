@@ -1062,3 +1062,73 @@ export interface WireAuthorisationDecision {
   /** When the principal made the decision being relied upon. */
   decided_at: string | null;
 }
+
+// ─── Phase 11C ───────────────────────────────────────────────────────────────
+//
+// The last four management-plane endpoints without a caller. The two transfer
+// endpoints that also had none are deliberately absent: `/transfers/pending`
+// and `/transfers/:id/envelope` authenticate a *delivery* credential, which is
+// the recipient's, not the organisation's. A dashboard holding the org secret
+// structurally cannot call them, and should not.
+
+/** `shared/consent.ts` — a policy and its immutable versions. */
+export interface WirePolicyVersionSummary {
+  policy_version_id: string;
+  policy_id: string;
+  policy_code: string;
+  version: string;
+  document_url: string | null;
+  content_hash: string | null;
+  published_at: string;
+}
+
+export interface WirePolicySummary {
+  policy_id: string;
+  code: string;
+  name: string;
+  created_at: string;
+  versions: WirePolicyVersionSummary[];
+}
+
+/** A notice: what a specific policy version actually disclosed, and where. */
+export interface WireNoticeSummary {
+  notice_id: string;
+  version: string;
+  locale: string;
+  policy_version_id: string;
+  published_at: string;
+  /** Purpose codes this notice disclosed. */
+  purpose_codes: string[];
+}
+
+/** `shared/consent.ts` — one visitor's consent as it stands right now. */
+export interface WireEffectiveConsent {
+  purpose_code: string;
+  status: string;
+  decided_at: string;
+  consent_record_id: string;
+  notice_id: string | null;
+  policy_version_id: string | null;
+}
+
+export interface WireConsentState {
+  site_id: string;
+  principal_external_id: string;
+  purposes: WireEffectiveConsent[];
+}
+
+/** `shared/analytics.ts` — the organisation, not one site. */
+export interface WirePlatformOverview {
+  sites: { total: number; active: number };
+  consent: {
+    total_decisions: number;
+    granted: number;
+    denied: number;
+    withdrawn: number;
+    /** Distinct principals who have recorded at least one decision. */
+    principals: number;
+  };
+  authorisations: { total: number; authorised: number; consumed: number; expired: number };
+  transfers: { total: number; recorded: number; delivered: number; failed: number };
+  activity: { sessions: number; page_views: number; total_events: number };
+}

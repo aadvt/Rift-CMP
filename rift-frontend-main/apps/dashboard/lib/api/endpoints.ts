@@ -7,6 +7,7 @@ import { describePurpose } from './adapters';
 import type * as W from './backend';
 import type { ProposedChange, WireSimulation, WireSimulationResponse } from './simulation';
 import type {
+  PolicyRecord, PolicyVersion, NoticeRecord, VisitorConsentState, EffectivePurpose, OrganisationOverview,
   AuditEntry,
   DiscoveryInventory, DataFlowMap,
   AnalyticsOverview, ChangeEntry, ConsentOverview, ConsentRecord, Finding, InstallSnippet,
@@ -1214,4 +1215,64 @@ export async function checkAuthorisation(input: {
     },
     ...LIVE,
   });
+}
+
+/* ── Phase 11C ───────────────────────────────────────────────────────────── */
+
+/**
+ * The organisation's policies, each with its immutable versions.
+ *
+ * A policy is a document; its text lives in versions that never change once
+ * published, because a consent record points at one and has to keep meaning
+ * what it meant. That is the reason this deserves a screen: the version is the
+ * thing a consent record is evidence *against*.
+ */
+export async function listPolicies(): Promise<PolicyRecord[]> {
+  if (USE_FIXTURES) return fx.POLICIES;
+  const body = await riftFetch<{ policies: W.WirePolicySummary[] }>(`${V1}/policies`, {
+    tags: [tag.sites], revalidate: WINDOW.policy,
+  }).catch(() => ({ policies: [] as W.WirePolicySummary[] }));
+  return body.policies.map(adapt.toPolicyRecord);
+}
+
+/** What each published policy version actually disclosed, and in which locale. */
+export async function listNotices(): Promise<NoticeRecord[]> {
+  if (USE_FIXTURES) return fx.NOTICES;
+  const body = await riftFetch<{ notices: W.WireNoticeSummary[] }>(`${V1}/notices`, {
+    tags: [tag.sites], revalidate: WINDOW.policy,
+  }).catch(() => ({ notices: [] as W.WireNoticeSummary[] }));
+  return body.notices.map(adapt.toNoticeRecord);
+}
+
+/**
+ * One visitor's consent as it stands right now.
+ *
+ * Distinct from their consent *history*: this is the derived current state the
+ * runtime and the authorisation gate both read, so it is the answer to "what is
+ * this person allowing today" rather than "what have they ever said".
+ */
+export async function getVisitorConsent(
+  siteId: string,
+  principalExternalId: string,
+): Promise<VisitorConsentState | null> {
+  if (USE_FIXTURES) return fx.visitorConsent(principalExternalId);
+  const query = new URLSearchParams({ site_id: siteId, principal_external_id: principalExternalId });
+  return riftFetch<W.WireConsentState>(`${V1}/consent/effective?${query.toString()}`, { ...LIVE })
+    .then(adapt.toVisitorConsentState)
+    .catch(() => null);
+}
+
+/**
+ * The organisation, rather than one site.
+ *
+ * `analytics/summary` answers "how is this website doing"; this answers "how is
+ * the account doing", including the authorisation and transfer counts that have
+ * no per-site screen at all.
+ */
+export async function getOrganisationOverview(): Promise<OrganisationOverview | null> {
+  if (USE_FIXTURES) return fx.ORG_OVERVIEW;
+  const body = await riftFetch<{ overview: W.WirePlatformOverview }>(`${V1}/analytics/overview`, {
+    tags: [tag.sites], revalidate: WINDOW.consent,
+  }).catch(() => null);
+  return body ? adapt.toOrganisationOverview(body.overview) : null;
 }

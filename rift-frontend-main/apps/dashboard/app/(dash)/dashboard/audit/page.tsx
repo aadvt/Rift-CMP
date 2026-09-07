@@ -1,6 +1,7 @@
 import { ScreenHeader, Screen } from '@/components/shell/ScreenHeader';
 import { Timeline } from '@/components/audit/Timeline';
 import { AuthorisationCheck } from '@/components/audit/AuthorisationCheck';
+import { VisitorLookup } from '@/components/audit/VisitorLookup';
 import { getAuditTrail, getConfiguration } from '@/lib/api/endpoints';
 import { requireSiteId } from '@/lib/current-site';
 
@@ -43,6 +44,7 @@ export default async function AuditPage() {
 
         <div className="flex flex-col gap-5">
           <AuthorisationCheck siteId={siteId} purposes={purposes} />
+          <VisitorLookup siteId={siteId} />
           <Timeline entries={entries} />
         </div>
       </Screen>
