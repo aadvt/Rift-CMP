@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 1290" width="960" height="1290" role="img" aria-labelledby="title desc">
+  <title id="title">Rift-CMP — Architecture Overview</title>
+  <desc id="desc">Request, data and evidence flow across the platform. A customer website loads the Rift SDK, which calls the Rift API. The API fans out to the website scanner and discovery pipeline, the policy and jurisdiction engine, and the intelligence and evidence services. All three write to PostgreSQL via Prisma, which the operator dashboard reads.</desc>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2c7a6f"/>
+    </marker>
+    <style>
+      .h    { font: 700 26px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; fill: #17324f; }
+      .sub  { font: italic 15px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; fill: #4a5b6e; }
+      .box  { font: 700 19px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+      .meta { font: 13.5px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; fill: #4a5b6e; }
+      .lg   { font: 700 13px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; fill: #17324f; }
+      .lgi  { font: 13px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; fill: #33445a; }
+      .navy { fill: #17324f; }
+      .teal { fill: #2c7a6f; }
+      .wht  { fill: #ffffff; }
+    </style>
+  </defs>
+
+  <rect width="960" height="1290" fill="#ffffff"/>
+
+  <text class="h"   x="480" y="80"  text-anchor="middle">Rift-CMP — Architecture Overview</text>
+  <text class="sub" x="480" y="118" text-anchor="middle">Request, data, and evidence flow across the platform</text>
+
+  <!-- Customer website -->
+  <rect x="248" y="146" width="464" height="82" rx="12" fill="#f4f5f7" stroke="#ccd2d9" stroke-width="1.5"/>
+  <text class="box navy" x="480" y="193" text-anchor="middle">Customer Website</text>
+
+  <line x1="480" y1="228" x2="480" y2="308" stroke="#2c7a6f" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- SDK -->
+  <rect x="228" y="312" width="504" height="126" rx="12" fill="#e9f3f0" stroke="#2c7a6f" stroke-width="1.8"/>
+  <text class="box teal" x="480" y="362" text-anchor="middle">Rift SDK</text>
+  <text class="meta"     x="480" y="400" text-anchor="middle">Consent · Analytics · Enforcement</text>
+  <text class="meta"     x="480" y="419" text-anchor="middle">Discovery · Experimentation</text>
+
+  <line x1="480" y1="438" x2="480" y2="470" stroke="#2c7a6f" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- API -->
+  <rect x="196" y="474" width="568" height="118" rx="10" fill="#17324f"/>
+  <text class="box wht" x="480" y="524" text-anchor="middle">Rift API</text>
+  <text x="480" y="567" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="13.5" fill="#c9d6e4">Next.js  ·  Ingestion / Management / Delivery planes</text>
+
+  <!-- Fan-out to the three services -->
+  <path d="M480 592 V 626" stroke="#2c7a6f" stroke-width="2" fill="none"/>
+  <path d="M190 626 H 770" stroke="#2c7a6f" stroke-width="2" fill="none"/>
+  <path d="M190 626 V 660" stroke="#2c7a6f" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M480 626 V 660" stroke="#2c7a6f" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M770 626 V 660" stroke="#2c7a6f" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- Scanner: the observation pipeline, amber -->
+  <rect x="60" y="664" width="262" height="140" rx="12" fill="#fdf4e3" stroke="#d19b3d" stroke-width="1.8"/>
+  <text class="box navy" x="191" y="708" text-anchor="middle">Website Scanner</text>
+  <text class="box navy" x="191" y="731" text-anchor="middle">&amp; Discovery</text>
+  <text class="meta"     x="191" y="763" text-anchor="middle">Playwright crawl · tech &amp;</text>
+  <text class="meta"     x="191" y="781" text-anchor="middle">vendor detection · scan diff</text>
+
+  <!-- Policy engine -->
+  <rect x="350" y="664" width="262" height="140" rx="12" fill="#e9f3f0" stroke="#2c7a6f" stroke-width="1.8"/>
+  <text class="box navy" x="481" y="708" text-anchor="middle">Policy &amp; Jurisdiction</text>
+  <text class="box navy" x="481" y="731" text-anchor="middle">Engine</text>
+  <text class="meta"     x="481" y="763" text-anchor="middle">Deterministic regulation</text>
+  <text class="meta"     x="481" y="781" text-anchor="middle">matrix · consent recommend.</text>
+
+  <!-- Intelligence -->
+  <rect x="640" y="664" width="262" height="140" rx="12" fill="#f7fafc" stroke="#17324f" stroke-width="1.8"/>
+  <text class="box navy" x="771" y="708" text-anchor="middle">Intelligence &amp;</text>
+  <text class="box navy" x="771" y="731" text-anchor="middle">Evidence</text>
+  <text class="meta"     x="771" y="763" text-anchor="middle">Drift · shadow trackers ·</text>
+  <text class="meta"     x="771" y="781" text-anchor="middle">quality score · graph/sim</text>
+
+  <!-- Converge on the database -->
+  <path d="M191 804 V 838" stroke="#2c7a6f" stroke-width="2" fill="none"/>
+  <path d="M481 804 V 838" stroke="#2c7a6f" stroke-width="2" fill="none"/>
+  <path d="M771 804 V 838" stroke="#2c7a6f" stroke-width="2" fill="none"/>
+  <path d="M191 838 H 771" stroke="#2c7a6f" stroke-width="2" fill="none"/>
+  <path d="M480 838 V 866" stroke="#2c7a6f" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+
+  <!-- Database -->
+  <rect x="196" y="870" width="568" height="118" rx="12" fill="#ffffff" stroke="#17324f" stroke-width="2"/>
+  <text class="box navy" x="480" y="912" text-anchor="middle">PostgreSQL / Prisma</text>
+  <text class="meta"     x="480" y="953" text-anchor="middle">Consent · Scans · Enforcement · Proofs · Audit (data &amp; evidence layer)</text>
+
+  <line x1="480" y1="988" x2="480" y2="1022" stroke="#2c7a6f" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Dashboard -->
+  <rect x="196" y="1026" width="568" height="122" rx="12" fill="#e9f3f0" stroke="#2c7a6f" stroke-width="1.8"/>
+  <text class="box teal" x="480" y="1070" text-anchor="middle">Operator Dashboard</text>
+  <text class="meta"     x="480" y="1108" text-anchor="middle">Overview · Consent · Policy · Firewall</text>
+  <text class="meta"     x="480" y="1127" text-anchor="middle">Graph · Simulator · Rights · Audit</text>
+
+  <!-- Legend -->
+  <text class="lg" x="48" y="1222">Legend:</text>
+  <rect x="164" y="1210" width="26" height="16" rx="3" fill="#2c7a6f"/>
+  <text class="lgi" x="200" y="1223">Runtime / API path</text>
+  <rect x="380" y="1210" width="26" height="16" rx="3" fill="#d19b3d"/>
+  <text class="lgi" x="416" y="1223">Observation pipeline</text>
+  <rect x="602" y="1210" width="26" height="16" rx="3" fill="#17324f"/>
+  <text class="lgi" x="638" y="1223">Core service</text>
+</svg>

@@ -568,41 +568,9 @@ Provides dedicated views for:
 
 # Architecture Overview
 
-```text
-                         ┌─────────────────────┐
-                         │   Customer Website  │
-                         └──────────┬──────────┘
-                                    │
-                                    ▼
-                         ┌─────────────────────┐
-                         │      Rift SDK       │
-                         │ Consent / Analytics │
-                         │    Enforcement     │
-                         └──────────┬──────────┘
-                                    │
-                                    ▼
-                         ┌─────────────────────┐
-                         │      Rift API       │
-                         └──────────┬──────────┘
-                                    │
-          ┌─────────────────────────┼─────────────────────────┐
-          ▼                         ▼                         ▼
- ┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
- │ Website Scanner │       │ Policy Engine   │       │ Intelligence    │
- │   & Discovery   │       │ & Jurisdictions │       │ Graph / Drift   │
- └────────┬────────┘       └────────┬────────┘       └────────┬────────┘
-          │                         │                         │
-          └─────────────────────────┼─────────────────────────┘
-                                    ▼
-                         ┌─────────────────────┐
-                         │    PostgreSQL DB    │
-                         └──────────┬──────────┘
-                                    │
-                                    ▼
-                         ┌─────────────────────┐
-                         │ Operator Dashboard  │
-                         └─────────────────────┘
-```
+<p align="center">
+  <img src="docs/architecture.svg" alt="Rift-CMP architecture: a customer website loads the Rift SDK, which calls the Rift API; the API fans out to the website scanner, the policy and jurisdiction engine, and the intelligence and evidence services, all of which persist to PostgreSQL via Prisma, which the operator dashboard reads." width="820">
+</p>
 
 ---
 
