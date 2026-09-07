@@ -4,6 +4,7 @@ import { listSites, getOrganisation } from '@/lib/api/endpoints';
 import { currentSite } from '@/lib/current-site';
 import { USE_FIXTURES } from '@/lib/api/client';
 import { readSessionToken } from '@/lib/auth/session';
+import { TourHost } from '@/components/tour/TourHost';
 import { PageTransition } from '@/components/motion/PageTransition';
 import { Icon } from '@rift/ui';
 
@@ -39,6 +40,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const signedIn = session !== null;
 
   return (
+    <TourHost>
     <div className="flex min-h-screen bg-md-background">
       <Sidebar
         sites={sites}
@@ -53,6 +55,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <PageTransition>{children}</PageTransition>
       </main>
     </div>
+    </TourHost>
   );
 }
 

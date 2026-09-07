@@ -67,7 +67,7 @@ export default async function PrivacyPage({ params }: { params: Promise<{ siteId
               cannot be confident it says so and leaves the decision open rather than guessing.
             </Notice>
 
-            <div className="flex flex-col gap-4">
+            <div data-tour="regulations" className="flex flex-col gap-4">
               {config.regions.map((r, i) => (
                 <RegulationCard
                   key={r.code}

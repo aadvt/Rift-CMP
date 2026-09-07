@@ -121,7 +121,7 @@ export function FindingsExplorer({
 
   return (
     <>
-      <Card className="overflow-hidden rounded-2xl">
+      <Card data-tour="findings" className="overflow-hidden rounded-2xl">
         <div className="flex flex-wrap items-center justify-between gap-4 p-7">
           <CardHeader
             title="Detected technologies"

@@ -52,7 +52,7 @@ export default async function SiteOverviewPage({ params }: { params: Promise<{ s
 
       {/* Section tabs — the site's own navigation, per the product IA. */}
       <div className="px-5 md:px-8">
-        <div className="mx-auto flex max-w-[1320px] flex-wrap gap-2 border-b border-md-outline-variant pb-3">
+        <div data-tour="site-tabs" className="mx-auto flex max-w-[1320px] flex-wrap gap-2 border-b border-md-outline-variant pb-3">
           {([
             ['Overview', `/dashboard/sites/${siteId}`, true],
             ['Findings', scanId ? `/dashboard/scans/${scanId}` : '/dashboard/scans', false],

@@ -28,7 +28,7 @@ export default async function ScansPage() {
               action={<Link href="/dashboard/sites/new"><Button variant="filled" icon="plus">Add website</Button></Link>}
             />
           ) : (
-            <div className="overflow-x-auto">
+            <div data-tour="scans-table" className="overflow-x-auto">
               <table
                 data-stack
                 className="w-full border-collapse"

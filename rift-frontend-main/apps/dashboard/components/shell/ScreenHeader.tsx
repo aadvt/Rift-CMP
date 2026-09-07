@@ -26,7 +26,7 @@ export function ScreenHeader({
         className,
       )}
     >
-      <div className="min-w-0 flex-1">
+      <div data-tour="page-title" className="min-w-0 flex-1">
         {crumb?.length ? (
           <nav aria-label="Breadcrumb" className="mb-1 flex items-center gap-2 text-label-small text-md-on-surface-variant">
             {crumb.map((c, i) => (
@@ -46,7 +46,9 @@ export function ScreenHeader({
           {badge}
         </div>
       </div>
-      {actions ? <div className="flex shrink-0 flex-wrap items-center gap-3">{actions}</div> : null}
+      {actions ? (
+        <div data-tour="page-actions" className="flex shrink-0 flex-wrap items-center gap-3">{actions}</div>
+      ) : null}
     </header>
   );
 }

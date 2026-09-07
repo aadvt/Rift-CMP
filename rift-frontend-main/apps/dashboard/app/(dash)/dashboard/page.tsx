@@ -66,7 +66,7 @@ export default async function OverviewPage() {
           {/* The band counts up on arrival. It is the first thing looked at on
               every visit, and a figure that settles in front of you reads as
               current in a way a figure that was simply already there does not. */}
-          <Card className="relative overflow-hidden rounded-2xl motion-safe:animate-[md-rise_450ms_var(--md-ease)_both]">
+          <Card data-tour="stat-strip" className="relative overflow-hidden rounded-2xl motion-safe:animate-[md-rise_450ms_var(--md-ease)_both]">
             <BlurField variant="panel" />
             <CardBody className="relative grid grid-cols-2 gap-y-8 p-7 lg:grid-cols-4 lg:gap-y-0">
               <StatBlock
@@ -114,7 +114,9 @@ export default async function OverviewPage() {
               <div className="p-7">
                 <CardHeader title="Websites" sub="Select a row to open the site." />
               </div>
-              <SitesTable sites={sites} />
+              <div data-tour="sites-table">
+                <SitesTable sites={sites} />
+              </div>
             </Card>
           </Reveal>
 

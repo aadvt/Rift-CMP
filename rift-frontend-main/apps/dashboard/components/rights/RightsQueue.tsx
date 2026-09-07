@@ -75,7 +75,7 @@ export function RightsQueue({ requests }: { requests: RightsRequest[] }) {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div data-tour="rights-queue" className="flex flex-col gap-5">
       <Notice tone="neutral" icon="info" title="Rift does not compute your deadline">
         Response windows differ by regime, and naming one would mean asserting which regime governs a
         particular request. Deadlines shown here are the ones you declared.

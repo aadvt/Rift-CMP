@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Icon, RiftMark, cn, type IconName } from '@rift/ui';
 import { SiteSwitcher } from './SiteSwitcher';
 import { SignOutButton } from './SignOutButton';
+import { TourLauncher } from '@/components/tour/TourLauncher';
 import type { Site } from '@/lib/api/types';
 
 /** Navigation follows the customer mental model, never internal components.
@@ -65,11 +66,11 @@ export function Sidebar({
         <span className="text-title-large font-medium tracking-tight text-md-on-surface">Rift</span>
       </div>
 
-      <div className="relative px-4 pb-4 pt-2">
+      <div data-tour="site-switcher" className="relative px-4 pb-4 pt-2">
         {activeSite ? <SiteSwitcher sites={sites} active={activeSite} /> : <NoSiteYet />}
       </div>
 
-      <nav className="relative flex flex-col gap-1 px-3">
+      <nav data-tour="nav" className="relative flex flex-col gap-1 px-3">
         {NAV.map((n) => {
           const active = n.href === '/dashboard' ? pathname === n.href : pathname.startsWith(n.href);
           return (
@@ -134,6 +135,7 @@ export function Sidebar({
           </span>
         </div>
 
+        <TourLauncher className="mt-1" />
         {signedIn ? <SignOutButton className="mt-1" /> : null}
       </div>
     </aside>

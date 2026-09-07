@@ -127,7 +127,7 @@ export function Simulator({ siteId, host }: { siteId: string; host: string }) {
         has its own approval.
       </Notice>
 
-      <Card className="rounded-2xl">
+      <Card data-tour="simulate-builder" className="rounded-2xl">
         <CardBody className="p-7">
           <CardHeader
             title="Build a scenario"

@@ -184,7 +184,7 @@ export default async function ConsentPage() {
             <div className="border-b border-md-outline-variant p-5 md:px-6">
               <CardHeader title="Consent records" sub="Each record keeps the decision, the configuration version that was live, and what evidence it carries. “Signed” means a signature is attached, not that it has been checked." />
             </div>
-            <div className="overflow-x-auto">
+            <div data-tour="consent-records" className="overflow-x-auto">
               {/* Stacks into cards below `md` — see globals.css. The width
                   moves to a custom property because an inline min-width would
                   outrank the media query. */}
@@ -228,10 +228,10 @@ export default async function ConsentPage() {
                                 attached would return "nothing here" every time,
                                 which teaches people the check is broken. */}
                             {r.proof !== 'none' ? (
-                              <>
+                              <span data-tour="verify-proof" className="flex items-center gap-1">
                                 <ReceiptButton recordId={r.recordId} />
                                 <VerifyProofButton recordId={r.recordId} />
-                              </>
+                              </span>
                             ) : null}
                           </span>
                         </td>
