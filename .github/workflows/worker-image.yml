@@ -56,7 +56,7 @@ jobs:
           # working image without first having to discover that this variable
           # exists. Set the repository variable to override it.
           build-args: |
-            RIFT_PUBLIC_HOST=${{ vars.RIFT_PUBLIC_HOST || 'rift-dash-ayush.southindia.azurecontainer.io:3100' }}
+            RIFT_PUBLIC_HOST=${{ vars.RIFT_PUBLIC_HOST || 'rift-cmp.southindia.azurecontainer.io:3100' }}
           # Two tags: `latest` for the deployment to follow, and the commit sha
           # so a running container can always be traced back to the source it
           # was built from.
