@@ -128,19 +128,30 @@ export default async function ConsentPage() {
                   ]} />}
                 />
                 <div className="mt-6 flex h-[208px] items-end gap-2">
-                  {c.trend.map((d) => {
+                  {/* Floored at 1, and computed once rather than per day. A day
+                      with no decisions divided by a peak of zero produced
+                      `height: NaN%`, which every bar on a quiet site hit — and
+                      which CSS silently drops, so the chart just looked wrong.
+                      `ConsentAnalytics` already floors its own copy of this. */}
+                  {(() => {
+                    const max = Math.max(
+                      ...c.trend.map((t) => t.acceptedAll + t.rejected + t.custom),
+                      1,
+                    );
+                    return c.trend.map((d) => {
                     const total = d.acceptedAll + d.rejected + d.custom;
-                    const max = Math.max(...c.trend.map((t) => t.acceptedAll + t.rejected + t.custom));
+                    const share = (n: number) => (total > 0 ? (n / total) * 100 : 0);
                     return (
                       <div key={d.date} className="group relative flex h-full flex-1 flex-col justify-end" title={`${d.date}: ${total} decisions`}>
                         <div className="flex flex-col justify-end" style={{ height: `${(total / max) * 100}%` }}>
-                          <div style={{ height: `${(d.custom / total) * 100}%`, background: series[2], boxShadow: '0 -2px 0 0 #fff', borderRadius: '3px 3px 0 0' }} />
-                          <div style={{ height: `${(d.rejected / total) * 100}%`, background: series[1], boxShadow: '0 -2px 0 0 #fff' }} />
-                          <div style={{ height: `${(d.acceptedAll / total) * 100}%`, background: series[0], borderRadius: '0 0 3px 3px' }} />
+                          <div style={{ height: `${share(d.custom)}%`, background: series[2], boxShadow: '0 -2px 0 0 #fff', borderRadius: '3px 3px 0 0' }} />
+                          <div style={{ height: `${share(d.rejected)}%`, background: series[1], boxShadow: '0 -2px 0 0 #fff' }} />
+                          <div style={{ height: `${share(d.acceptedAll)}%`, background: series[0], borderRadius: '0 0 3px 3px' }} />
                         </div>
                       </div>
                     );
-                  })}
+                    });
+                  })()}
                 </div>
                 <div className="mt-2 flex justify-between border-t border-md-outline-variant pt-2 text-[11px] text-md-on-surface-variant/75">
                   <span>{c.trend[0]?.date}</span>

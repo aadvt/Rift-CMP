@@ -1076,11 +1076,21 @@ export async function getGraphNode(
 export async function getDiscoveryInventory(siteId: string): Promise<DiscoveryInventory> {
   if (USE_FIXTURES) return fx.DISCOVERY;
 
+  // Degrades to an empty inventory rather than throwing. The data-flow screen
+  // composes this with the transfer ledger, and a discovery outage should cost
+  // that screen one half, not the whole page — which is how its two sibling
+  // reads there already behave.
   const wire = await riftFetch<W.WireDiscoveryInventory>(
     `${V1}/discovery/inventory?site_id=${encodeURIComponent(siteId)}`,
     { tags: [tag.site(siteId)], ...LIVE },
-  );
-  return adapt.toDiscoveryInventory(wire);
+  ).catch(() => null);
+
+  return wire ? adapt.toDiscoveryInventory(wire) : {
+    siteId,
+    generatedAt: new Date().toISOString(),
+    totals: { destinations: 0, thirdParty: 0, unclassified: 0, crossBorder: 0, storageItems: 0, openViolations: 0 },
+    components: [], storage: [], violations: [],
+  };
 }
 
 /**

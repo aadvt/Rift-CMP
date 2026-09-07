@@ -1,7 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
-import { resolveTestDatabaseUrl } from "./tests/setup/database-url";
+import { tryResolveTestDatabaseUrl } from "./tests/setup/database-url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -122,7 +122,10 @@ export default defineConfig({
           poolOptions: { forks: { singleFork: true } },
           testTimeout: 60_000,
           hookTimeout: 120_000,
-          env: { DATABASE_URL: resolveTestDatabaseUrl() },
+          // Resolved without throwing: this object is built even when only the
+            // unit project runs. `global-setup` raises the missing-URL error, and
+            // only for the project that actually needs a database.
+            env: { DATABASE_URL: tryResolveTestDatabaseUrl() ?? "" },
         },
       },
     ],
