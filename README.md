@@ -3,8 +3,6 @@
 
 > **Rift-CMP is a privacy platform that helps organizations discover what their websites collect and share, understand which privacy requirements may apply, manage visitor consent, enforce those choices, and continuously understand whether the website still matches its privacy policy.**
 
-![Rift-CMP](https://img.shields.io/badge/Rift--CMP-Privacy%20Infrastructure-111827?style=for-the-badge)
-
 ---
 
 # Introduction
