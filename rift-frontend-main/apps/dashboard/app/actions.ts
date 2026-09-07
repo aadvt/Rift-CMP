@@ -8,12 +8,18 @@ import {
   runSimulation,
   updateRightsRequest,
   verifyConsentProof,
+  evaluateFirewall,
+  getConsentProof,
+  checkAuthorisation,
+  getVisitorConsent,
 } from '@/lib/api/endpoints';
 import { SITE_COOKIE } from '@/lib/current-site';
 import { API_URL, riftFetch } from '@/lib/api/client';
 import { clearSessionToken, writeSessionToken } from '@/lib/auth/session';
 import type { ProposedChange, WireSimulation } from '@/lib/api/simulation';
 import type { ProofVerification } from '@/lib/api/endpoints';
+import type { VisitorConsentState } from '@/lib/api/types';
+import type { WireAuthorisationDecision, WireConsentProof, WireFirewallEvaluation } from '@/lib/api/backend';
 
 /** Server Actions are the only write path. Each one invalidates the tags the
  *  reads it affects were fetched under. */
@@ -302,4 +308,89 @@ export async function signOut(): Promise<void> {
 
   await clearSessionToken();
   (await cookies()).delete(SITE_COOKIE);
+}
+
+/**
+ * A firewall dry run.
+ *
+ * A write path by HTTP method only: the platform records nothing, so there is
+ * no tag to invalidate. It lives here because the credential must stay on the
+ * server, not because anything changed.
+ */
+export async function runFirewall(
+  siteId: string,
+  input: { destination: string; purpose: string | null; principalExternalId?: string },
+): Promise<{ evaluation: WireFirewallEvaluation } | { error: string }> {
+  try {
+    const evaluation = await evaluateFirewall(siteId, input);
+    return { evaluation };
+  } catch (err) {
+    const e = err as Error & { riftCode?: string };
+    // The platform rejects a malformed destination with a message worth
+    // showing; anything else gets the generic sentence rather than a stack.
+    return {
+      error: e.riftCode === 'invalid_request'
+        ? e.message
+        : 'The firewall could not evaluate that request. Check the destination and try again.',
+    };
+  }
+}
+
+/**
+ * Fetches the receipt for one consent decision.
+ *
+ * A read, but a Server Action rather than a page load: it is wanted for one row
+ * out of a table of thousands, and fetching every receipt to render a list
+ * nobody opened would be a lot of hashing for nothing.
+ */
+export async function fetchConsentReceipt(
+  recordId: string,
+): Promise<{ ok: true; proof: WireConsentProof } | { ok: false; message: string }> {
+  const proof = await getConsentProof(recordId);
+  if (!proof) {
+    return {
+      ok: false,
+      message: 'No receipt is available for this record. It may pre-date proof generation, or the record may no longer exist.',
+    };
+  }
+  return { ok: true, proof };
+}
+
+/**
+ * Asks whether an action is currently authorised.
+ *
+ * A write path by HTTP method only. The platform is explicit that this writes
+ * nothing and spends no permission, so there is no tag to invalidate — it lives
+ * here because the organisation credential must stay on the server.
+ */
+export async function askAuthorisation(input: {
+  siteId: string;
+  principalExternalId: string;
+  purposeCode: string;
+}): Promise<{ decision: WireAuthorisationDecision } | { error: string }> {
+  try {
+    const decision = await checkAuthorisation(input);
+    return { decision };
+  } catch (err) {
+    const e = err as Error & { riftCode?: string };
+    return {
+      error: e.riftCode === 'invalid_request'
+        ? e.message
+        : 'The authorisation could not be evaluated. Check the visitor identifier and try again.',
+    };
+  }
+}
+
+/**
+ * Looks up one visitor's current consent.
+ *
+ * A read behind a Server Action because it is wanted for one identifier an
+ * operator types, not for a page load — and the organisation credential has to
+ * stay on the server either way.
+ */
+export async function lookUpVisitor(
+  siteId: string,
+  principalExternalId: string,
+): Promise<{ state: VisitorConsentState | null }> {
+  return { state: await getVisitorConsent(siteId, principalExternalId) };
 }

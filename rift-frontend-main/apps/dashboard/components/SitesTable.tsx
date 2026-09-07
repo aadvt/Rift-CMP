@@ -3,14 +3,9 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { createColumnHelper } from '@tanstack/react-table';
 import { Chip, DataTable, EmptyState, RowPeek, Button, cn } from '@rift/ui';
-import type { Site, SiteStatus } from '@/lib/api/types';
+import type { Site } from '@/lib/api/types';
+import { SITE_STATUS } from '@/lib/site-status';
 
-const STATUS: Record<SiteStatus, { label: string; tone: 'success' | 'warning' | 'neutral' | 'error' }> = {
-  connected: { label: 'Connected', tone: 'success' },
-  needs_review: { label: 'Needs review', tone: 'warning' },
-  not_installed: { label: 'Not installed', tone: 'neutral' },
-  installation_issue: { label: 'Installation issue', tone: 'error' },
-};
 
 const col = createColumnHelper<Site>();
 
@@ -34,7 +29,7 @@ export function SitesTable({ sites }: { sites: Site[] }) {
       col.accessor('status', {
         header: 'Status',
         cell: (c) => {
-          const s = STATUS[c.getValue()];
+          const s = SITE_STATUS[c.getValue()];
           return <Chip tone={s.tone} dot>{s.label}</Chip>;
         },
       }),

@@ -59,9 +59,19 @@ export default async function ScansPage() {
                         </Link>
                       </td>
                       <td className="border-b border-md-outline-variant/40 px-4 py-[13px]">
+                        {/* Five statuses, not two. A running scan reported as
+                            "completed with limitations" is merely confusing; a
+                            failed one reported that way tells an operator their
+                            scan partly succeeded when it did not run at all. */}
                         {s.status === 'completed'
                           ? <Chip tone="success" glyph="check">Completed</Chip>
-                          : <Chip tone="warning">Completed with limitations</Chip>}
+                          : s.status === 'completed_with_limitations'
+                            ? <Chip tone="warning">Completed with limitations</Chip>
+                            : s.status === 'running'
+                              ? <Chip tone="primary" dot>Scanning</Chip>
+                              : s.status === 'queued'
+                                ? <Chip tone="neutral" dot>Queued</Chip>
+                                : <Chip tone="error">Failed</Chip>}
                       </td>
                       <td className="border-b border-md-outline-variant/40 px-4 py-[13px] text-right text-[13.5px] text-md-on-surface-variant tabular-nums">{s.counts.pages}</td>
                       <td className="border-b border-md-outline-variant/40 px-4 py-[13px] text-right text-[13.5px] text-md-on-surface-variant tabular-nums">{s.counts.cookies}</td>

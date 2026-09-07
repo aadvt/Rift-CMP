@@ -862,3 +862,273 @@ export interface WireSimulation {
   unsupported: Array<{ change: Record<string, string | undefined>; reason: string }>;
   caveats: string[];
 }
+
+// ─── Phase 11A ───────────────────────────────────────────────────────────────
+//
+// `shared/discovery.ts` and `shared/transfer.ts`, restated in wire form like
+// everything else here. The consent-analytics wire types were already declared
+// above — they had simply never been read by a screen.
+
+
+
+
+
+/** `shared/discovery.ts` — a destination after server-side classification. */
+export interface WireClassifiedComponent {
+  host: string;
+  kind: string;
+  initiator: string | null;
+  sample_path: string | null;
+  third_party: boolean;
+  request_count: number;
+  first_seen: string;
+  last_seen: string;
+  page_url: string;
+  vendor: string | null;
+  category: string | null;
+  /** ISO 3166-1 alpha-2, or null when unknown. */
+  destination_country: string | null;
+  crosses_border: boolean;
+}
+
+export interface WireDiscoveredStorageItem {
+  kind: 'cookie' | 'local_storage' | 'session_storage';
+  name: string;
+  writer: string | null;
+  first_seen: string;
+}
+
+/**
+ * A destination contacted while consent for its purpose was not granted.
+ *
+ * The claim the whole discovery feature exists to support. Recorded as its own
+ * row because the consent state at the moment of the request is not
+ * reconstructable after the fact.
+ */
+export interface WireDiscoveredViolation {
+  host: string;
+  purpose_code: string;
+  consent_status: string;
+  observed_at: string;
+}
+
+export interface WireDiscoveryInventory {
+  site_id: string;
+  generated_at: string;
+  totals: {
+    destinations: number;
+    third_party: number;
+    unclassified: number;
+    cross_border: number;
+    storage_items: number;
+    open_violations: number;
+  };
+  components: WireClassifiedComponent[];
+  storage: WireDiscoveredStorageItem[];
+  violations: WireDiscoveredViolation[];
+}
+
+/** `shared/transfer.ts` — routing metadata for a completed transfer. No payload. */
+export interface WireTransferRecord {
+  transfer_id: string;
+  authorisation_id: string;
+  site_id: string;
+  purpose_code: string;
+  recipient_code: string;
+  principal_external_id: string;
+  consent_record_id: string;
+  status: 'RECORDED' | 'DELIVERED' | 'FAILED';
+  ciphertext_sha256: string;
+  payload_bytes: number;
+  recorded_at: string;
+  delivered_at: string | null;
+}
+
+export interface WireRecipient {
+  recipient_id: string;
+  code: string;
+  name: string;
+  public_key: string;
+  algorithm: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+/** `shared/consent-firewall.ts` — one evaluated request. */
+export interface WireFirewallEvidence {
+  /** `policy` | `consent` | `catalogue` | `config` */
+  source: string;
+  detail: string;
+}
+
+export interface WireFirewallDecision {
+  decision: 'ALLOW' | 'BLOCK' | 'REDACT' | 'REQUIRE_CONSENT' | 'REVIEW';
+  /** What happens to the request. REVIEW and ALLOW both allow. */
+  effect: 'allow' | 'block';
+  destination_host: string | null;
+  vendor: string | null;
+  purpose: string | null;
+  /** The visitor's state for the gating purpose, or `n/a`. */
+  user_state: string;
+  matched_rule: { host: string; vendor: string; purpose: string | null; action: string } | null;
+  policy_version: string | null;
+  reason: string;
+  severity: 'critical' | 'high' | 'medium' | 'low' | 'info';
+  evidence: WireFirewallEvidence[];
+  /** Rule ids applied. Ids only — never a value. */
+  redactions: string[];
+  /** True when the deciding policy is in `observe` mode, so the effect was
+   *  recorded rather than applied. An observed BLOCK did not block anything. */
+  observed_only: boolean;
+  source: string;
+}
+
+export interface WireFirewallEvaluation {
+  decision: WireFirewallDecision;
+  redaction_applied: string[];
+  would_send: boolean;
+  config_problems: string[];
+  legal_advice: false;
+}
+
+/** `shared/consent-proof.ts` — the receipt for one consent record. */
+export interface WireConsentProof {
+  proof: string;
+  evidence: {
+    site_id: string;
+    principal_external_id: string;
+    purpose_code: string;
+    status: string;
+    decided_at: string;
+    notice_id: string | null;
+    policy_version_id: string | null;
+    policy_config_version: string | null;
+    jurisdictions: string[];
+    vendors: string[];
+    mechanism: string | null;
+    source: string;
+  };
+  /** The identifier, never the key. */
+  key_id: string | null;
+  /** The limits, stated on the proof so they travel with it. */
+  caveat: string;
+  legal_advice: false;
+}
+
+/** `shared/audit.ts` — consent, authorisation and transfer on one timeline. */
+export type WireAuditKind = 'consent' | 'authorisation' | 'transfer';
+
+export interface WireAuditEntry {
+  kind: WireAuditKind;
+  at: string;
+  site_id: string;
+  principal_external_id: string;
+  purpose_code: string;
+  /** Domain-specific: GRANTED / AUTHORISED / DELIVERED and so on. */
+  status: string;
+  /** One line readable without cross-referencing anything. */
+  summary: string;
+  /** Cross-references, so one decision can be followed through to delivery. */
+  consent_record_id: string | null;
+  authorisation_id: string | null;
+  transfer_id: string | null;
+}
+
+/**
+ * `shared/authorisation.ts` — "is this action currently authorised?", asked
+ * without committing to it.
+ *
+ * The six reasons are distinct rather than one generic failure because "never
+ * decided", "refused" and "granted then withdrawn" call for different responses
+ * from the caller and mean different things to an auditor.
+ */
+export type WireDecisionReason =
+  | 'site_not_found'
+  | 'principal_not_found'
+  | 'purpose_not_found'
+  | 'no_consent_decision'
+  | 'consent_denied'
+  | 'consent_withdrawn';
+
+export interface WireAuthorisationDecision {
+  permitted: boolean;
+  reason: WireDecisionReason | null;
+  message: string;
+  site_id: string;
+  principal_external_id: string;
+  purpose_code: string;
+  consent_record_id: string | null;
+  consent_status: string | null;
+  /** When the principal made the decision being relied upon. */
+  decided_at: string | null;
+}
+
+// ─── Phase 11C ───────────────────────────────────────────────────────────────
+//
+// The last four management-plane endpoints without a caller. The two transfer
+// endpoints that also had none are deliberately absent: `/transfers/pending`
+// and `/transfers/:id/envelope` authenticate a *delivery* credential, which is
+// the recipient's, not the organisation's. A dashboard holding the org secret
+// structurally cannot call them, and should not.
+
+/** `shared/consent.ts` — a policy and its immutable versions. */
+export interface WirePolicyVersionSummary {
+  policy_version_id: string;
+  policy_id: string;
+  policy_code: string;
+  version: string;
+  document_url: string | null;
+  content_hash: string | null;
+  published_at: string;
+}
+
+export interface WirePolicySummary {
+  policy_id: string;
+  code: string;
+  name: string;
+  created_at: string;
+  versions: WirePolicyVersionSummary[];
+}
+
+/** A notice: what a specific policy version actually disclosed, and where. */
+export interface WireNoticeSummary {
+  notice_id: string;
+  version: string;
+  locale: string;
+  policy_version_id: string;
+  published_at: string;
+  /** Purpose codes this notice disclosed. */
+  purpose_codes: string[];
+}
+
+/** `shared/consent.ts` — one visitor's consent as it stands right now. */
+export interface WireEffectiveConsent {
+  purpose_code: string;
+  status: string;
+  decided_at: string;
+  consent_record_id: string;
+  notice_id: string | null;
+  policy_version_id: string | null;
+}
+
+export interface WireConsentState {
+  site_id: string;
+  principal_external_id: string;
+  purposes: WireEffectiveConsent[];
+}
+
+/** `shared/analytics.ts` — the organisation, not one site. */
+export interface WirePlatformOverview {
+  sites: { total: number; active: number };
+  consent: {
+    total_decisions: number;
+    granted: number;
+    denied: number;
+    withdrawn: number;
+    /** Distinct principals who have recorded at least one decision. */
+    principals: number;
+  };
+  authorisations: { total: number; authorised: number; consumed: number; expired: number };
+  transfers: { total: number; recorded: number; delivered: number; failed: number };
+  activity: { sessions: number; page_views: number; total_events: number };
+}

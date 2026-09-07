@@ -312,3 +312,172 @@ export interface ChangeEntry {
   occurredAt: string;
   handling: 'automatic' | 'needs_review';
 }
+
+/* ── Discovery (Phase 11A) ─────────────────────────────────────────────────
+   What is running on the pages, where it sends data, and whether any of it
+   fired when consent said it should not. */
+
+export interface DiscoveredComponent {
+  host: string;
+  vendor: string | null;
+  category: string | null;
+  kind: string;
+  initiator: string | null;
+  thirdParty: boolean;
+  requestCount: number;
+  pageUrl: string;
+  firstSeen: string;
+  lastSeen: string;
+  destinationCountry: string | null;
+  crossesBorder: boolean;
+  /** True when the catalogue does not know this host. Not a violation. */
+  unclassified: boolean;
+}
+
+export interface ConsentViolation {
+  host: string;
+  purposeCode: string;
+  /** DENIED or WITHDRAWN — the effective status when the request was observed. */
+  consentStatus: string;
+  observedAt: string;
+}
+
+export interface StorageItem {
+  kind: 'cookie' | 'local_storage' | 'session_storage';
+  name: string;
+  writer: string | null;
+  firstSeen: string;
+}
+
+export interface DiscoveryInventory {
+  siteId: string;
+  generatedAt: string;
+  totals: {
+    destinations: number;
+    thirdParty: number;
+    unclassified: number;
+    crossBorder: number;
+    storageItems: number;
+    openViolations: number;
+  };
+  components: DiscoveredComponent[];
+  storage: StorageItem[];
+  violations: ConsentViolation[];
+}
+
+/* ── Data flow (Phase 11A) ─────────────────────────────────────────────────
+   Two halves that answer the same question from opposite ends: what leaves the
+   browser (observed by the SDK) and what leaves the server under an
+   authorisation (recorded by the transfer ledger). */
+
+export interface DataFlowDestination {
+  host: string;
+  vendor: string | null;
+  category: string | null;
+  country: string | null;
+  crossesBorder: boolean;
+  requestCount: number;
+}
+
+export interface ServerTransfer {
+  transferId: string;
+  purposeCode: string;
+  recipientCode: string;
+  recipientName: string | null;
+  status: 'RECORDED' | 'DELIVERED' | 'FAILED';
+  payloadBytes: number;
+  recordedAt: string;
+  deliveredAt: string | null;
+  /** The consent decision this transfer was authorised against. */
+  consentRecordId: string;
+}
+
+export interface DataFlowMap {
+  siteId: string;
+  /** Grouped by destination country; `null` key means the country is unknown. */
+  byCountry: Array<{
+    country: string | null;
+    crossesBorder: boolean;
+    destinations: DataFlowDestination[];
+    requestCount: number;
+  }>;
+  browserDestinations: DataFlowDestination[];
+  serverTransfers: ServerTransfer[];
+  totals: { destinations: number; countries: number; crossBorder: number; transfers: number };
+}
+
+/* ── Audit trail (Phase 11B) ───────────────────────────────────────────────
+   One timeline across three domains the platform deliberately keeps apart.
+   The cross-reference ids are the point: a consent decision, the authorisation
+   that relied on it, and the transfer that followed are three rows a reader
+   has to be able to join. */
+
+export type AuditKind = 'consent' | 'authorisation' | 'transfer';
+
+export interface AuditEntry {
+  kind: AuditKind;
+  at: string;
+  siteId: string;
+  principal: string;
+  purposeCode: string;
+  status: string;
+  /** The platform's own sentence. Never recomposed here. */
+  summary: string;
+  consentRecordId: string | null;
+  authorisationId: string | null;
+  transferId: string | null;
+}
+
+/* ── Policies, notices, visitor state, org overview (Phase 11C) ──────────── */
+
+export interface PolicyVersion {
+  versionId: string;
+  policyId: string;
+  policyCode: string;
+  version: string;
+  documentUrl: string | null;
+  contentHash: string | null;
+  publishedAt: string;
+}
+
+export interface PolicyRecord {
+  policyId: string;
+  code: string;
+  name: string;
+  createdAt: string;
+  /** Newest first. Versions are immutable once published. */
+  versions: PolicyVersion[];
+}
+
+export interface NoticeRecord {
+  noticeId: string;
+  version: string;
+  locale: string;
+  policyVersionId: string;
+  publishedAt: string;
+  purposeCodes: string[];
+}
+
+/** One purpose, as this visitor last left it. */
+export interface EffectivePurpose {
+  purposeCode: string;
+  status: string;
+  decidedAt: string;
+  consentRecordId: string;
+  noticeId: string | null;
+  policyVersionId: string | null;
+}
+
+export interface VisitorConsentState {
+  siteId: string;
+  principal: string;
+  purposes: EffectivePurpose[];
+}
+
+export interface OrganisationOverview {
+  sites: { total: number; active: number };
+  consent: { decisions: number; granted: number; denied: number; withdrawn: number; principals: number };
+  authorisations: { total: number; authorised: number; consumed: number; expired: number };
+  transfers: { total: number; recorded: number; delivered: number; failed: number };
+  activity: { sessions: number; pageViews: number; events: number };
+}

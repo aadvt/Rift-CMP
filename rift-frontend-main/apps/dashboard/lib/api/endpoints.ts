@@ -7,6 +7,9 @@ import { describePurpose } from './adapters';
 import type * as W from './backend';
 import type { ProposedChange, WireSimulation, WireSimulationResponse } from './simulation';
 import type {
+  PolicyRecord, PolicyVersion, NoticeRecord, VisitorConsentState, EffectivePurpose, OrganisationOverview,
+  AuditEntry,
+  DiscoveryInventory, DataFlowMap,
   AnalyticsOverview, ChangeEntry, ConsentOverview, ConsentRecord, Finding, InstallSnippet,
   RiftConfiguration, Scan, ScanDiff, ScanSummary, Site, Verification,
 } from './types';
@@ -1056,4 +1059,230 @@ export async function getGraphNode(
     { revalidate: 60 },
   ).catch(() => null);
   return body?.detail ?? null;
+}
+
+/* ── Phase 11A ─────────────────────────────────────────────────────────────
+   Three reads the platform has always served and no screen has ever made. */
+
+/**
+ * What actually ran on the site's pages, observed in the browser by the SDK.
+ *
+ * This is not the scanner. A crawl visits a URL once, logged out, and sees what
+ * loads for a robot; the SDK is on the page while real people use it, so it
+ * catches lazy-loaded tags, logged-in states, and whether a request genuinely
+ * left the browser. That last part is what makes a violation evidence rather
+ * than an inventory.
+ */
+export async function getDiscoveryInventory(siteId: string): Promise<DiscoveryInventory> {
+  if (USE_FIXTURES) return fx.DISCOVERY;
+
+  // Degrades to an empty inventory rather than throwing. The data-flow screen
+  // composes this with the transfer ledger, and a discovery outage should cost
+  // that screen one half, not the whole page — which is how its two sibling
+  // reads there already behave.
+  const wire = await riftFetch<W.WireDiscoveryInventory>(
+    `${V1}/discovery/inventory?site_id=${encodeURIComponent(siteId)}`,
+    { tags: [tag.site(siteId)], ...LIVE },
+  ).catch(() => null);
+
+  return wire ? adapt.toDiscoveryInventory(wire) : {
+    siteId,
+    generatedAt: new Date().toISOString(),
+    totals: { destinations: 0, thirdParty: 0, unclassified: 0, crossBorder: 0, storageItems: 0, openViolations: 0 },
+    components: [], storage: [], violations: [],
+  };
+}
+
+/**
+ * Where a site's data goes, from both ends.
+ *
+ * The browser half comes from discovery: third-party destinations with the
+ * country each is understood to terminate in. The server half comes from the
+ * transfer ledger: payloads released to a registered recipient under an
+ * authorisation that named a specific consent record.
+ *
+ * Recipients are fetched to put a name against a code; a failure there costs a
+ * label, not the screen, so it degrades to the code rather than throwing.
+ */
+export async function getDataFlowMap(siteId: string): Promise<DataFlowMap> {
+  if (USE_FIXTURES) return fx.DATA_FLOW;
+
+  const [inventory, transfers, recipients] = await Promise.all([
+    getDiscoveryInventory(siteId),
+    riftFetch<{ transfers: W.WireTransferRecord[] }>(
+      `${V1}/transfers?site_id=${encodeURIComponent(siteId)}&limit=200`,
+      { tags: [tag.site(siteId)], ...LIVE },
+    ).then((r) => r.transfers ?? []).catch(() => [] as W.WireTransferRecord[]),
+    riftFetch<{ recipients: W.WireRecipient[] }>(`${V1}/recipients`, { tags: [tag.sites], ...LIVE })
+      .then((r) => r.recipients ?? []).catch(() => [] as W.WireRecipient[]),
+  ]);
+
+  return adapt.toDataFlowMap(siteId, inventory, transfers, recipients);
+}
+
+/**
+ * Ask the firewall what it would do to one request, without doing it.
+ *
+ * `POST` because a request is a body, not because anything is created. The
+ * platform is explicit that a dry run is not an enforcement event and is never
+ * written to the log — filling an audit trail with things that never happened
+ * would make the real entries worth less.
+ *
+ * `LIVE` rather than a revalidate window: two evaluations of the same
+ * destination a minute apart must both run, because the consent state they read
+ * is exactly the thing that changes underneath them.
+ */
+export async function evaluateFirewall(
+  siteId: string,
+  input: {
+    destination: string;
+    vendor?: string | null;
+    purpose?: string | null;
+    principalExternalId?: string;
+  },
+): Promise<W.WireFirewallEvaluation> {
+  if (USE_FIXTURES) return fx.firewallEvaluation(input.destination, input.purpose ?? null);
+
+  return riftFetch<W.WireFirewallEvaluation>(`${V1}/sites/${siteId}/firewall`, {
+    method: 'POST',
+    body: {
+      destination: input.destination,
+      ...(input.vendor === undefined ? {} : { vendor: input.vendor }),
+      ...(input.purpose === undefined ? {} : { purpose: input.purpose }),
+      ...(input.principalExternalId ? { principal_external_id: input.principalExternalId } : {}),
+    },
+    ...LIVE,
+  });
+}
+
+/**
+ * The receipt for one consent decision.
+ *
+ * `VerifyProofButton` already checks a proof; this fetches the thing being
+ * checked, so an operator can read what was actually attested and hand it to
+ * somebody who was not there. The response carries its own caveat, which is
+ * rendered rather than summarised: the limits are supposed to travel with the
+ * receipt.
+ */
+export async function getConsentProof(recordId: string): Promise<W.WireConsentProof | null> {
+  if (USE_FIXTURES) return fx.CONSENT_PROOF;
+
+  return riftFetch<W.WireConsentProof>(
+    `${V1}/consent/records/${encodeURIComponent(recordId)}/proof`,
+    { ...LIVE },
+  ).catch(() => null);
+}
+
+/**
+ * The audit trail: consent decisions, authorisations and transfers on one
+ * timeline.
+ *
+ * The platform stores the three domains separately and joins them only for a
+ * reader — which is what makes this worth a screen. Each entry carries the ids
+ * of the others, so one decision can be followed through to the transfer it
+ * justified without anybody reconstructing the link by hand.
+ */
+export async function getAuditTrail(
+  siteId?: string,
+  limit = 200,
+): Promise<AuditEntry[]> {
+  if (USE_FIXTURES) return fx.AUDIT_TRAIL;
+
+  const query = new URLSearchParams({ limit: String(limit) });
+  if (siteId) query.set('site_id', siteId);
+
+  const body = await riftFetch<{ entries: W.WireAuditEntry[] }>(
+    `${V1}/audit?${query.toString()}`,
+    { tags: [siteId ? tag.site(siteId) : tag.sites], ...LIVE },
+  ).catch(() => ({ entries: [] as W.WireAuditEntry[] }));
+
+  return body.entries.map(adapt.toAuditEntry);
+}
+
+/**
+ * "May this principal's data be used for this purpose, right now?"
+ *
+ * Asked without committing to it: creating an authorisation burns a single-use
+ * permission and writes a row, and the question is usually asked *before*
+ * deciding whether to collect the data at all. This endpoint answers without
+ * writing anything.
+ */
+export async function checkAuthorisation(input: {
+  siteId: string;
+  principalExternalId: string;
+  purposeCode: string;
+}): Promise<W.WireAuthorisationDecision> {
+  if (USE_FIXTURES) {
+    return fx.authorisationDecision(input.principalExternalId, input.purposeCode);
+  }
+
+  return riftFetch<W.WireAuthorisationDecision>(`${V1}/authorisations/decision`, {
+    method: 'POST',
+    body: {
+      site_id: input.siteId,
+      principal_external_id: input.principalExternalId,
+      purpose_code: input.purposeCode,
+    },
+    ...LIVE,
+  });
+}
+
+/* ── Phase 11C ───────────────────────────────────────────────────────────── */
+
+/**
+ * The organisation's policies, each with its immutable versions.
+ *
+ * A policy is a document; its text lives in versions that never change once
+ * published, because a consent record points at one and has to keep meaning
+ * what it meant. That is the reason this deserves a screen: the version is the
+ * thing a consent record is evidence *against*.
+ */
+export async function listPolicies(): Promise<PolicyRecord[]> {
+  if (USE_FIXTURES) return fx.POLICIES;
+  const body = await riftFetch<{ policies: W.WirePolicySummary[] }>(`${V1}/policies`, {
+    tags: [tag.sites], revalidate: WINDOW.policy,
+  }).catch(() => ({ policies: [] as W.WirePolicySummary[] }));
+  return body.policies.map(adapt.toPolicyRecord);
+}
+
+/** What each published policy version actually disclosed, and in which locale. */
+export async function listNotices(): Promise<NoticeRecord[]> {
+  if (USE_FIXTURES) return fx.NOTICES;
+  const body = await riftFetch<{ notices: W.WireNoticeSummary[] }>(`${V1}/notices`, {
+    tags: [tag.sites], revalidate: WINDOW.policy,
+  }).catch(() => ({ notices: [] as W.WireNoticeSummary[] }));
+  return body.notices.map(adapt.toNoticeRecord);
+}
+
+/**
+ * One visitor's consent as it stands right now.
+ *
+ * Distinct from their consent *history*: this is the derived current state the
+ * runtime and the authorisation gate both read, so it is the answer to "what is
+ * this person allowing today" rather than "what have they ever said".
+ */
+export async function getVisitorConsent(
+  siteId: string,
+  principalExternalId: string,
+): Promise<VisitorConsentState | null> {
+  if (USE_FIXTURES) return fx.visitorConsent(principalExternalId);
+  const query = new URLSearchParams({ site_id: siteId, principal_external_id: principalExternalId });
+  return riftFetch<W.WireConsentState>(`${V1}/consent/effective?${query.toString()}`, { ...LIVE })
+    .then(adapt.toVisitorConsentState)
+    .catch(() => null);
+}
+
+/**
+ * The organisation, rather than one site.
+ *
+ * `analytics/summary` answers "how is this website doing"; this answers "how is
+ * the account doing", including the authorisation and transfer counts that have
+ * no per-site screen at all.
+ */
+export async function getOrganisationOverview(): Promise<OrganisationOverview | null> {
+  if (USE_FIXTURES) return fx.ORG_OVERVIEW;
+  const body = await riftFetch<{ overview: W.WirePlatformOverview }>(`${V1}/analytics/overview`, {
+    tags: [tag.sites], revalidate: WINDOW.consent,
+  }).catch(() => null);
+  return body ? adapt.toOrganisationOverview(body.overview) : null;
 }

@@ -40,7 +40,16 @@ function readFromEnvFile(file: string): string | undefined {
   return /^\s*DATABASE_URL\s*=\s*"?([^"\n]+)"?/m.exec(fs.readFileSync(full, "utf8"))?.[1];
 }
 
-export function resolveTestDatabaseUrl(): string {
+/**
+ * The same resolution, without the throw.
+ *
+ * `vitest.config.ts` builds every project's config object eagerly, including
+ * the integration project's `env`, so a throw in there fails `--project unit`
+ * as well — which is exactly the database-outage failure the unit/integration
+ * split exists to prevent. Config uses this; `global-setup` (which runs only
+ * for the integration project) uses the throwing version below.
+ */
+export function tryResolveTestDatabaseUrl(): string | undefined {
   const base = [
     process.env.TEST_DATABASE_URL,
     readFromEnvFile(".env.local"),
@@ -49,14 +58,20 @@ export function resolveTestDatabaseUrl(): string {
     readFromEnvFile("../database/.env"),
   ].find((value): value is string => Boolean(value));
 
-  if (!base) {
-    throw new Error(
-      "No DATABASE_URL found for tests. Set TEST_DATABASE_URL, or create api/.env.local (see README).",
-    );
-  }
+  if (!base) return undefined;
 
   const stripped = toDirectEndpoint(base)
     .replace(/([?&])schema=[^&]*/g, "$1")
     .replace(/[?&]+$/, "");
   return `${stripped}${stripped.includes("?") ? "&" : "?"}schema=${TEST_SCHEMA}`;
+}
+
+export function resolveTestDatabaseUrl(): string {
+  const url = tryResolveTestDatabaseUrl();
+  if (!url) {
+    throw new Error(
+      "No DATABASE_URL found for tests. Set TEST_DATABASE_URL, or create api/.env.local (see README).",
+    );
+  }
+  return url;
 }

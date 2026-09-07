@@ -1,6 +1,9 @@
 import 'server-only';
 import type * as W from './backend';
 import type {
+  PolicyRecord, PolicyVersion, NoticeRecord, VisitorConsentState, EffectivePurpose, OrganisationOverview,
+  AuditEntry,
+  DiscoveryInventory, DataFlowMap, DataFlowDestination,
   AnalyticsOverview, ChangeEntry, ConfidenceLevel, ConsentCategory, ConsentOverview,
   ConsentRecord, DiffEntry, EnforcementConfiguration, Finding, HealthState, InstallSnippet,
   RegionConfiguration, RiftConfiguration, Scan, ScanDiff, ScanStage, ScanStageId, ScanStatus,
@@ -1495,5 +1498,209 @@ export function describePurpose(code: string): { code: string; name: string; des
     code,
     name: code.replace(/[_-]+/g, ' ').replace(/^./, (c) => c.toUpperCase()),
     description: 'Declared automatically from your scan. Edit this description to say what it covers.',
+  };
+}
+
+/* ── Phase 11A ─────────────────────────────────────────────────────────────
+   Wire → product for the three contracts the platform served and no screen
+   read. Pure, as everything in this file is: every one is testable on a
+   literal, and none of them decides anything the platform did not. */
+
+export function toDiscoveryInventory(wire: W.WireDiscoveryInventory): DiscoveryInventory {
+  return {
+    siteId: wire.site_id,
+    generatedAt: wire.generated_at,
+    totals: {
+      destinations: wire.totals.destinations,
+      thirdParty: wire.totals.third_party,
+      unclassified: wire.totals.unclassified,
+      crossBorder: wire.totals.cross_border,
+      storageItems: wire.totals.storage_items,
+      openViolations: wire.totals.open_violations,
+    },
+    components: wire.components.map((c) => ({
+      host: c.host,
+      vendor: c.vendor,
+      category: c.category,
+      kind: c.kind,
+      initiator: c.initiator,
+      thirdParty: c.third_party,
+      requestCount: c.request_count,
+      pageUrl: c.page_url,
+      firstSeen: c.first_seen,
+      lastSeen: c.last_seen,
+      destinationCountry: c.destination_country,
+      crossesBorder: c.crosses_border,
+      // Not in the catalogue. An absence of knowledge, not a finding against
+      // the site — the same distinction `unresolved` carries elsewhere.
+      unclassified: c.vendor === null,
+    })),
+    storage: wire.storage.map((s) => ({
+      kind: s.kind, name: s.name, writer: s.writer, firstSeen: s.first_seen,
+    })),
+    violations: wire.violations.map((v) => ({
+      host: v.host,
+      purposeCode: v.purpose_code,
+      consentStatus: v.consent_status,
+      observedAt: v.observed_at,
+    })),
+  };
+}
+
+/**
+ * The two halves of data flow, joined only by the site they belong to.
+ *
+ * Browser destinations are grouped by country because that is the question DPDP
+ * asks — a transfer outside India is a distinct obligation — and the grouping
+ * keeps `null` as its own bucket rather than folding unknown destinations into
+ * "domestic", which would be the flattering guess rather than the true one.
+ */
+export function toDataFlowMap(
+  siteId: string,
+  inventory: DiscoveryInventory,
+  transfers: W.WireTransferRecord[],
+  recipients: W.WireRecipient[],
+): DataFlowMap {
+  const recipientName = new Map(recipients.map((r) => [r.code, r.name]));
+
+  const browserDestinations: DataFlowDestination[] = inventory.components
+    .filter((c) => c.thirdParty)
+    .map((c) => ({
+      host: c.host,
+      vendor: c.vendor,
+      category: c.category,
+      country: c.destinationCountry,
+      crossesBorder: c.crossesBorder,
+      requestCount: c.requestCount,
+    }));
+
+  const groups = new Map<string, DataFlowMap['byCountry'][number]>();
+  for (const d of browserDestinations) {
+    const key = d.country ?? ' unknown';
+    let group = groups.get(key);
+    if (!group) {
+      group = { country: d.country, crossesBorder: d.crossesBorder, destinations: [], requestCount: 0 };
+      groups.set(key, group);
+    }
+    group.destinations.push(d);
+    group.requestCount += d.requestCount;
+  }
+
+  const byCountry = [...groups.values()].sort((a, b) => {
+    // Unknown last: it is the least actionable row, and leading with it would
+    // suggest the map is mostly guesswork when the rest of it is not.
+    if (a.country === null) return 1;
+    if (b.country === null) return -1;
+    return b.requestCount - a.requestCount;
+  });
+
+  return {
+    siteId,
+    byCountry,
+    browserDestinations: [...browserDestinations].sort((a, b) => b.requestCount - a.requestCount),
+    serverTransfers: transfers.map((t) => ({
+      transferId: t.transfer_id,
+      purposeCode: t.purpose_code,
+      recipientCode: t.recipient_code,
+      recipientName: recipientName.get(t.recipient_code) ?? null,
+      status: t.status,
+      payloadBytes: t.payload_bytes,
+      recordedAt: t.recorded_at,
+      deliveredAt: t.delivered_at,
+      consentRecordId: t.consent_record_id,
+    })),
+    totals: {
+      destinations: browserDestinations.length,
+      countries: byCountry.filter((g) => g.country !== null).length,
+      crossBorder: browserDestinations.filter((d) => d.crossesBorder).length,
+      transfers: transfers.length,
+    },
+  };
+}
+
+/** Wire → product for one audit row. Field renames only; the summary sentence
+ *  the platform wrote is the sentence the screen shows. */
+export function toAuditEntry(w: W.WireAuditEntry): AuditEntry {
+  return {
+    kind: w.kind,
+    at: w.at,
+    siteId: w.site_id,
+    principal: w.principal_external_id,
+    purposeCode: w.purpose_code,
+    status: w.status,
+    summary: w.summary,
+    consentRecordId: w.consent_record_id,
+    authorisationId: w.authorisation_id,
+    transferId: w.transfer_id,
+  };
+}
+
+/* ── Phase 11C ───────────────────────────────────────────────────────────── */
+
+export function toPolicyRecord(w: W.WirePolicySummary): PolicyRecord {
+  return {
+    policyId: w.policy_id,
+    code: w.code,
+    name: w.name,
+    createdAt: w.created_at,
+    // The platform returns versions oldest-first because that is publication
+    // order. A reader wants the current one at the top.
+    versions: [...w.versions]
+      .map((v) => ({
+        versionId: v.policy_version_id,
+        policyId: v.policy_id,
+        policyCode: v.policy_code,
+        version: v.version,
+        documentUrl: v.document_url,
+        contentHash: v.content_hash,
+        publishedAt: v.published_at,
+      }))
+      .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)),
+  };
+}
+
+export function toNoticeRecord(w: W.WireNoticeSummary): NoticeRecord {
+  return {
+    noticeId: w.notice_id,
+    version: w.version,
+    locale: w.locale,
+    policyVersionId: w.policy_version_id,
+    publishedAt: w.published_at,
+    purposeCodes: w.purpose_codes,
+  };
+}
+
+export function toVisitorConsentState(w: W.WireConsentState): VisitorConsentState {
+  return {
+    siteId: w.site_id,
+    principal: w.principal_external_id,
+    purposes: w.purposes.map((p) => ({
+      purposeCode: p.purpose_code,
+      status: p.status,
+      decidedAt: p.decided_at,
+      consentRecordId: p.consent_record_id,
+      noticeId: p.notice_id,
+      policyVersionId: p.policy_version_id,
+    })),
+  };
+}
+
+export function toOrganisationOverview(w: W.WirePlatformOverview): OrganisationOverview {
+  return {
+    sites: w.sites,
+    consent: {
+      decisions: w.consent.total_decisions,
+      granted: w.consent.granted,
+      denied: w.consent.denied,
+      withdrawn: w.consent.withdrawn,
+      principals: w.consent.principals,
+    },
+    authorisations: w.authorisations,
+    transfers: w.transfers,
+    activity: {
+      sessions: w.activity.sessions,
+      pageViews: w.activity.page_views,
+      events: w.activity.total_events,
+    },
   };
 }

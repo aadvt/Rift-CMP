@@ -1,4 +1,8 @@
+import type * as W from './backend';
 import type {
+  PolicyRecord, NoticeRecord, OrganisationOverview, VisitorConsentState,
+  AuditEntry,
+  DiscoveryInventory, DataFlowMap,
   AnalyticsOverview, ChangeEntry, ConsentOverview, ConsentRecord, Finding,
   InstallSnippet, RiftConfiguration, Scan, ScanDiff, ScanSummary, Site, Verification,
 } from './types';
@@ -358,3 +362,353 @@ export const ANALYTICS: AnalyticsOverview = {
     { device: 'Tablet', share: 6 },
   ],
 };
+
+/* ── Phase 11A ─────────────────────────────────────────────────────────────
+   Development data for the three screens added in this phase. Shaped to the
+   product types, so these double as the literals the adapter tests run on. */
+
+export const DISCOVERY: DiscoveryInventory = {
+  siteId: 'site_9fb2c41a',
+  generatedAt: '2026-09-06T09:41:00Z',
+  totals: {
+    destinations: 14, thirdParty: 11, unclassified: 3,
+    crossBorder: 9, storageItems: 12, openViolations: 2,
+  },
+  components: [
+    { host: 'www.googletagmanager.com', vendor: 'Google Analytics 4', category: 'analytics', kind: 'script', initiator: null, thirdParty: true, requestCount: 412, pageUrl: '/', firstSeen: '2026-08-21T09:11:00Z', lastSeen: '2026-09-06T09:38:00Z', destinationCountry: 'US', crossesBorder: true, unclassified: false },
+    { host: 'connect.facebook.net', vendor: 'Meta Pixel', category: 'marketing', kind: 'script', initiator: 'www.googletagmanager.com/gtm.js', thirdParty: true, requestCount: 288, pageUrl: '/', firstSeen: '2026-08-21T09:11:00Z', lastSeen: '2026-09-06T09:38:00Z', destinationCountry: 'US', crossesBorder: true, unclassified: false },
+    { host: 'static.hotjar.com', vendor: 'Hotjar', category: 'analytics', kind: 'script', initiator: null, thirdParty: true, requestCount: 196, pageUrl: '/collections/autumn', firstSeen: '2026-08-28T09:12:00Z', lastSeen: '2026-09-06T09:36:00Z', destinationCountry: 'MT', crossesBorder: true, unclassified: false },
+    { host: 'js.stripe.com', vendor: 'Stripe', category: 'necessary', kind: 'script', initiator: null, thirdParty: true, requestCount: 154, pageUrl: '/checkout', firstSeen: '2026-08-21T09:11:00Z', lastSeen: '2026-09-06T09:39:00Z', destinationCountry: 'US', crossesBorder: true, unclassified: false },
+    { host: 'analytics.tiktok.com', vendor: 'TikTok Pixel', category: 'marketing', kind: 'beacon', initiator: 'www.googletagmanager.com/gtm.js', thirdParty: true, requestCount: 121, pageUrl: '/', firstSeen: '2026-09-04T09:14:00Z', lastSeen: '2026-09-06T09:38:00Z', destinationCountry: 'SG', crossesBorder: true, unclassified: false },
+    { host: 'widget.intercom.io', vendor: 'Intercom', category: 'preferences', kind: 'script', initiator: null, thirdParty: true, requestCount: 98, pageUrl: '/', firstSeen: '2026-08-21T09:11:00Z', lastSeen: '2026-09-06T09:37:00Z', destinationCountry: 'US', crossesBorder: true, unclassified: false },
+    { host: 'cdn.northwind-retail.com', vendor: 'Northwind CDN', category: 'necessary', kind: 'image', initiator: null, thirdParty: false, requestCount: 1840, pageUrl: '/', firstSeen: '2026-08-14T09:15:00Z', lastSeen: '2026-09-06T09:40:00Z', destinationCountry: 'IN', crossesBorder: false, unclassified: false },
+    { host: 'checkout.razorpay.com', vendor: 'Razorpay', category: 'necessary', kind: 'script', initiator: null, thirdParty: true, requestCount: 87, pageUrl: '/checkout', firstSeen: '2026-08-14T09:15:00Z', lastSeen: '2026-09-06T09:39:00Z', destinationCountry: 'IN', crossesBorder: false, unclassified: false },
+    { host: 'tracker.example.net', vendor: null, category: null, kind: 'beacon', initiator: null, thirdParty: true, requestCount: 63, pageUrl: '/journal/how-we-make-it', firstSeen: '2026-09-04T09:14:00Z', lastSeen: '2026-09-06T09:31:00Z', destinationCountry: null, crossesBorder: false, unclassified: true },
+    { host: 'rec.pxlgrid.net', vendor: null, category: null, kind: 'xhr', initiator: null, thirdParty: true, requestCount: 41, pageUrl: '/products/field-jacket', firstSeen: '2026-09-02T09:10:00Z', lastSeen: '2026-09-06T09:22:00Z', destinationCountry: null, crossesBorder: false, unclassified: true },
+    { host: 'metrics.vendor-cdn.io', vendor: null, category: null, kind: 'beacon', initiator: null, thirdParty: true, requestCount: 28, pageUrl: '/', firstSeen: '2026-09-02T09:10:00Z', lastSeen: '2026-09-06T09:18:00Z', destinationCountry: 'DE', crossesBorder: true, unclassified: true },
+  ],
+  storage: [
+    { kind: 'cookie', name: '_ga', writer: 'www.googletagmanager.com', firstSeen: '2026-08-21T09:11:00Z' },
+    { kind: 'cookie', name: '_fbp', writer: 'connect.facebook.net', firstSeen: '2026-08-21T09:11:00Z' },
+    { kind: 'cookie', name: '_ttp', writer: 'analytics.tiktok.com', firstSeen: '2026-09-04T09:14:00Z' },
+    { kind: 'local_storage', name: 'hj_session', writer: 'static.hotjar.com', firstSeen: '2026-08-28T09:12:00Z' },
+    { kind: 'cookie', name: 'tx_id', writer: null, firstSeen: '2026-09-04T09:14:00Z' },
+    { kind: 'session_storage', name: 'intercom-state', writer: 'widget.intercom.io', firstSeen: '2026-08-21T09:11:00Z' },
+  ],
+  // The claim the feature exists to support: a destination contacted while
+  // consent for its purpose was not granted.
+  violations: [
+    { host: 'analytics.tiktok.com', purposeCode: 'marketing', consentStatus: 'DENIED', observedAt: '2026-09-06T08:52:00Z' },
+    { host: 'connect.facebook.net', purposeCode: 'marketing', consentStatus: 'WITHDRAWN', observedAt: '2026-09-05T17:04:00Z' },
+  ],
+};
+
+export const DATA_FLOW: DataFlowMap = {
+  siteId: 'site_9fb2c41a',
+  byCountry: [
+    {
+      country: 'US', crossesBorder: true, requestCount: 952,
+      destinations: [
+        { host: 'www.googletagmanager.com', vendor: 'Google Analytics 4', category: 'analytics', country: 'US', crossesBorder: true, requestCount: 412 },
+        { host: 'connect.facebook.net', vendor: 'Meta Pixel', category: 'marketing', country: 'US', crossesBorder: true, requestCount: 288 },
+        { host: 'js.stripe.com', vendor: 'Stripe', category: 'necessary', country: 'US', crossesBorder: true, requestCount: 154 },
+        { host: 'widget.intercom.io', vendor: 'Intercom', category: 'preferences', country: 'US', crossesBorder: true, requestCount: 98 },
+      ],
+    },
+    {
+      country: 'MT', crossesBorder: true, requestCount: 196,
+      destinations: [{ host: 'static.hotjar.com', vendor: 'Hotjar', category: 'analytics', country: 'MT', crossesBorder: true, requestCount: 196 }],
+    },
+    {
+      country: 'SG', crossesBorder: true, requestCount: 121,
+      destinations: [{ host: 'analytics.tiktok.com', vendor: 'TikTok Pixel', category: 'marketing', country: 'SG', crossesBorder: true, requestCount: 121 }],
+    },
+    {
+      country: 'IN', crossesBorder: false, requestCount: 87,
+      destinations: [{ host: 'checkout.razorpay.com', vendor: 'Razorpay', category: 'necessary', country: 'IN', crossesBorder: false, requestCount: 87 }],
+    },
+    {
+      country: 'DE', crossesBorder: true, requestCount: 28,
+      destinations: [{ host: 'metrics.vendor-cdn.io', vendor: null, category: null, country: 'DE', crossesBorder: true, requestCount: 28 }],
+    },
+    {
+      country: null, crossesBorder: false, requestCount: 104,
+      destinations: [
+        { host: 'tracker.example.net', vendor: null, category: null, country: null, crossesBorder: false, requestCount: 63 },
+        { host: 'rec.pxlgrid.net', vendor: null, category: null, country: null, crossesBorder: false, requestCount: 41 },
+      ],
+    },
+  ],
+  browserDestinations: [],
+  serverTransfers: [
+    { transferId: 'tr_9c41a2', purposeCode: 'analytics', recipientCode: 'warehouse-eu', recipientName: 'Northwind Warehouse (EU)', status: 'DELIVERED', payloadBytes: 18422, recordedAt: '2026-09-06T04:00:00Z', deliveredAt: '2026-09-06T04:00:12Z', consentRecordId: 'cr_7f21a9' },
+    { transferId: 'tr_9c4188', purposeCode: 'marketing', recipientCode: 'ads-partner', recipientName: 'Meridian Ads', status: 'DELIVERED', payloadBytes: 6140, recordedAt: '2026-09-05T04:00:00Z', deliveredAt: '2026-09-05T04:00:08Z', consentRecordId: 'cr_7f2198' },
+    { transferId: 'tr_9c4171', purposeCode: 'analytics', recipientCode: 'warehouse-eu', recipientName: 'Northwind Warehouse (EU)', status: 'RECORDED', payloadBytes: 17980, recordedAt: '2026-09-04T04:00:00Z', deliveredAt: null, consentRecordId: 'cr_7f2187' },
+  ],
+  totals: { destinations: 11, countries: 5, crossBorder: 9, transfers: 3 },
+};
+
+// Kept in sync with `byCountry` so the two halves of the screen cannot disagree.
+DATA_FLOW.browserDestinations = DATA_FLOW.byCountry
+  .flatMap((g) => g.destinations)
+  .sort((a, b) => b.requestCount - a.requestCount);
+
+/* Firewall dry runs, computed from the same fixture inventory the rest of the
+   screens use, so a host that shows as marketing in discovery is gated as
+   marketing here. A lookup table would drift from it within a week. */
+
+const FIXTURE_RULES: Record<string, { vendor: string; purpose: string; action: 'allow' | 'require_consent' | 'block' }> = {
+  'www.googletagmanager.com': { vendor: 'Google Analytics 4', purpose: 'analytics', action: 'require_consent' },
+  'connect.facebook.net': { vendor: 'Meta Pixel', purpose: 'marketing', action: 'require_consent' },
+  'analytics.tiktok.com': { vendor: 'TikTok Pixel', purpose: 'marketing', action: 'block' },
+  'js.stripe.com': { vendor: 'Stripe', purpose: 'necessary', action: 'allow' },
+  'checkout.razorpay.com': { vendor: 'Razorpay', purpose: 'necessary', action: 'allow' },
+  'static.hotjar.com': { vendor: 'Hotjar', purpose: 'analytics', action: 'require_consent' },
+};
+
+export function firewallEvaluation(
+  destination: string,
+  purpose: string | null,
+): W.WireFirewallEvaluation {
+  let host: string | null = null;
+  try {
+    host = new URL(destination.startsWith('http') ? destination : `https://${destination}`).hostname;
+  } catch {
+    host = null;
+  }
+
+  const rule = host ? FIXTURE_RULES[host] : undefined;
+
+  // Unknown host: REVIEW, which allows. An absence of a rule is not a reason to
+  // block, and the platform is careful that REVIEW reads as a missing control
+  // rather than as one that fired.
+  if (!rule) {
+    return {
+      decision: {
+        decision: 'REVIEW', effect: 'allow', destination_host: host, vendor: null,
+        purpose: purpose ?? null, user_state: 'n/a', matched_rule: null,
+        policy_version: 'cfg_2026.09.04-3',
+        reason: 'No rule covers this destination, and unknown hosts are configured to allow. Nothing gated this request.',
+        severity: 'info',
+        evidence: [
+          { source: 'config', detail: 'unknown_host = allow' },
+          { source: 'catalogue', detail: host ? `${host} is not in the vendor catalogue` : 'Destination could not be parsed as a URL' },
+        ],
+        redactions: [], observed_only: false, source: 'server',
+      },
+      redaction_applied: [], would_send: true, config_problems: [], legal_advice: false,
+    };
+  }
+
+  const gated = rule.action === 'require_consent' || rule.action === 'block';
+  const denied = rule.action === 'block';
+
+  return {
+    decision: {
+      decision: denied ? 'BLOCK' : gated ? 'REQUIRE_CONSENT' : 'ALLOW',
+      effect: denied ? 'block' : 'allow',
+      destination_host: host,
+      vendor: rule.vendor,
+      purpose: purpose ?? rule.purpose,
+      user_state: denied ? 'DENIED' : gated ? 'GRANTED' : 'n/a',
+      matched_rule: { host: host ?? '', vendor: rule.vendor, purpose: rule.purpose, action: rule.action },
+      policy_version: 'cfg_2026.09.04-3',
+      reason: denied
+        ? `This visitor denied ${rule.purpose}, and the rule for ${rule.vendor} blocks the request when the purpose is not granted.`
+        : gated
+          ? `${rule.vendor} is gated on ${rule.purpose}, which this visitor granted, so the request proceeds.`
+          : `${rule.vendor} is classified necessary, so it is not gated on a consent decision.`,
+      severity: denied ? 'high' : 'info',
+      evidence: [
+        { source: 'policy', detail: `${rule.vendor} → ${rule.purpose}` },
+        { source: 'consent', detail: denied ? `${rule.purpose}: DENIED` : gated ? `${rule.purpose}: GRANTED` : 'no consent lookup required' },
+        { source: 'config', detail: `rule action = ${rule.action}` },
+      ],
+      redactions: [], observed_only: false, source: 'server',
+    },
+    redaction_applied: [], would_send: !denied, config_problems: [], legal_advice: false,
+  };
+}
+
+export const CONSENT_PROOF: W.WireConsentProof = {
+  proof: 'a3f1c0d2e8b74915ac6e2f0b19d84c73e5a0917fbc4d2e6a8091c3f5d7b2e4a6',
+  evidence: {
+    site_id: 'site_9fb2c41a',
+    principal_external_id: 'anon_5f2b91c4',
+    purpose_code: 'analytics',
+    status: 'GRANTED',
+    decided_at: '2026-09-05T11:42:00Z',
+    notice_id: 'ntc_04a1',
+    policy_version_id: 'pv_2026.09.04-3',
+    policy_config_version: 'cfg_2026.09.04-3',
+    jurisdictions: ['eu-gdpr'],
+    vendors: ['google-analytics', 'hotjar'],
+    mechanism: 'banner',
+    source: 'sdk',
+  },
+  key_id: 'k_2026_09',
+  caveat:
+    'This receipt attests that Rift recorded this decision with these fields at this time. It is not a legal opinion, and it does not attest that the visitor understood the notice.',
+  legal_advice: false,
+};
+
+/* One decision followed all the way through, so the cross-reference columns
+   have something to join in fixtures mode rather than three unrelated rows. */
+export const AUDIT_TRAIL: AuditEntry[] = [
+  {
+    kind: 'transfer', at: '2026-09-06T04:00:12Z', siteId: 'site_9fb2c41a',
+    principal: 'anon_5f2b91c4', purposeCode: 'analytics', status: 'DELIVERED',
+    summary: 'Delivered 18.0 kB to warehouse-eu under authorisation az_31c8.',
+    consentRecordId: 'cr_7f21a9', authorisationId: 'az_31c8', transferId: 'tr_9c41a2',
+  },
+  {
+    kind: 'authorisation', at: '2026-09-06T04:00:00Z', siteId: 'site_9fb2c41a',
+    principal: 'anon_5f2b91c4', purposeCode: 'analytics', status: 'CONSUMED',
+    summary: 'Authorisation for warehouse-eu consumed, relying on consent cr_7f21a9.',
+    consentRecordId: 'cr_7f21a9', authorisationId: 'az_31c8', transferId: 'tr_9c41a2',
+  },
+  {
+    kind: 'consent', at: '2026-09-05T11:42:00Z', siteId: 'site_9fb2c41a',
+    principal: 'anon_5f2b91c4', purposeCode: 'analytics', status: 'GRANTED',
+    summary: 'Analytics granted through the consent banner.',
+    consentRecordId: 'cr_7f21a9', authorisationId: null, transferId: null,
+  },
+  {
+    kind: 'consent', at: '2026-09-05T11:39:00Z', siteId: 'site_9fb2c41a',
+    principal: 'anon_2d84f011', purposeCode: 'marketing', status: 'DENIED',
+    summary: 'Marketing denied through the consent banner.',
+    consentRecordId: 'cr_7f2187', authorisationId: null, transferId: null,
+  },
+  {
+    kind: 'authorisation', at: '2026-09-05T11:40:10Z', siteId: 'site_9fb2c41a',
+    principal: 'anon_2d84f011', purposeCode: 'marketing', status: 'REFUSED',
+    summary: 'Authorisation for ads-partner refused: consent for "marketing" is DENIED.',
+    consentRecordId: 'cr_7f2187', authorisationId: null, transferId: null,
+  },
+  {
+    kind: 'consent', at: '2026-09-05T11:36:00Z', siteId: 'site_9fb2c41a',
+    principal: 'anon_9e70bb52', purposeCode: 'analytics', status: 'WITHDRAWN',
+    summary: 'Analytics withdrawn through the preference centre.',
+    consentRecordId: 'cr_7f2166', authorisationId: null, transferId: null,
+  },
+];
+
+/* Mirrors the platform's six distinct refusal reasons rather than one generic
+   failure — the whole point of the endpoint is that they differ. */
+export function authorisationDecision(
+  principal: string,
+  purpose: string,
+): W.WireAuthorisationDecision {
+  const shared = { site_id: 'site_9fb2c41a', principal_external_id: principal, purpose_code: purpose };
+
+  if (purpose === 'necessary') {
+    return {
+      ...shared, permitted: true, reason: null,
+      message: 'Consent for "necessary" is not required; the purpose is essential.',
+      consent_record_id: null, consent_status: null, decided_at: null,
+    };
+  }
+  if (principal === 'anon_2d84f011') {
+    return {
+      ...shared, permitted: false, reason: 'consent_denied',
+      message: `Consent for "${purpose}" is DENIED.`,
+      consent_record_id: 'cr_7f2187', consent_status: 'DENIED', decided_at: '2026-09-05T11:39:00Z',
+    };
+  }
+  if (principal === 'anon_9e70bb52') {
+    return {
+      ...shared, permitted: false, reason: 'consent_withdrawn',
+      message: `Consent for "${purpose}" was granted and later withdrawn.`,
+      consent_record_id: 'cr_7f2166', consent_status: 'WITHDRAWN', decided_at: '2026-09-05T11:36:00Z',
+    };
+  }
+  if (principal === '' || principal === 'unknown') {
+    return {
+      ...shared, permitted: false, reason: 'principal_not_found',
+      message: 'No principal with that identifier exists for this site.',
+      consent_record_id: null, consent_status: null, decided_at: null,
+    };
+  }
+  if (principal === 'anon_never') {
+    return {
+      ...shared, permitted: false, reason: 'no_consent_decision',
+      message: `This principal has never decided on "${purpose}".`,
+      consent_record_id: null, consent_status: null, decided_at: null,
+    };
+  }
+  return {
+    ...shared, permitted: true, reason: null,
+    message: `Consent for "${purpose}" is currently GRANTED.`,
+    consent_record_id: 'cr_7f21a9', consent_status: 'GRANTED', decided_at: '2026-09-05T11:42:00Z',
+  };
+}
+
+/* ── Phase 11C fixtures ──────────────────────────────────────────────────── */
+
+export const POLICIES: PolicyRecord[] = [
+  {
+    policyId: 'pol_northwind_privacy', code: 'privacy-notice', name: 'Privacy notice',
+    createdAt: '2026-07-30T08:11:00Z',
+    versions: [
+      { versionId: 'pv_2026.09.04-3', policyId: 'pol_northwind_privacy', policyCode: 'privacy-notice', version: '2026.09.04-3', documentUrl: 'https://northwind-retail.com/privacy', contentHash: 'sha256:9c41a2f8…', publishedAt: '2026-09-04T09:17:00Z' },
+      { versionId: 'pv_2026.08.28-2', policyId: 'pol_northwind_privacy', policyCode: 'privacy-notice', version: '2026.08.28-2', documentUrl: 'https://northwind-retail.com/privacy', contentHash: 'sha256:41b7de02…', publishedAt: '2026-08-28T09:12:00Z' },
+      { versionId: 'pv_2026.08.14-1', policyId: 'pol_northwind_privacy', policyCode: 'privacy-notice', version: '2026.08.14-1', documentUrl: 'https://northwind-retail.com/privacy', contentHash: 'sha256:0fa9c317…', publishedAt: '2026-08-14T09:15:00Z' },
+    ],
+  },
+  {
+    policyId: 'pol_northwind_cookies', code: 'cookie-notice', name: 'Cookie notice',
+    createdAt: '2026-08-14T09:15:00Z',
+    versions: [
+      { versionId: 'pv_cookies_2026.09.01', policyId: 'pol_northwind_cookies', policyCode: 'cookie-notice', version: '2026.09.01', documentUrl: 'https://northwind-retail.com/cookies', contentHash: 'sha256:7e2a1b90…', publishedAt: '2026-09-01T09:11:00Z' },
+    ],
+  },
+];
+
+export const NOTICES: NoticeRecord[] = [
+  { noticeId: 'ntc_04a1', version: '2026.09.04-3', locale: 'en-GB', policyVersionId: 'pv_2026.09.04-3', publishedAt: '2026-09-04T09:17:00Z', purposeCodes: ['necessary', 'analytics', 'marketing', 'preferences'] },
+  { noticeId: 'ntc_04a2', version: '2026.09.04-3', locale: 'hi-IN', policyVersionId: 'pv_2026.09.04-3', publishedAt: '2026-09-04T09:17:00Z', purposeCodes: ['necessary', 'analytics', 'marketing', 'preferences'] },
+  { noticeId: 'ntc_0388', version: '2026.08.28-2', locale: 'en-GB', policyVersionId: 'pv_2026.08.28-2', publishedAt: '2026-08-28T09:12:00Z', purposeCodes: ['necessary', 'analytics', 'marketing'] },
+];
+
+export const ORG_OVERVIEW: OrganisationOverview = {
+  sites: { total: 5, active: 4 },
+  consent: { decisions: 12482, granted: 7240, denied: 3370, withdrawn: 214, principals: 9612 },
+  authorisations: { total: 412, authorised: 68, consumed: 331, expired: 13 },
+  transfers: { total: 331, recorded: 12, delivered: 318, failed: 1 },
+  activity: { sessions: 31204, pageViews: 87412, events: 214880 },
+};
+
+/* Three visitors that between them cover the states a lookup actually returns:
+   a mixed decision, a full refusal, and somebody with no record at all. */
+export function visitorConsent(principal: string): VisitorConsentState | null {
+  if (principal === 'anon_2d84f011') {
+    return {
+      siteId: 'site_9fb2c41a', principal,
+      purposes: [
+        { purposeCode: 'necessary', status: 'GRANTED', decidedAt: '2026-09-05T11:39:00Z', consentRecordId: 'cr_7f2185', noticeId: 'ntc_04a1', policyVersionId: 'pv_2026.09.04-3' },
+        { purposeCode: 'analytics', status: 'DENIED', decidedAt: '2026-09-05T11:39:00Z', consentRecordId: 'cr_7f2186', noticeId: 'ntc_04a1', policyVersionId: 'pv_2026.09.04-3' },
+        { purposeCode: 'marketing', status: 'DENIED', decidedAt: '2026-09-05T11:39:00Z', consentRecordId: 'cr_7f2187', noticeId: 'ntc_04a1', policyVersionId: 'pv_2026.09.04-3' },
+        { purposeCode: 'preferences', status: 'DENIED', decidedAt: '2026-09-05T11:39:00Z', consentRecordId: 'cr_7f2188', noticeId: 'ntc_04a1', policyVersionId: 'pv_2026.09.04-3' },
+      ],
+    };
+  }
+  if (principal === 'anon_9e70bb52') {
+    return {
+      siteId: 'site_9fb2c41a', principal,
+      purposes: [
+        { purposeCode: 'necessary', status: 'GRANTED', decidedAt: '2026-09-05T11:30:00Z', consentRecordId: 'cr_7f2160', noticeId: 'ntc_04a1', policyVersionId: 'pv_2026.09.04-3' },
+        { purposeCode: 'analytics', status: 'WITHDRAWN', decidedAt: '2026-09-05T11:36:00Z', consentRecordId: 'cr_7f2166', noticeId: 'ntc_04a1', policyVersionId: 'pv_2026.09.04-2' },
+      ],
+    };
+  }
+  if (!principal || principal === 'unknown') return null;
+  return {
+    siteId: 'site_9fb2c41a', principal,
+    purposes: [
+      { purposeCode: 'necessary', status: 'GRANTED', decidedAt: '2026-09-05T11:42:00Z', consentRecordId: 'cr_7f21a7', noticeId: 'ntc_04a1', policyVersionId: 'pv_2026.09.04-3' },
+      { purposeCode: 'analytics', status: 'GRANTED', decidedAt: '2026-09-05T11:42:00Z', consentRecordId: 'cr_7f21a9', noticeId: 'ntc_04a1', policyVersionId: 'pv_2026.09.04-3' },
+      { purposeCode: 'marketing', status: 'DENIED', decidedAt: '2026-09-05T11:42:00Z', consentRecordId: 'cr_7f21aa', noticeId: 'ntc_04a1', policyVersionId: 'pv_2026.09.04-3' },
+      { purposeCode: 'preferences', status: 'GRANTED', decidedAt: '2026-09-05T11:42:00Z', consentRecordId: 'cr_7f21ab', noticeId: 'ntc_04a1', policyVersionId: 'pv_2026.09.04-3' },
+    ],
+  };
+}

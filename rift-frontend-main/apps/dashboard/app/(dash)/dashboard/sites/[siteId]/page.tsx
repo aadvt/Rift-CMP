@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { Route } from 'next';
 import { Button, Card, CardBody, CardHeader, Chip, Icon, Notice, StatusDot } from '@rift/ui';
 import { ScreenHeader, Screen } from '@/components/shell/ScreenHeader';
+import { SITE_STATUS } from '@/lib/site-status';
 import { HBars } from '@/components/charts';
 import {
   getSite,
@@ -37,7 +38,7 @@ export default async function SiteOverviewPage({ params }: { params: Promise<{ s
       <ScreenHeader
         title={site.host}
         crumb={[{ label: 'Sites', href: '/dashboard/sites' }]}
-        badge={site.status === 'connected' ? <Chip tone="success" dot>Connected</Chip> : <Chip tone="warning" dot>Needs review</Chip>}
+        badge={<Chip tone={SITE_STATUS[site.status].tone} dot>{SITE_STATUS[site.status].label}</Chip>}
         actions={<>
           {/* The site's own address, opened in a new tab. `noreferrer` because
               this is a customer's website and Rift has no business appearing in
@@ -61,7 +62,10 @@ export default async function SiteOverviewPage({ params }: { params: Promise<{ s
             ['Analytics', '/dashboard/analytics', false],
             ['Changes', `/dashboard/sites/${siteId}/changes`, false],
             ['Intelligence', `/dashboard/sites/${siteId}/intelligence`, false],
-            ['Data flow', `/dashboard/sites/${siteId}/graph`, false],
+            ['Consent graph', `/dashboard/sites/${siteId}/graph`, false],
+            ['Runtime discovery', `/dashboard/sites/${siteId}/discovery`, false],
+            ['Firewall', `/dashboard/sites/${siteId}/firewall`, false],
+            ['Data flow', `/dashboard/sites/${siteId}/data-flow`, false],
             ['Simulate', `/dashboard/sites/${siteId}/simulate`, false],
           ] as const).map(([label, href, active]) => (
             <Link
