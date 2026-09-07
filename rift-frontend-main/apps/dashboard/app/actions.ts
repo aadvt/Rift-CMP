@@ -10,13 +10,14 @@ import {
   verifyConsentProof,
   evaluateFirewall,
   getConsentProof,
+  checkAuthorisation,
 } from '@/lib/api/endpoints';
 import { SITE_COOKIE } from '@/lib/current-site';
 import { API_URL, riftFetch } from '@/lib/api/client';
 import { clearSessionToken, writeSessionToken } from '@/lib/auth/session';
 import type { ProposedChange, WireSimulation } from '@/lib/api/simulation';
 import type { ProofVerification } from '@/lib/api/endpoints';
-import type { WireConsentProof, WireFirewallEvaluation } from '@/lib/api/backend';
+import type { WireAuthorisationDecision, WireConsentProof, WireFirewallEvaluation } from '@/lib/api/backend';
 
 /** Server Actions are the only write path. Each one invalidates the tags the
  *  reads it affects were fetched under. */
@@ -351,4 +352,29 @@ export async function fetchConsentReceipt(
     };
   }
   return { ok: true, proof };
+}
+
+/**
+ * Asks whether an action is currently authorised.
+ *
+ * A write path by HTTP method only. The platform is explicit that this writes
+ * nothing and spends no permission, so there is no tag to invalidate — it lives
+ * here because the organisation credential must stay on the server.
+ */
+export async function askAuthorisation(input: {
+  siteId: string;
+  principalExternalId: string;
+  purposeCode: string;
+}): Promise<{ decision: WireAuthorisationDecision } | { error: string }> {
+  try {
+    const decision = await checkAuthorisation(input);
+    return { decision };
+  } catch (err) {
+    const e = err as Error & { riftCode?: string };
+    return {
+      error: e.riftCode === 'invalid_request'
+        ? e.message
+        : 'The authorisation could not be evaluated. Check the visitor identifier and try again.',
+    };
+  }
 }

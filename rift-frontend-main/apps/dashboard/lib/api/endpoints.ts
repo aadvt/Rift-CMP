@@ -7,6 +7,7 @@ import { describePurpose } from './adapters';
 import type * as W from './backend';
 import type { ProposedChange, WireSimulation, WireSimulationResponse } from './simulation';
 import type {
+  AuditEntry,
   DiscoveryInventory, DataFlowMap,
   AnalyticsOverview, ChangeEntry, ConsentOverview, ConsentRecord, Finding, InstallSnippet,
   RiftConfiguration, Scan, ScanDiff, ScanSummary, Site, Verification,
@@ -1159,4 +1160,58 @@ export async function getConsentProof(recordId: string): Promise<W.WireConsentPr
     `${V1}/consent/records/${encodeURIComponent(recordId)}/proof`,
     { ...LIVE },
   ).catch(() => null);
+}
+
+/**
+ * The audit trail: consent decisions, authorisations and transfers on one
+ * timeline.
+ *
+ * The platform stores the three domains separately and joins them only for a
+ * reader — which is what makes this worth a screen. Each entry carries the ids
+ * of the others, so one decision can be followed through to the transfer it
+ * justified without anybody reconstructing the link by hand.
+ */
+export async function getAuditTrail(
+  siteId?: string,
+  limit = 200,
+): Promise<AuditEntry[]> {
+  if (USE_FIXTURES) return fx.AUDIT_TRAIL;
+
+  const query = new URLSearchParams({ limit: String(limit) });
+  if (siteId) query.set('site_id', siteId);
+
+  const body = await riftFetch<{ entries: W.WireAuditEntry[] }>(
+    `${V1}/audit?${query.toString()}`,
+    { tags: [siteId ? tag.site(siteId) : tag.sites], ...LIVE },
+  ).catch(() => ({ entries: [] as W.WireAuditEntry[] }));
+
+  return body.entries.map(adapt.toAuditEntry);
+}
+
+/**
+ * "May this principal's data be used for this purpose, right now?"
+ *
+ * Asked without committing to it: creating an authorisation burns a single-use
+ * permission and writes a row, and the question is usually asked *before*
+ * deciding whether to collect the data at all. This endpoint answers without
+ * writing anything.
+ */
+export async function checkAuthorisation(input: {
+  siteId: string;
+  principalExternalId: string;
+  purposeCode: string;
+}): Promise<W.WireAuthorisationDecision> {
+  if (USE_FIXTURES) {
+    return fx.authorisationDecision(input.principalExternalId, input.purposeCode);
+  }
+
+  return riftFetch<W.WireAuthorisationDecision>(`${V1}/authorisations/decision`, {
+    method: 'POST',
+    body: {
+      site_id: input.siteId,
+      principal_external_id: input.principalExternalId,
+      purpose_code: input.purposeCode,
+    },
+    ...LIVE,
+  });
 }

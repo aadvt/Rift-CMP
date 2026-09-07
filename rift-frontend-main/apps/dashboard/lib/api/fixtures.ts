@@ -1,5 +1,6 @@
 import type * as W from './backend';
 import type {
+  AuditEntry,
   DiscoveryInventory, DataFlowMap,
   AnalyticsOverview, ChangeEntry, ConsentOverview, ConsentRecord, Finding,
   InstallSnippet, RiftConfiguration, Scan, ScanDiff, ScanSummary, Site, Verification,
@@ -549,3 +550,94 @@ export const CONSENT_PROOF: W.WireConsentProof = {
     'This receipt attests that Rift recorded this decision with these fields at this time. It is not a legal opinion, and it does not attest that the visitor understood the notice.',
   legal_advice: false,
 };
+
+/* One decision followed all the way through, so the cross-reference columns
+   have something to join in fixtures mode rather than three unrelated rows. */
+export const AUDIT_TRAIL: AuditEntry[] = [
+  {
+    kind: 'transfer', at: '2026-09-06T04:00:12Z', siteId: 'site_9fb2c41a',
+    principal: 'anon_5f2b91c4', purposeCode: 'analytics', status: 'DELIVERED',
+    summary: 'Delivered 18.0 kB to warehouse-eu under authorisation az_31c8.',
+    consentRecordId: 'cr_7f21a9', authorisationId: 'az_31c8', transferId: 'tr_9c41a2',
+  },
+  {
+    kind: 'authorisation', at: '2026-09-06T04:00:00Z', siteId: 'site_9fb2c41a',
+    principal: 'anon_5f2b91c4', purposeCode: 'analytics', status: 'CONSUMED',
+    summary: 'Authorisation for warehouse-eu consumed, relying on consent cr_7f21a9.',
+    consentRecordId: 'cr_7f21a9', authorisationId: 'az_31c8', transferId: 'tr_9c41a2',
+  },
+  {
+    kind: 'consent', at: '2026-09-05T11:42:00Z', siteId: 'site_9fb2c41a',
+    principal: 'anon_5f2b91c4', purposeCode: 'analytics', status: 'GRANTED',
+    summary: 'Analytics granted through the consent banner.',
+    consentRecordId: 'cr_7f21a9', authorisationId: null, transferId: null,
+  },
+  {
+    kind: 'consent', at: '2026-09-05T11:39:00Z', siteId: 'site_9fb2c41a',
+    principal: 'anon_2d84f011', purposeCode: 'marketing', status: 'DENIED',
+    summary: 'Marketing denied through the consent banner.',
+    consentRecordId: 'cr_7f2187', authorisationId: null, transferId: null,
+  },
+  {
+    kind: 'authorisation', at: '2026-09-05T11:40:10Z', siteId: 'site_9fb2c41a',
+    principal: 'anon_2d84f011', purposeCode: 'marketing', status: 'REFUSED',
+    summary: 'Authorisation for ads-partner refused: consent for "marketing" is DENIED.',
+    consentRecordId: 'cr_7f2187', authorisationId: null, transferId: null,
+  },
+  {
+    kind: 'consent', at: '2026-09-05T11:36:00Z', siteId: 'site_9fb2c41a',
+    principal: 'anon_9e70bb52', purposeCode: 'analytics', status: 'WITHDRAWN',
+    summary: 'Analytics withdrawn through the preference centre.',
+    consentRecordId: 'cr_7f2166', authorisationId: null, transferId: null,
+  },
+];
+
+/* Mirrors the platform's six distinct refusal reasons rather than one generic
+   failure — the whole point of the endpoint is that they differ. */
+export function authorisationDecision(
+  principal: string,
+  purpose: string,
+): W.WireAuthorisationDecision {
+  const shared = { site_id: 'site_9fb2c41a', principal_external_id: principal, purpose_code: purpose };
+
+  if (purpose === 'necessary') {
+    return {
+      ...shared, permitted: true, reason: null,
+      message: 'Consent for "necessary" is not required; the purpose is essential.',
+      consent_record_id: null, consent_status: null, decided_at: null,
+    };
+  }
+  if (principal === 'anon_2d84f011') {
+    return {
+      ...shared, permitted: false, reason: 'consent_denied',
+      message: `Consent for "${purpose}" is DENIED.`,
+      consent_record_id: 'cr_7f2187', consent_status: 'DENIED', decided_at: '2026-09-05T11:39:00Z',
+    };
+  }
+  if (principal === 'anon_9e70bb52') {
+    return {
+      ...shared, permitted: false, reason: 'consent_withdrawn',
+      message: `Consent for "${purpose}" was granted and later withdrawn.`,
+      consent_record_id: 'cr_7f2166', consent_status: 'WITHDRAWN', decided_at: '2026-09-05T11:36:00Z',
+    };
+  }
+  if (principal === '' || principal === 'unknown') {
+    return {
+      ...shared, permitted: false, reason: 'principal_not_found',
+      message: 'No principal with that identifier exists for this site.',
+      consent_record_id: null, consent_status: null, decided_at: null,
+    };
+  }
+  if (principal === 'anon_never') {
+    return {
+      ...shared, permitted: false, reason: 'no_consent_decision',
+      message: `This principal has never decided on "${purpose}".`,
+      consent_record_id: null, consent_status: null, decided_at: null,
+    };
+  }
+  return {
+    ...shared, permitted: true, reason: null,
+    message: `Consent for "${purpose}" is currently GRANTED.`,
+    consent_record_id: 'cr_7f21a9', consent_status: 'GRANTED', decided_at: '2026-09-05T11:42:00Z',
+  };
+}

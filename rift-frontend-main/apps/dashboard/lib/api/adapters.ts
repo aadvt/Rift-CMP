@@ -1,6 +1,7 @@
 import 'server-only';
 import type * as W from './backend';
 import type {
+  AuditEntry,
   DiscoveryInventory, DataFlowMap, DataFlowDestination,
   AnalyticsOverview, ChangeEntry, ConfidenceLevel, ConsentCategory, ConsentOverview,
   ConsentRecord, DiffEntry, EnforcementConfiguration, Finding, HealthState, InstallSnippet,
@@ -1613,5 +1614,22 @@ export function toDataFlowMap(
       crossBorder: browserDestinations.filter((d) => d.crossesBorder).length,
       transfers: transfers.length,
     },
+  };
+}
+
+/** Wire → product for one audit row. Field renames only; the summary sentence
+ *  the platform wrote is the sentence the screen shows. */
+export function toAuditEntry(w: W.WireAuditEntry): AuditEntry {
+  return {
+    kind: w.kind,
+    at: w.at,
+    siteId: w.site_id,
+    principal: w.principal_external_id,
+    purposeCode: w.purpose_code,
+    status: w.status,
+    summary: w.summary,
+    consentRecordId: w.consent_record_id,
+    authorisationId: w.authorisation_id,
+    transferId: w.transfer_id,
   };
 }

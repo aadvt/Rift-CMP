@@ -1014,3 +1014,51 @@ export interface WireConsentProof {
   caveat: string;
   legal_advice: false;
 }
+
+/** `shared/audit.ts` — consent, authorisation and transfer on one timeline. */
+export type WireAuditKind = 'consent' | 'authorisation' | 'transfer';
+
+export interface WireAuditEntry {
+  kind: WireAuditKind;
+  at: string;
+  site_id: string;
+  principal_external_id: string;
+  purpose_code: string;
+  /** Domain-specific: GRANTED / AUTHORISED / DELIVERED and so on. */
+  status: string;
+  /** One line readable without cross-referencing anything. */
+  summary: string;
+  /** Cross-references, so one decision can be followed through to delivery. */
+  consent_record_id: string | null;
+  authorisation_id: string | null;
+  transfer_id: string | null;
+}
+
+/**
+ * `shared/authorisation.ts` — "is this action currently authorised?", asked
+ * without committing to it.
+ *
+ * The six reasons are distinct rather than one generic failure because "never
+ * decided", "refused" and "granted then withdrawn" call for different responses
+ * from the caller and mean different things to an auditor.
+ */
+export type WireDecisionReason =
+  | 'site_not_found'
+  | 'principal_not_found'
+  | 'purpose_not_found'
+  | 'no_consent_decision'
+  | 'consent_denied'
+  | 'consent_withdrawn';
+
+export interface WireAuthorisationDecision {
+  permitted: boolean;
+  reason: WireDecisionReason | null;
+  message: string;
+  site_id: string;
+  principal_external_id: string;
+  purpose_code: string;
+  consent_record_id: string | null;
+  consent_status: string | null;
+  /** When the principal made the decision being relied upon. */
+  decided_at: string | null;
+}

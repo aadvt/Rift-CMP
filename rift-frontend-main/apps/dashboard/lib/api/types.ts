@@ -405,3 +405,25 @@ export interface DataFlowMap {
   serverTransfers: ServerTransfer[];
   totals: { destinations: number; countries: number; crossBorder: number; transfers: number };
 }
+
+/* ── Audit trail (Phase 11B) ───────────────────────────────────────────────
+   One timeline across three domains the platform deliberately keeps apart.
+   The cross-reference ids are the point: a consent decision, the authorisation
+   that relied on it, and the transfer that followed are three rows a reader
+   has to be able to join. */
+
+export type AuditKind = 'consent' | 'authorisation' | 'transfer';
+
+export interface AuditEntry {
+  kind: AuditKind;
+  at: string;
+  siteId: string;
+  principal: string;
+  purposeCode: string;
+  status: string;
+  /** The platform's own sentence. Never recomposed here. */
+  summary: string;
+  consentRecordId: string | null;
+  authorisationId: string | null;
+  transferId: string | null;
+}
