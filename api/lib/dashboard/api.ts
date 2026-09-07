@@ -18,14 +18,68 @@ export type ApiResult<T> =
   | { ok: false; status: number; code: string; message: string };
 
 /**
- * The origin to call the platform API on.
+ * The origin to call the platform API on, and the origin customers are told to
+ * load the SDK from.
  *
  * Exported so sign-in uses the same rule. They previously disagreed — sign-in
  * defaulted to `http` while this defaulted to `https` for any non-local host —
  * which behind a TLS proxy that does not set `x-forwarded-proto` would have made
  * sign-in call itself over http while every page call used https.
+ *
+ * ## Why this is not a detail
+ *
+ * `/sites/{id}/install` builds `script_url` and `api_origin` from this. That is
+ * the `<script src>` an operator pastes into their own site, so a wrong answer
+ * here does not degrade a screen — it hands a paying customer a tag that cannot
+ * load, and the failure surfaces on their site rather than in this product.
+ *
+ * It was wrong. `https` was assumed for every non-local host whether or not
+ * anything was listening on 443, which is exactly the deployment this ran in:
+ * plain HTTP on :3000, snippets pointing at an `https://` origin that refused
+ * every connection.
+ *
+ * ## So the scheme is configured, not guessed
+ *
+ * `RIFT_PUBLIC_ORIGIN` is the authoritative answer and a deployment serving
+ * real customers should set it. It is the full origin — scheme, host and port —
+ * because those three travel together: a deployment behind a proxy on 443 has a
+ * different host *and* a different port from the container's own, and deriving
+ * two of them from a request while taking the third from configuration is how
+ * the halves drift apart.
+ *
+ * Everything below it is fallback for development and for deployments that have
+ * not set it:
+ *
+ *   `x-forwarded-proto`, which any competent TLS terminator sets. Trusted only
+ *   because this app is never exposed directly — but note that a client can
+ *   forge it when it is, which is the other reason to prefer the env var.
+ *
+ *   `http` for localhost and loopback, where there is never TLS.
+ *
+ *   `https` otherwise, kept as the last resort because a public deployment
+ *   without TLS is the rarer and more alarming case of the two. It is a guess,
+ *   and the point of `RIFT_PUBLIC_ORIGIN` is that nobody serving customers
+ *   should be relying on it.
  */
+export function configuredPublicOrigin(): string | null {
+  const configured = process.env.RIFT_PUBLIC_ORIGIN?.trim();
+  if (!configured) return null;
+
+  try {
+    // Parsed rather than string-trimmed so a malformed value fails here, at
+    // startup of the first request, instead of being pasted into a customer's
+    // site as a broken URL.
+    const url = new URL(configured);
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
 export async function requestOrigin(): Promise<string> {
+  const configured = configuredPublicOrigin();
+  if (configured) return configured;
+
   const requestHeaders = await headers();
   const host = requestHeaders.get("host") ?? "127.0.0.1:3000";
   const forwarded = requestHeaders.get("x-forwarded-proto");
