@@ -1107,3 +1107,56 @@ export async function getDataFlowMap(siteId: string): Promise<DataFlowMap> {
 
   return adapt.toDataFlowMap(siteId, inventory, transfers, recipients);
 }
+
+/**
+ * Ask the firewall what it would do to one request, without doing it.
+ *
+ * `POST` because a request is a body, not because anything is created. The
+ * platform is explicit that a dry run is not an enforcement event and is never
+ * written to the log — filling an audit trail with things that never happened
+ * would make the real entries worth less.
+ *
+ * `LIVE` rather than a revalidate window: two evaluations of the same
+ * destination a minute apart must both run, because the consent state they read
+ * is exactly the thing that changes underneath them.
+ */
+export async function evaluateFirewall(
+  siteId: string,
+  input: {
+    destination: string;
+    vendor?: string | null;
+    purpose?: string | null;
+    principalExternalId?: string;
+  },
+): Promise<W.WireFirewallEvaluation> {
+  if (USE_FIXTURES) return fx.firewallEvaluation(input.destination, input.purpose ?? null);
+
+  return riftFetch<W.WireFirewallEvaluation>(`${V1}/sites/${siteId}/firewall`, {
+    method: 'POST',
+    body: {
+      destination: input.destination,
+      ...(input.vendor === undefined ? {} : { vendor: input.vendor }),
+      ...(input.purpose === undefined ? {} : { purpose: input.purpose }),
+      ...(input.principalExternalId ? { principal_external_id: input.principalExternalId } : {}),
+    },
+    ...LIVE,
+  });
+}
+
+/**
+ * The receipt for one consent decision.
+ *
+ * `VerifyProofButton` already checks a proof; this fetches the thing being
+ * checked, so an operator can read what was actually attested and hand it to
+ * somebody who was not there. The response carries its own caveat, which is
+ * rendered rather than summarised: the limits are supposed to travel with the
+ * receipt.
+ */
+export async function getConsentProof(recordId: string): Promise<W.WireConsentProof | null> {
+  if (USE_FIXTURES) return fx.CONSENT_PROOF;
+
+  return riftFetch<W.WireConsentProof>(
+    `${V1}/consent/records/${encodeURIComponent(recordId)}/proof`,
+    { ...LIVE },
+  ).catch(() => null);
+}

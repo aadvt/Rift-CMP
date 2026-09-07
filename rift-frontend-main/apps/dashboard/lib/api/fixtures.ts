@@ -1,3 +1,4 @@
+import type * as W from './backend';
 import type {
   DiscoveryInventory, DataFlowMap,
   AnalyticsOverview, ChangeEntry, ConsentOverview, ConsentRecord, Finding,
@@ -449,3 +450,102 @@ export const DATA_FLOW: DataFlowMap = {
 DATA_FLOW.browserDestinations = DATA_FLOW.byCountry
   .flatMap((g) => g.destinations)
   .sort((a, b) => b.requestCount - a.requestCount);
+
+/* Firewall dry runs, computed from the same fixture inventory the rest of the
+   screens use, so a host that shows as marketing in discovery is gated as
+   marketing here. A lookup table would drift from it within a week. */
+
+const FIXTURE_RULES: Record<string, { vendor: string; purpose: string; action: 'allow' | 'require_consent' | 'block' }> = {
+  'www.googletagmanager.com': { vendor: 'Google Analytics 4', purpose: 'analytics', action: 'require_consent' },
+  'connect.facebook.net': { vendor: 'Meta Pixel', purpose: 'marketing', action: 'require_consent' },
+  'analytics.tiktok.com': { vendor: 'TikTok Pixel', purpose: 'marketing', action: 'block' },
+  'js.stripe.com': { vendor: 'Stripe', purpose: 'necessary', action: 'allow' },
+  'checkout.razorpay.com': { vendor: 'Razorpay', purpose: 'necessary', action: 'allow' },
+  'static.hotjar.com': { vendor: 'Hotjar', purpose: 'analytics', action: 'require_consent' },
+};
+
+export function firewallEvaluation(
+  destination: string,
+  purpose: string | null,
+): W.WireFirewallEvaluation {
+  let host: string | null = null;
+  try {
+    host = new URL(destination.startsWith('http') ? destination : `https://${destination}`).hostname;
+  } catch {
+    host = null;
+  }
+
+  const rule = host ? FIXTURE_RULES[host] : undefined;
+
+  // Unknown host: REVIEW, which allows. An absence of a rule is not a reason to
+  // block, and the platform is careful that REVIEW reads as a missing control
+  // rather than as one that fired.
+  if (!rule) {
+    return {
+      decision: {
+        decision: 'REVIEW', effect: 'allow', destination_host: host, vendor: null,
+        purpose: purpose ?? null, user_state: 'n/a', matched_rule: null,
+        policy_version: 'cfg_2026.09.04-3',
+        reason: 'No rule covers this destination, and unknown hosts are configured to allow. Nothing gated this request.',
+        severity: 'info',
+        evidence: [
+          { source: 'config', detail: 'unknown_host = allow' },
+          { source: 'catalogue', detail: host ? `${host} is not in the vendor catalogue` : 'Destination could not be parsed as a URL' },
+        ],
+        redactions: [], observed_only: false, source: 'server',
+      },
+      redaction_applied: [], would_send: true, config_problems: [], legal_advice: false,
+    };
+  }
+
+  const gated = rule.action === 'require_consent' || rule.action === 'block';
+  const denied = rule.action === 'block';
+
+  return {
+    decision: {
+      decision: denied ? 'BLOCK' : gated ? 'REQUIRE_CONSENT' : 'ALLOW',
+      effect: denied ? 'block' : 'allow',
+      destination_host: host,
+      vendor: rule.vendor,
+      purpose: purpose ?? rule.purpose,
+      user_state: denied ? 'DENIED' : gated ? 'GRANTED' : 'n/a',
+      matched_rule: { host: host ?? '', vendor: rule.vendor, purpose: rule.purpose, action: rule.action },
+      policy_version: 'cfg_2026.09.04-3',
+      reason: denied
+        ? `This visitor denied ${rule.purpose}, and the rule for ${rule.vendor} blocks the request when the purpose is not granted.`
+        : gated
+          ? `${rule.vendor} is gated on ${rule.purpose}, which this visitor granted, so the request proceeds.`
+          : `${rule.vendor} is classified necessary, so it is not gated on a consent decision.`,
+      severity: denied ? 'high' : 'info',
+      evidence: [
+        { source: 'policy', detail: `${rule.vendor} → ${rule.purpose}` },
+        { source: 'consent', detail: denied ? `${rule.purpose}: DENIED` : gated ? `${rule.purpose}: GRANTED` : 'no consent lookup required' },
+        { source: 'config', detail: `rule action = ${rule.action}` },
+      ],
+      redactions: [], observed_only: false, source: 'server',
+    },
+    redaction_applied: [], would_send: !denied, config_problems: [], legal_advice: false,
+  };
+}
+
+export const CONSENT_PROOF: W.WireConsentProof = {
+  proof: 'a3f1c0d2e8b74915ac6e2f0b19d84c73e5a0917fbc4d2e6a8091c3f5d7b2e4a6',
+  evidence: {
+    site_id: 'site_9fb2c41a',
+    principal_external_id: 'anon_5f2b91c4',
+    purpose_code: 'analytics',
+    status: 'GRANTED',
+    decided_at: '2026-09-05T11:42:00Z',
+    notice_id: 'ntc_04a1',
+    policy_version_id: 'pv_2026.09.04-3',
+    policy_config_version: 'cfg_2026.09.04-3',
+    jurisdictions: ['eu-gdpr'],
+    vendors: ['google-analytics', 'hotjar'],
+    mechanism: 'banner',
+    source: 'sdk',
+  },
+  key_id: 'k_2026_09',
+  caveat:
+    'This receipt attests that Rift recorded this decision with these fields at this time. It is not a legal opinion, and it does not attest that the visitor understood the notice.',
+  legal_advice: false,
+};

@@ -6,6 +6,7 @@ import { getConsentAnalytics, getConsentOverview, listConsentRecords } from '@/l
 import { ConsentAnalytics } from '@/components/intelligence/ConsentAnalytics';
 import { requireSiteId } from '@/lib/current-site';
 import { VerifyProofButton } from '@/components/consent/VerifyProofButton';
+import { ReceiptButton } from '@/components/consent/ReceiptButton';
 
 export const metadata = { title: 'Consent' };
 
@@ -208,7 +209,12 @@ export default async function ConsentPage() {
                                 A verify control on a record with no evidence
                                 attached would return "nothing here" every time,
                                 which teaches people the check is broken. */}
-                            {r.proof !== 'none' ? <VerifyProofButton recordId={r.recordId} /> : null}
+                            {r.proof !== 'none' ? (
+                              <>
+                                <ReceiptButton recordId={r.recordId} />
+                                <VerifyProofButton recordId={r.recordId} />
+                              </>
+                            ) : null}
                           </span>
                         </td>
                       </tr>

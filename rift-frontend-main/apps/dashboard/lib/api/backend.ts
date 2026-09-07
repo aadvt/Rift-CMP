@@ -953,3 +953,64 @@ export interface WireRecipient {
   is_active: boolean;
   created_at: string;
 }
+
+/** `shared/consent-firewall.ts` — one evaluated request. */
+export interface WireFirewallEvidence {
+  /** `policy` | `consent` | `catalogue` | `config` */
+  source: string;
+  detail: string;
+}
+
+export interface WireFirewallDecision {
+  decision: 'ALLOW' | 'BLOCK' | 'REDACT' | 'REQUIRE_CONSENT' | 'REVIEW';
+  /** What happens to the request. REVIEW and ALLOW both allow. */
+  effect: 'allow' | 'block';
+  destination_host: string | null;
+  vendor: string | null;
+  purpose: string | null;
+  /** The visitor's state for the gating purpose, or `n/a`. */
+  user_state: string;
+  matched_rule: { host: string; vendor: string; purpose: string | null; action: string } | null;
+  policy_version: string | null;
+  reason: string;
+  severity: 'critical' | 'high' | 'medium' | 'low' | 'info';
+  evidence: WireFirewallEvidence[];
+  /** Rule ids applied. Ids only — never a value. */
+  redactions: string[];
+  /** True when the deciding policy is in `observe` mode, so the effect was
+   *  recorded rather than applied. An observed BLOCK did not block anything. */
+  observed_only: boolean;
+  source: string;
+}
+
+export interface WireFirewallEvaluation {
+  decision: WireFirewallDecision;
+  redaction_applied: string[];
+  would_send: boolean;
+  config_problems: string[];
+  legal_advice: false;
+}
+
+/** `shared/consent-proof.ts` — the receipt for one consent record. */
+export interface WireConsentProof {
+  proof: string;
+  evidence: {
+    site_id: string;
+    principal_external_id: string;
+    purpose_code: string;
+    status: string;
+    decided_at: string;
+    notice_id: string | null;
+    policy_version_id: string | null;
+    policy_config_version: string | null;
+    jurisdictions: string[];
+    vendors: string[];
+    mechanism: string | null;
+    source: string;
+  };
+  /** The identifier, never the key. */
+  key_id: string | null;
+  /** The limits, stated on the proof so they travel with it. */
+  caveat: string;
+  legal_advice: false;
+}
