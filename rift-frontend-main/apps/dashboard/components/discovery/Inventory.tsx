@@ -103,7 +103,11 @@ export function Inventory({ inventory }: { inventory: DiscoveryInventory }) {
             />
           ) : (
             <div className="mt-5 overflow-x-auto">
-              <table className="w-full border-collapse" style={{ minWidth: 820 }}>
+              <table
+                data-stack
+                className="w-full border-collapse"
+                style={{ ['--md-table-min' as string]: '820px' } as React.CSSProperties}
+              >
                 <thead>
                   <tr>
                     {['Host', 'Vendor', 'Where it goes', 'Seen on', 'Requests'].map((h, i) => (
@@ -119,7 +123,7 @@ export function Inventory({ inventory }: { inventory: DiscoveryInventory }) {
                 <tbody>
                   {components.map((c) => (
                     <tr key={c.host} className="transition-colors duration-[--md-duration-fast] hover:bg-md-primary/5">
-                      <td className="border-b border-md-outline-variant px-4 py-3.5">
+                      <td data-label="Host" className="border-b border-md-outline-variant px-4 py-3.5">
                         <span className="block font-mono text-body-small text-md-on-surface">{c.host}</span>
                         {c.initiator ? (
                           <span className="mt-0.5 block truncate font-mono text-label-small text-md-on-surface-variant">
@@ -127,7 +131,7 @@ export function Inventory({ inventory }: { inventory: DiscoveryInventory }) {
                           </span>
                         ) : null}
                       </td>
-                      <td className="border-b border-md-outline-variant px-4 py-3.5">
+                      <td data-label="Vendor" className="border-b border-md-outline-variant px-4 py-3.5">
                         {c.unclassified ? (
                           // Neutral by design: nobody has catalogued this host yet,
                           // which is a task, not a fault.
@@ -141,7 +145,7 @@ export function Inventory({ inventory }: { inventory: DiscoveryInventory }) {
                           </>
                         )}
                       </td>
-                      <td className="border-b border-md-outline-variant px-4 py-3.5">
+                      <td data-label="Where it goes" className="border-b border-md-outline-variant px-4 py-3.5">
                         {c.destinationCountry === null ? (
                           <span className="text-body-small text-md-on-surface-variant">Unknown</span>
                         ) : c.crossesBorder ? (
@@ -150,10 +154,10 @@ export function Inventory({ inventory }: { inventory: DiscoveryInventory }) {
                           <Chip tone="success">{c.destinationCountry}</Chip>
                         )}
                       </td>
-                      <td className="border-b border-md-outline-variant px-4 py-3.5">
+                      <td data-label="Seen on" className="border-b border-md-outline-variant px-4 py-3.5">
                         <span className="font-mono text-label-small text-md-on-surface-variant">{c.pageUrl}</span>
                       </td>
-                      <td className="border-b border-md-outline-variant px-4 py-3.5 text-right text-body-small tabular-nums text-md-on-surface-variant">
+                      <td data-label="Requests" className="border-b border-md-outline-variant px-4 py-3.5 text-right text-body-small tabular-nums text-md-on-surface-variant">
                         {c.requestCount.toLocaleString('en-US')}
                       </td>
                     </tr>

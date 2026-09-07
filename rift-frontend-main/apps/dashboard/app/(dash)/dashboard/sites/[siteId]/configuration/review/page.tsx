@@ -50,7 +50,11 @@ export default async function ReviewPage({ params }: { params: Promise<{ siteId:
               <CardHeader title="Detected technologies" sub="Grouped by the consent category Rift assigned." />
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse" style={{ minWidth: 900 }}>
+              <table
+                data-stack
+                className="w-full border-collapse"
+                style={{ ['--md-table-min' as string]: '900px' } as React.CSSProperties}
+              >
                 <thead>
                   <tr>
                     {['Technology', 'Rift category', 'Confidence', 'Consent behaviour'].map((h) => (
@@ -63,7 +67,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ siteId:
                 <tbody>
                   {config.technologies.map((t) => (
                     <tr key={t.technologyId} className="border-b border-md-outline-variant/40">
-                      <td className="px-7 py-4">
+                      <td data-label="Technology" className="px-7 py-4">
                         <div className="flex items-center gap-3">
                           <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-md-secondary-container text-body-medium font-medium text-md-on-secondary-container">
                             {t.name.charAt(0)}
@@ -74,11 +78,11 @@ export default async function ReviewPage({ params }: { params: Promise<{ siteId:
                           </span>
                         </div>
                       </td>
-                      <td className="px-7 py-4 text-body-medium text-md-on-surface-variant">
+                      <td data-label="Rift category" className="px-7 py-4 text-body-medium text-md-on-surface-variant">
                         {t.configuredCategory ?? <span className="opacity-70">Not classified</span>}
                       </td>
-                      <td className="px-7 py-4"><Confidence level={t.confidence} /></td>
-                      <td className="px-7 py-4 text-body-medium text-md-on-surface-variant">
+                      <td data-label="Confidence" className="px-7 py-4"><Confidence level={t.confidence} /></td>
+                      <td data-label="Consent behaviour" className="px-7 py-4 text-body-medium text-md-on-surface-variant">
                         {t.configuredCategory === 'Necessary'
                           ? 'Always available'
                           : t.configuredCategory

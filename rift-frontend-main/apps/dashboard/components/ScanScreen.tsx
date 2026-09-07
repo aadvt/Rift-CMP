@@ -305,7 +305,11 @@ function Unreachable({ scan }: { scan: Scan }) {
         <CardHeader title="Pages Rift could not reach" sub="Each was attempted more than once before Rift moved on." />
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse" style={{ minWidth: 620 }}>
+        <table
+                data-stack
+                className="w-full border-collapse"
+                style={{ ['--md-table-min' as string]: '620px' } as React.CSSProperties}
+              >
           <thead>
             <tr>
               {['Page', 'What happened', 'Attempts'].map((h, i) => (
@@ -321,9 +325,9 @@ function Unreachable({ scan }: { scan: Scan }) {
           <tbody>
             {l.unreachable.map((u) => (
               <tr key={u.path} className="border-b border-md-outline-variant/40">
-                <td className="px-7 py-4 font-mono text-label-medium text-md-on-surface">{u.path}</td>
-                <td className="px-7 py-4 text-body-medium text-md-on-surface-variant">{u.reason}</td>
-                <td className="px-7 py-4 text-right text-body-medium text-md-on-surface-variant tabular-nums">{u.attempts}</td>
+                <td data-label="Page" className="px-7 py-4 font-mono text-label-medium text-md-on-surface">{u.path}</td>
+                <td data-label="What happened" className="px-7 py-4 text-body-medium text-md-on-surface-variant">{u.reason}</td>
+                <td data-label="Attempts" className="px-7 py-4 text-right text-body-medium text-md-on-surface-variant tabular-nums">{u.attempts}</td>
               </tr>
             ))}
           </tbody>

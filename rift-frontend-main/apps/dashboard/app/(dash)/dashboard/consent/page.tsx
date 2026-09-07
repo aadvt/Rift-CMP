@@ -185,7 +185,14 @@ export default async function ConsentPage() {
               <CardHeader title="Consent records" sub="Each record keeps the decision, the configuration version that was live, and what evidence it carries. “Signed” means a signature is attached, not that it has been checked." />
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse" style={{ minWidth: 900 }}>
+              {/* Stacks into cards below `md` — see globals.css. The width
+                  moves to a custom property because an inline min-width would
+                  outrank the media query. */}
+              <table
+                data-stack
+                className="w-full border-collapse"
+                style={{ ['--md-table-min' as string]: '900px' } as React.CSSProperties}
+              >
                 <thead>
                   <tr>
                     {['Record', 'When', 'Region', 'Decision', 'Categories allowed', 'Configuration', 'Channel', 'Proof'].map((h) => (
@@ -198,20 +205,20 @@ export default async function ConsentPage() {
                     const d = DECISION_TONE[r.decision];
                     return (
                       <tr key={r.recordId} className="transition-colors hover:bg-md-primary/8">
-                        <td className="border-b border-md-outline-variant/40 px-4 py-[13px] font-mono text-xs text-md-on-surface">{r.recordId}</td>
-                        <td className="border-b border-md-outline-variant/40 px-4 py-[13px] text-[13.5px] text-md-on-surface-variant">
+                        <td data-label="Record" className="border-b border-md-outline-variant/40 px-4 py-[13px] font-mono text-xs text-md-on-surface">{r.recordId}</td>
+                        <td data-label="When" className="border-b border-md-outline-variant/40 px-4 py-[13px] text-[13.5px] text-md-on-surface-variant">
                           {new Date(r.recordedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                         </td>
-                        <td className="border-b border-md-outline-variant/40 px-4 py-[13px] text-[13.5px] text-md-on-surface-variant">{r.region}</td>
-                        <td className="border-b border-md-outline-variant/40 px-4 py-[13px]"><Chip tone={d.tone}>{d.label}</Chip></td>
-                        <td className="border-b border-md-outline-variant/40 px-4 py-[13px] text-[13.5px] text-md-on-surface-variant">
+                        <td data-label="Region" className="border-b border-md-outline-variant/40 px-4 py-[13px] text-[13.5px] text-md-on-surface-variant">{r.region}</td>
+                        <td data-label="Decision" className="border-b border-md-outline-variant/40 px-4 py-[13px]"><Chip tone={d.tone}>{d.label}</Chip></td>
+                        <td data-label="Categories allowed" className="border-b border-md-outline-variant/40 px-4 py-[13px] text-[13.5px] text-md-on-surface-variant">
                           {r.categoriesAllowed.length ? r.categoriesAllowed.join(', ') : 'Necessary only'}
                         </td>
-                        <td className="border-b border-md-outline-variant/40 px-4 py-[13px] font-mono text-xs text-md-on-surface-variant">{r.configurationVersion}</td>
-                        <td className="border-b border-md-outline-variant/40 px-4 py-[13px] text-[13.5px] text-md-on-surface-variant">
+                        <td data-label="Configuration" className="border-b border-md-outline-variant/40 px-4 py-[13px] font-mono text-xs text-md-on-surface-variant">{r.configurationVersion}</td>
+                        <td data-label="Channel" className="border-b border-md-outline-variant/40 px-4 py-[13px] text-[13.5px] text-md-on-surface-variant">
                           {r.channel === 'banner' ? 'Banner' : 'Preference centre'}
                         </td>
-                        <td className="border-b border-md-outline-variant/40 px-4 py-[13px]">
+                        <td data-label="Proof" className="border-b border-md-outline-variant/40 px-4 py-[13px]">
                           <span className="flex items-center gap-1">
                             <Chip tone={PROOF_TONE[r.proof].tone} title={PROOF_TONE[r.proof].hint}>
                               {PROOF_TONE[r.proof].label}

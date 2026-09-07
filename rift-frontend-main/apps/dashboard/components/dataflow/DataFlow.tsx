@@ -133,7 +133,11 @@ export function DataFlow({ map }: { map: DataFlowMap }) {
             />
           ) : (
             <div className="mt-5 overflow-x-auto">
-              <table className="w-full border-collapse" style={{ minWidth: 760 }}>
+              <table
+                data-stack
+                className="w-full border-collapse"
+                style={{ ['--md-table-min' as string]: '760px' } as React.CSSProperties}
+              >
                 <thead>
                   <tr>
                     {['Recipient', 'Purpose', 'Authorised by', 'Size', 'Status', 'Recorded'].map((h, i) => (
@@ -149,7 +153,7 @@ export function DataFlow({ map }: { map: DataFlowMap }) {
                 <tbody>
                   {map.serverTransfers.map((t) => (
                     <tr key={t.transferId} className="transition-colors duration-[--md-duration-fast] hover:bg-md-primary/5">
-                      <td className="border-b border-md-outline-variant px-4 py-3.5">
+                      <td data-label="Recipient" className="border-b border-md-outline-variant px-4 py-3.5">
                         <span className="block text-label-medium font-medium text-md-on-surface">
                           {t.recipientName ?? t.recipientCode}
                         </span>
@@ -157,19 +161,19 @@ export function DataFlow({ map }: { map: DataFlowMap }) {
                           {t.recipientCode}
                         </span>
                       </td>
-                      <td className="border-b border-md-outline-variant px-4 py-3.5 text-body-small text-md-on-surface-variant">
+                      <td data-label="Purpose" className="border-b border-md-outline-variant px-4 py-3.5 text-body-small text-md-on-surface-variant">
                         {t.purposeCode}
                       </td>
-                      <td className="border-b border-md-outline-variant px-4 py-3.5">
+                      <td data-label="Authorised by" className="border-b border-md-outline-variant px-4 py-3.5">
                         {/* The specific decision, not a general permission. */}
                         <span className="font-mono text-label-small text-md-on-surface-variant">
                           {t.consentRecordId}
                         </span>
                       </td>
-                      <td className="border-b border-md-outline-variant px-4 py-3.5 text-right text-body-small tabular-nums text-md-on-surface-variant">
+                      <td data-label="Size" className="border-b border-md-outline-variant px-4 py-3.5 text-right text-body-small tabular-nums text-md-on-surface-variant">
                         {(t.payloadBytes / 1024).toFixed(1)} kB
                       </td>
-                      <td className="border-b border-md-outline-variant px-4 py-3.5 text-right">
+                      <td data-label="Status" className="border-b border-md-outline-variant px-4 py-3.5 text-right">
                         {t.status === 'DELIVERED' ? (
                           <Chip tone="success" glyph="check">Delivered</Chip>
                         ) : t.status === 'FAILED' ? (
@@ -178,7 +182,7 @@ export function DataFlow({ map }: { map: DataFlowMap }) {
                           <Chip tone="neutral">Recorded</Chip>
                         )}
                       </td>
-                      <td className="border-b border-md-outline-variant px-4 py-3.5 text-right text-body-small tabular-nums text-md-on-surface-variant">
+                      <td data-label="Recorded" className="border-b border-md-outline-variant px-4 py-3.5 text-right text-body-small tabular-nums text-md-on-surface-variant">
                         {new Date(t.recordedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                       </td>
                     </tr>

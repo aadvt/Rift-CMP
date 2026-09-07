@@ -14,6 +14,19 @@ import { Icon } from './Icon';
  * A row click opens a drawer rather than navigating away; pass `onRowClick`
  * and render the drawer yourself.
  */
+/**
+ * The column's header as plain text, for the stacked layout's cell labels.
+ *
+ * Only a string header can become one. A header rendered as a component could
+ * be anything — an icon, a control, a sort button — and forcing it through
+ * `String()` would print `[object Object]` next to every value. Those cells go
+ * unlabelled instead, which reads as a value with no caption rather than as a
+ * bug.
+ */
+function headerLabel(header: unknown): string | undefined {
+  return typeof header === 'string' && header.trim() ? header : undefined;
+}
+
 export function DataTable<T>({
   data, columns, sorting, onSortingChange, onRowClick, isRowActive, empty, minWidth, maxHeight, className,
 }: {
@@ -48,7 +61,21 @@ export function DataTable<T>({
 
   return (
     <div className={cn('overflow-auto', className)} style={maxHeight ? { maxHeight } : undefined}>
-      <table className="w-full border-collapse" style={minWidth ? { minWidth } : undefined}>
+      {/* `data-stack` opts this table into the card layout below `md`, defined
+          once in globals.css. A data table is the worst thing to read on a
+          phone: `minWidth` here is 880-980px, so every row means swiping
+          sideways and losing the column you were comparing against. Stacked,
+          each row becomes a card and each cell carries its own header.
+
+          The min-width is applied through a custom property rather than the
+          style attribute so the stacked rules can drop it. An inline style
+          would win over any media query and the cards would still be 900px
+          wide. */}
+      <table
+        data-stack
+        className="w-full border-collapse"
+        style={minWidth ? ({ ['--md-table-min' as string]: `${minWidth}px` } as React.CSSProperties) : undefined}
+      >
         <thead>
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id}>
@@ -126,6 +153,10 @@ export function DataTable<T>({
                   return (
                     <td
                       key={cell.id}
+                      // Stacked, the header row is gone, so each cell has to
+                      // say what it is. Taken from the column definition so it
+                      // cannot drift from the header it replaces.
+                      data-label={headerLabel(cell.column.columnDef.header)}
                       className={cn(
                         'px-4 py-4 align-middle text-body-medium text-md-on-surface-variant',
                         align === 'right' && 'text-right',

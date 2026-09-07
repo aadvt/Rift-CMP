@@ -87,7 +87,11 @@ export function ExperimentList({ experiments }: { experiments: W.WireExperiment[
           />
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse" style={{ minWidth: 860 }}>
+          <table
+                data-stack
+                className="w-full border-collapse"
+                style={{ ['--md-table-min' as string]: '860px' } as React.CSSProperties}
+              >
             <thead>
               <tr>
                 {['Experiment', 'Status', 'Variants', 'Allocation', 'Window', 'Serving'].map((h) => (
@@ -103,7 +107,7 @@ export function ExperimentList({ experiments }: { experiments: W.WireExperiment[
             <tbody>
               {experiments.map((experiment) => (
                 <tr key={experiment.experiment_id} className="transition-colors hover:bg-md-primary/8">
-                  <td className="border-b border-md-outline-variant/40 px-4 py-[13px]">
+                  <td data-label="Experiment" className="border-b border-md-outline-variant/40 px-4 py-[13px]">
                     <Link
                       href={`/dashboard/experiments/${experiment.experiment_id}` as Route}
                       className="text-[13.5px] font-medium text-md-primary hover:underline"
@@ -116,21 +120,21 @@ export function ExperimentList({ experiments }: { experiments: W.WireExperiment[
                       </span>
                     ) : null}
                   </td>
-                  <td className="border-b border-md-outline-variant/40 px-4 py-[13px]">
+                  <td data-label="Status" className="border-b border-md-outline-variant/40 px-4 py-[13px]">
                     <Chip tone={STATUS_TONE[experiment.status]}>
                       {STATUS_LABEL[experiment.status]}
                     </Chip>
                   </td>
-                  <td className="border-b border-md-outline-variant/40 px-4 py-[13px] text-[13.5px] text-md-on-surface-variant">
+                  <td data-label="Variants" className="border-b border-md-outline-variant/40 px-4 py-[13px] text-[13.5px] text-md-on-surface-variant">
                     {experiment.variants.length}
                   </td>
-                  <td className="border-b border-md-outline-variant/40 px-4 py-[13px] font-mono text-xs text-md-on-surface-variant">
+                  <td data-label="Allocation" className="border-b border-md-outline-variant/40 px-4 py-[13px] font-mono text-xs text-md-on-surface-variant">
                     {experiment.variants.map((v) => `${v.allocation}`).join(' / ')}
                   </td>
-                  <td className="border-b border-md-outline-variant/40 px-4 py-[13px] text-[13.5px] text-md-on-surface-variant">
+                  <td data-label="Window" className="border-b border-md-outline-variant/40 px-4 py-[13px] text-[13.5px] text-md-on-surface-variant">
                     {window(experiment)}
                   </td>
-                  <td className="border-b border-md-outline-variant/40 px-4 py-[13px]">
+                  <td data-label="Serving" className="border-b border-md-outline-variant/40 px-4 py-[13px]">
                     {/* Not the same as the status. A RUNNING experiment outside
                         its window assigns nobody, and an operator reading only
                         the badge would believe otherwise. */}

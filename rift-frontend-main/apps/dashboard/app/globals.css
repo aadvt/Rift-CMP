@@ -77,6 +77,96 @@
 
    `visibility` rather than `display`: hiding an ancestor with `display: none`
    would take the descendant with it however visible it claims to be. */
+/* ── Data tables on a phone ──────────────────────────────────────────────
+ *
+ * Every table in this app carries a min-width between 620 and 980px, because
+ * a compliance table with eight columns cannot be squeezed into 375 and stay
+ * legible. On a desktop that is right. On a phone it means each row is read by
+ * swiping sideways, and the column you are comparing against scrolls out of
+ * view — which is the specific thing a table is for.
+ *
+ * Below `md` a row becomes a card and each cell carries its own label. The
+ * table semantics are untouched: this is presentation only, so a screen reader
+ * still gets a table with headers and the sort controls still work.
+ *
+ * `--md-table-min` rather than an inline `min-width`. An inline style beats a
+ * media query, so a table setting min-width in `style` would stay 900px wide
+ * inside a card layout and defeat the whole thing.
+ */
+table[data-stack] {
+  min-width: var(--md-table-min, 0);
+}
+
+@media (max-width: 767px) {
+  table[data-stack] {
+    min-width: 0;
+    display: block;
+  }
+
+  /* Hidden rather than removed from the tree — `display: none` on a thead
+   * keeps the header cells addressable for assistive technology while taking
+   * them out of the visual flow. */
+  table[data-stack] thead {
+    display: none;
+  }
+
+  table[data-stack] tbody {
+    display: block;
+  }
+
+  table[data-stack] tbody tr {
+    display: block;
+    margin-bottom: 0.75rem;
+    padding: 0.25rem 0;
+    border: 1px solid var(--md-outline-variant);
+    border-radius: 1rem;
+    background: var(--md-surface);
+  }
+
+  table[data-stack] tbody tr:last-child {
+    margin-bottom: 0;
+  }
+
+  table[data-stack] tbody td {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    /* Wraps rather than overflows. A cell holding a chip and a button beside
+     * it is wider than what is left after the label, and without this it
+     * pushes the card a few pixels past the viewport — enough to make the
+     * whole page scroll sideways, which is the thing this layout exists to
+     * stop. Wrapped, the value drops under its own label. */
+    flex-wrap: wrap;
+    gap: 0.25rem 1.25rem;
+    min-width: 0;
+    width: auto;
+    padding: 0.5rem 1rem;
+    border: 0;
+    /* Values keep their own alignment; the label anchors left regardless of
+     * the column's desktop alignment. */
+    text-align: right;
+  }
+
+  table[data-stack] tbody td[data-label]::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    max-width: 45%;
+    text-align: left;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--md-on-surface-variant);
+  }
+
+  /* A cell with no label — an actions column, a checkbox — spans the card
+   * instead of leaving a gap where the caption would be. */
+  table[data-stack] tbody td:not([data-label]) {
+    justify-content: flex-start;
+    text-align: left;
+  }
+}
+
 @media print {
   body * { visibility: hidden; }
 

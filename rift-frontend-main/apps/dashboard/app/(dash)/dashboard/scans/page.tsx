@@ -29,7 +29,11 @@ export default async function ScansPage() {
             />
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse" style={{ minWidth: 820 }}>
+              <table
+                data-stack
+                className="w-full border-collapse"
+                style={{ ['--md-table-min' as string]: '820px' } as React.CSSProperties}
+              >
                 <thead>
                   <tr>
                     {['Scan', 'Status', 'Pages', 'Cookies', 'Services', 'Unresolved', 'vs previous', ''].map((h, i) => (
@@ -45,7 +49,7 @@ export default async function ScansPage() {
                 <tbody>
                   {scans.map((s, i) => (
                     <tr key={s.scanId} className={`group transition-colors hover:bg-md-primary/8 ${i === 0 ? 'bg-md-primary/8' : ''}`}>
-                      <td className="border-b border-md-outline-variant/40 px-4 py-[13px]">
+                      <td data-label="Scan" className="border-b border-md-outline-variant/40 px-4 py-[13px]">
                         <Link href={`/dashboard/scans/${s.scanId}`} className="flex items-center gap-3">
                           <span className={`inline-flex size-8 shrink-0 items-center justify-center rounded-sm ${i === 0 ? 'bg-md-secondary-container text-md-on-secondary-container' : 'bg-md-surface-variant text-md-on-surface-variant'}`}>
                             <Icon name="scans" size={16} />
@@ -58,7 +62,7 @@ export default async function ScansPage() {
                           </span>
                         </Link>
                       </td>
-                      <td className="border-b border-md-outline-variant/40 px-4 py-[13px]">
+                      <td data-label="Status" className="border-b border-md-outline-variant/40 px-4 py-[13px]">
                         {/* Five statuses, not two. A running scan reported as
                             "completed with limitations" is merely confusing; a
                             failed one reported that way tells an operator their
@@ -73,15 +77,15 @@ export default async function ScansPage() {
                                 ? <Chip tone="neutral" dot>Queued</Chip>
                                 : <Chip tone="error">Failed</Chip>}
                       </td>
-                      <td className="border-b border-md-outline-variant/40 px-4 py-[13px] text-right text-[13.5px] text-md-on-surface-variant tabular-nums">{s.counts.pages}</td>
-                      <td className="border-b border-md-outline-variant/40 px-4 py-[13px] text-right text-[13.5px] text-md-on-surface-variant tabular-nums">{s.counts.cookies}</td>
-                      <td className="border-b border-md-outline-variant/40 px-4 py-[13px] text-right text-[13.5px] text-md-on-surface-variant tabular-nums">{s.counts.services}</td>
-                      <td className="border-b border-md-outline-variant/40 px-4 py-[13px] text-right text-[13.5px] tabular-nums">
+                      <td data-label="Pages" className="border-b border-md-outline-variant/40 px-4 py-[13px] text-right text-[13.5px] text-md-on-surface-variant tabular-nums">{s.counts.pages}</td>
+                      <td data-label="Cookies" className="border-b border-md-outline-variant/40 px-4 py-[13px] text-right text-[13.5px] text-md-on-surface-variant tabular-nums">{s.counts.cookies}</td>
+                      <td data-label="Services" className="border-b border-md-outline-variant/40 px-4 py-[13px] text-right text-[13.5px] text-md-on-surface-variant tabular-nums">{s.counts.services}</td>
+                      <td data-label="Unresolved" className="border-b border-md-outline-variant/40 px-4 py-[13px] text-right text-[13.5px] tabular-nums">
                         {s.counts.unresolved === 0
                           ? <span className="text-md-on-surface-variant/75">—</span>
                           : <span className="font-semibold text-md-on-warning-container">{s.counts.unresolved}</span>}
                       </td>
-                      <td className="border-b border-md-outline-variant/40 px-4 py-[13px] text-right text-[13.5px]">
+                      <td data-label="vs previous" className="border-b border-md-outline-variant/40 px-4 py-[13px] text-right text-[13.5px]">
                         {s.deltaTechnologies
                           ? <span className="font-semibold text-md-on-success-container">+{s.deltaTechnologies} new</span>
                           : <span className="text-md-on-surface-variant/75">No change</span>}

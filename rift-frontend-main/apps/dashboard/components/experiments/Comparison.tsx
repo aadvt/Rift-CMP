@@ -121,6 +121,14 @@ export function ExperimentComparison({
             sub="Rates count people, not decisions. A visitor who accepted, withdrew and accepted again is one visitor who currently accepts."
           />
         </div>
+        {/* Deliberately not `data-stack`. Every other table in this app
+            becomes cards on a phone, because a row is one record and a card
+            reads better than a sideways swipe. This one is transposed —
+            metrics down, variants across — so the side-by-side comparison IS
+            the content. Stacked into per-metric cards it would still work, but
+            the thing somebody opened it to do, holding two numbers next to
+            each other, would be gone. It scrolls instead, and at 640px that is
+            one short swipe rather than the 900 the others needed. */}
         <div className="overflow-x-auto">
           <table className="w-full border-collapse" style={{ minWidth: 640 }}>
             <thead>
