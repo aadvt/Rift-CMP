@@ -2,6 +2,7 @@
 ### Consent Management & Privacy Intelligence Platform
 
 > **Rift-CMP is a privacy platform that helps organizations discover what their websites collect and share, understand which privacy requirements may apply, manage visitor consent, enforce those choices, and continuously understand whether the website still matches its privacy policy.**
+<img width="1672" height="941" alt="slide3rift" src="https://github.com/user-attachments/assets/181504b1-47de-420b-8363-b1f51b1df371" />
 
 ---
 
