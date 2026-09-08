@@ -170,31 +170,30 @@ export function ShieldHero({ className }: { className?: string }) {
  *
  * ## Why it does not animate
  *
- * The desktop one turns because the reader scrolled — it is a response to
- * them, which is what stops it reading as a looping logo. On a phone that
- * relationship is not available in the same way: the shield sits in the flow
- * above the fold, there is no room beside it to travel into, and a scroll-bound
- * rotation would mean the thing moving while somebody is trying to read the
- * heading next to it.
+ * The desktop one turns because the reader scrolled — a response to them, which
+ * is what stops it reading as a looping logo. At this size it sits behind the
+ * copy, and something moving under text somebody is trying to read is a
+ * distraction rather than an effect. So it holds a three-quarter angle and
+ * stays there.
  *
- * So it holds a three-quarter angle and stays there. It is the same component,
- * the same fourteen extrusion slices, the same rim and facets and tick — just
- * without the timeline. Nothing is redrawn or simplified for the small screen,
- * because the detail is what makes it look like an object rather than an icon,
- * and that reads at any size.
+ * It is the same component either way: the same fourteen extrusion slices, the
+ * same rim, facets and raised tick, just without the timeline. Nothing is
+ * redrawn or simplified for the small screen, because the detail is what makes
+ * it an object rather than an icon and that reads at any size.
  *
- * ## Why it is in the flow
+ * ## It does not place itself
  *
- * The desktop shield is absolutely positioned so it can break out of the hero
- * panel. There is nothing to break out of at 375px — the panel is the width of
- * the screen — so this takes its own space above the copy and pushes nothing
- * off the side.
+ * No width, no margin, no position — the caller owns all of that. The first
+ * version baked in `mx-auto` and a width because it was stacked above the copy,
+ * and when that turned out to look like a splash screen the reader had to get
+ * past, those built-in rules fought every attempt to move it. A decorative
+ * element should know how to draw itself and nothing about where it goes.
  */
 export function ShieldStatic({ className }: { className?: string }) {
   return (
     <div
       aria-hidden="true"
-      className={cn('pointer-events-none mx-auto w-[min(78vw,20rem)] select-none lg:hidden', className)}
+      className={cn('pointer-events-none select-none lg:hidden', className)}
       style={{ perspective: '900px' }}
     >
       <ShieldArt

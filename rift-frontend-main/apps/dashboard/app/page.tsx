@@ -59,17 +59,30 @@ export default async function Home() {
           must not have it. */}
       <section className="relative px-5 pb-10 md:px-8">
         <div className="relative mx-auto max-w-[1200px] rounded-3xl bg-md-surface-container px-6 py-14 md:px-12 md:py-16">
+          {/* Everything decorative, clipped to the panel's rounded corners and
+              sitting behind the content that follows it. */}
           <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
             <BlurField variant="hero" />
+
+            {/* The phone's shield. It hangs off the right edge, upper area,
+                behind the copy rather than above it.
+
+                Stacked on top it pushed the heading and the field down the
+                screen and read as a splash image the reader had to get past.
+                Here it does what the desktop one does — occupies the space the
+                text does not use — and the first thing on the screen is still
+                the sentence saying what this is.
+
+                Two thirds of its width sits past the panel edge on purpose: a
+                partial object reads as something continuing beyond the frame,
+                where a whole one centred in the margin reads as an icon that
+                did not fit. Held at 55% so the copy crossing it stays the
+                darkest thing on the panel. */}
+            <ShieldStatic className="absolute -right-[26%] top-[-4%] w-[64%] opacity-50" />
           </div>
 
           <div className="relative grid grid-cols-1 items-center gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.9fr)] lg:gap-8">
             <div className="max-w-[620px]">
-              {/* Above the copy on a phone, where the desktop shield is not
-                  rendered. It leads rather than decorates at that width: it is
-                  the first thing on the screen and says what the product is
-                  before the heading has to. */}
-              <ShieldStatic className="mb-8" />
               <HeroIntro />
               <LandingScanForm className="mt-9" />
             </div>
