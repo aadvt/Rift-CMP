@@ -47,6 +47,7 @@ export function Reveal({
   y = 18,
   stagger,
   as: Tag = 'div',
+  descendWhenSingle = false,
 }: {
   children: React.ReactNode;
   className?: string;
@@ -56,6 +57,16 @@ export function Reveal({
   /** Seconds between children. Omit to animate the element as a single block. */
   stagger?: number;
   as?: 'div' | 'section' | 'ul' | 'ol';
+  /**
+   * When the only child is itself a wrapper, stagger *its* children instead.
+   *
+   * For a generic container like `Screen` this is the difference between the
+   * feature working and not: most pages put everything inside one layout div,
+   * so the direct-children list is length one and the stagger sequences
+   * nothing. Opt-in, because at every other call site the direct children are
+   * exactly what should move and descending would be wrong.
+   */
+  descendWhenSingle?: boolean;
 }) {
   const ref = React.useRef<HTMLElement>(null);
 
@@ -64,7 +75,13 @@ export function Reveal({
     if (!el || !shouldAnimate()) return;
 
     const gsap = withGsap();
-    const targets = stagger !== undefined ? Array.from(el.children) : [el];
+    let targets: Element[] = stagger !== undefined ? Array.from(el.children) : [el];
+    if (descendWhenSingle && stagger !== undefined && targets.length === 1) {
+      const inner = Array.from(targets[0]!.children);
+      // Only worth descending if it actually yields a sequence. A wrapper with
+      // one child inside it is the same single block one level down.
+      if (inner.length > 1) targets = inner;
+    }
     if (targets.length === 0) return;
 
     let unguard = () => {};
@@ -121,7 +138,7 @@ export function Reveal({
       if (ctx) ctx.revert();
       else gsap.set(targets, { clearProps: 'opacity,transform' });
     };
-  }, [delay, y, stagger]);
+  }, [delay, y, stagger, descendWhenSingle]);
 
   return (
     <Tag ref={ref as React.Ref<never>} className={className}>

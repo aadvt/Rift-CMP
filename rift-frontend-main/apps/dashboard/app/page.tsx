@@ -4,7 +4,7 @@ import { BlurField, Card, Icon, RiftMark, type IconName } from '@rift/ui';
 import { LandingScanForm } from '@/components/LandingScanForm';
 import { HeroIntro } from '@/components/landing/HeroIntro';
 import { RegimeStrip } from '@/components/landing/RegimeStrip';
-import { ShieldHero } from '@/components/landing/ShieldHero';
+import { ShieldHero, ShieldStatic } from '@/components/landing/ShieldHero';
 import { Reveal } from '@/components/motion/Reveal';
 import { readSessionToken } from '@/lib/auth/session';
 
@@ -65,6 +65,11 @@ export default async function Home() {
 
           <div className="relative grid grid-cols-1 items-center gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.9fr)] lg:gap-8">
             <div className="max-w-[620px]">
+              {/* Above the copy on a phone, where the desktop shield is not
+                  rendered. It leads rather than decorates at that width: it is
+                  the first thing on the screen and says what the product is
+                  before the heading has to. */}
+              <ShieldStatic className="mb-8" />
               <HeroIntro />
               <LandingScanForm className="mt-9" />
             </div>

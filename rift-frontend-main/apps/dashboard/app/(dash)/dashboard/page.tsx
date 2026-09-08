@@ -59,7 +59,9 @@ export default async function OverviewPage() {
         }
       />
 
-      <Screen>
+      {/* This screen sequences its own cards below, so it opts out of the
+          column-level stagger rather than compounding the two. */}
+      <Screen reveal={false}>
         <div className="flex flex-col gap-5">
           {/* The stat band is the first thing on the screen, so it carries the
               atmospheric layer and the largest radius on the page. */}
