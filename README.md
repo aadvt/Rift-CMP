@@ -171,6 +171,12 @@ Instead of relying only on what a company says its website contains, Rift can ob
 
 This discovery layer becomes the foundation for the rest of the platform.
 
+### Crawler & Worker Queue
+
+Website scans are handled asynchronously through a dedicated crawler worker. A scan request is placed into the platform's database-backed queue, the worker claims the job, and the Playwright crawler renders the website and collects the observations used by Rift's discovery and intelligence layers.
+
+The crawler is specifically designed to connect **observed website behavior with the consent configuration**. Alongside trackers, scripts, requests, cookies, storage, vendors, and destinations, it looks for consent/CMP signals so Rift can compare what is actually running on the site with what has been configured and identify gaps or changes.
+
 ---
 
 ## 2. Vendor & Tracker Intelligence
